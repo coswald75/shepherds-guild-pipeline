@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shepherd's Guild — Series Analysis: Keys to Spiritual Growth</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1714;
+  --parchment: #f7f3ee;
+  --cream: #ede8e0;
+  --warm-gray: #9e9688;
+  --gold: #c4a265;
+  --gold-dim: #a8894f;
+  --gold-bright: #dbb978;
+  --burgundy: #6b2d3e;
+  --burgundy-light: #8a3d52;
+  --forest: #2d4a3e;
+  --slate: #4a4640;
+  --highlight: rgba(196, 162, 101, 0.12);
+  --shadow-soft: 0 2px 20px rgba(26, 23, 20, 0.06);
+  --shadow-card: 0 4px 30px rgba(26, 23, 20, 0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ink);
+  color: var(--parchment);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── COVER ── */
+.cover {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 60px 30px;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(196,162,101,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 80% at 80% 20%, rgba(107,45,62,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.cover-content { position: relative; z-index: 2; max-width: 750px; }
+.guild-mark {
+  width: 56px; height: 56px;
+  border: 1.5px solid var(--gold);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 40px;
+  opacity: 0; animation: fadeUp 1s 0.2s forwards;
+}
+.guild-mark svg { width: 24px; height: 24px; }
+.cover-label {
+  font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 32px;
+  opacity: 0; animation: fadeUp 1s 0.4s forwards;
+}
+.cover-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 300; line-height: 1.15;
+  margin-bottom: 12px;
+  opacity: 0; animation: fadeUp 1s 0.6s forwards;
+}
+.cover-title em { font-style: italic; color: var(--gold-bright); }
+.cover-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem; font-weight: 400; font-style: italic;
+  color: var(--gold-dim); margin-bottom: 48px;
+  opacity: 0; animation: fadeUp 1s 0.8s forwards;
+}
+.cover-meta {
+  font-size: 0.78rem; color: var(--warm-gray);
+  letter-spacing: 0.04em;
+  opacity: 0; animation: fadeUp 1s 1s forwards;
+}
+.cover-meta .sep { color: var(--gold-dim); margin: 0 12px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  background: rgba(196,162,101,0.15);
+  border-top: 1px solid rgba(196,162,101,0.2);
+  border-bottom: 1px solid rgba(196,162,101,0.2);
+}
+.stat-cell {
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--ink);
+}
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.8rem; font-weight: 300;
+  color: var(--gold);
+}
+.stat-label {
+  font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--warm-gray); margin-top: 6px;
+}
+
+/* ── SECTIONS ── */
+.section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 80px 30px;
+}
+.section-label {
+  font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 400; line-height: 1.2;
+  margin-bottom: 24px;
+}
+.section-body {
+  font-size: 0.92rem; color: rgba(247,243,238,0.7);
+  max-width: 680px; line-height: 1.8;
+}
+.section-body + .section-body { margin-top: 16px; }
+.section-divider {
+  width: 60px; height: 1px;
+  background: var(--gold-dim);
+  margin: 60px 0;
+}
+
+/* ── SERMON CARDS ── */
+.sermon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+.sermon-card {
+  background: rgba(247,243,238,0.03);
+  border: 1px solid rgba(196,162,101,0.12);
+  border-radius: 8px;
+  padding: 28px 24px;
+  transition: border-color 0.3s;
+}
+.sermon-card:hover { border-color: var(--gold-dim); }
+.sermon-card-part {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 10px;
+}
+.sermon-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; font-weight: 500;
+  margin-bottom: 6px;
+}
+.sermon-card-text {
+  font-size: 0.75rem; color: var(--warm-gray);
+  margin-bottom: 12px;
+}
+.sermon-card-thesis {
+  font-size: 0.8rem; color: rgba(247,243,238,0.6);
+  font-style: italic; line-height: 1.6;
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 14px; margin-bottom: 16px;
+}
+.sermon-card-stats {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.mini-stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; color: var(--gold-dim);
+  background: rgba(196,162,101,0.06);
+  padding: 3px 8px; border-radius: 4px;
+}
+
+/* ── BAR CHARTS ── */
+.chart-container { margin-top: 40px; }
+.chart-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem; font-weight: 500;
+  margin-bottom: 20px;
+}
+.bar-row {
+  display: flex; align-items: center;
+  margin-bottom: 10px;
+}
+.bar-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem; color: var(--warm-gray);
+  width: 160px; flex-shrink: 0;
+  text-align: right; padding-right: 16px;
+}
+.bar-track {
+  flex: 1; height: 24px;
+  background: rgba(247,243,238,0.03);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 1s ease;
+  display: flex; align-items: center;
+  padding-left: 10px;
+}
+.bar-fill span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; color: var(--parchment);
+  white-space: nowrap;
+}
+.bar-gold { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+.bar-burgundy { background: linear-gradient(90deg, var(--burgundy), var(--burgundy-light)); }
+.bar-forest { background: linear-gradient(90deg, var(--forest), #3d6454); }
+.bar-slate { background: linear-gradient(90deg, var(--slate), #5d5953); }
+.bar-warm { background: linear-gradient(90deg, #8a6d3b, var(--gold-dim)); }
+
+/* ── FLOW VISUALIZATION ── */
+.flow-container { margin-top: 30px; margin-bottom: 30px; }
+.flow-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; color: var(--warm-gray);
+  margin-bottom: 8px;
+}
+.flow-row {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  margin-bottom: 16px;
+}
+.flow-unit {
+  width: 10px; height: 28px;
+  border-radius: 2px;
+  transition: transform 0.2s;
+  position: relative;
+}
+.flow-unit:hover { transform: scaleY(1.3); }
+.flow-unit[data-fn="exposition"] { background: var(--gold); }
+.flow-unit[data-fn="theological_claim"] { background: var(--burgundy-light); }
+.flow-unit[data-fn="illustration"] { background: var(--forest); }
+.flow-unit[data-fn="application"] { background: #7b9a8e; }
+.flow-unit[data-fn="transition"] { background: rgba(247,243,238,0.12); }
+.flow-unit[data-fn="introduction"] { background: var(--slate); }
+.flow-unit[data-fn="conclusion"] { background: var(--slate); }
+.flow-unit[data-fn="pastoral_aside"] { background: #a07050; }
+.flow-unit[data-fn="prayer"] { background: rgba(196,162,101,0.3); }
+
+.flow-legend {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-top: 16px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.68rem; color: var(--warm-gray);
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 2px;
+}
+
+/* ── LOCI HEATMAP ── */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px; margin-top: 20px;
+}
+.heat-cell {
+  padding: 12px 10px;
+  border-radius: 4px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.heat-cell:hover { transform: scale(1.05); }
+.heat-cell-label {
+  font-size: 0.68rem; color: var(--parchment);
+  line-height: 1.3;
+}
+.heat-cell-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem; font-weight: 500;
+  color: var(--parchment); margin-top: 4px;
+}
+
+/* ── QUOTE CARDS ── */
+.quote-card {
+  background: rgba(247,243,238,0.03);
+  border-left: 3px solid var(--gold-dim);
+  padding: 20px 24px;
+  margin-top: 16px;
+  border-radius: 0 6px 6px 0;
+}
+.quote-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; font-style: italic;
+  color: rgba(247,243,238,0.8);
+  line-height: 1.7; margin-bottom: 10px;
+}
+.quote-attr {
+  font-size: 0.75rem; color: var(--gold-dim);
+}
+.quote-fn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; color: var(--warm-gray);
+  background: rgba(196,162,101,0.08);
+  padding: 2px 6px; border-radius: 3px;
+  margin-left: 8px;
+}
+
+/* ── CROSS-REF NETWORK ── */
+.xref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px; margin-top: 20px;
+}
+.xref-cell {
+  padding: 10px 8px;
+  text-align: center;
+  border-radius: 4px;
+  border: 1px solid rgba(196,162,101,0.1);
+}
+.xref-book {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem; color: var(--parchment);
+}
+.xref-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem; color: var(--gold);
+  margin-top: 2px;
+}
+
+/* ── PEOPLE ── */
+.people-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 16px;
+}
+.person-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(196,162,101,0.2);
+  color: var(--gold-dim);
+  transition: border-color 0.3s;
+}
+.person-tag:hover { border-color: var(--gold); }
+.person-count {
+  color: var(--warm-gray);
+  margin-left: 4px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center;
+  padding: 60px 30px;
+  border-top: 1px solid rgba(196,162,101,0.1);
+}
+.footer-text {
+  font-size: 0.72rem; color: var(--warm-gray);
+  letter-spacing: 0.06em;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ COVER ══ -->
+<div class="cover">
+  <div class="cover-content">
+    <div class="guild-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#c4a265" stroke-width="1.5">
+        <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
+        <path d="M12 22V12"/><path d="M2 7l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="cover-label">Shepherd's Guild — Series Analysis</div>
+    <h1 class="cover-title">Keys to <em>Spiritual Growth</em></h1>
+    <div class="cover-subtitle">John MacArthur — A Six-Part Topical Series</div>
+    <div class="cover-meta">
+      <span>6 Sermons</span>
+      <span class="sep">·</span>
+      <span>283 Functional Units</span>
+      <span class="sep">·</span>
+      <span>186 Cross-References</span>
+      <span class="sep">·</span>
+      <span>Decomposition Spec v3</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STATS BAR ══ -->
+<div class="stats-bar">
+  <div class="stat-cell"><div class="stat-value">283</div><div class="stat-label">Total Units</div></div>
+  <div class="stat-cell"><div class="stat-value">47.2</div><div class="stat-label">Avg Units / Sermon</div></div>
+  <div class="stat-cell"><div class="stat-value">186</div><div class="stat-label">Cross-References</div></div>
+  <div class="stat-cell"><div class="stat-value">13</div><div class="stat-label">Quotations</div></div>
+  <div class="stat-cell"><div class="stat-value">31</div><div class="stat-label">BT Moves</div></div>
+</div>
+
+<!-- ══ OVERVIEW ══ -->
+<div class="section">
+  <div class="section-label">Overview</div>
+  <h2 class="section-title">The Architecture of a Teaching Series</h2>
+  <p class="section-body">MacArthur's <em>Keys to Spiritual Growth</em> is a six-part topical series organized around a single controlling metaphor: spiritual growth is synonymous with glorifying God, and there are specific, concrete practices — keys — that unlock progressive sanctification. The series covers thirteen keys across six sessions, building cumulatively from the master principle (glorifying God) through confession, trust, fruitfulness, praise, obedience, prayer, proclamation, evangelism, moral purity, unity, and spiritual gifts.</p>
+  <p class="section-body">The decomposition data reveals a preacher operating almost entirely in <strong>logos register</strong> (85% of all units), with exposition as the dominant function (43%). This is MacArthur's signature: the teacher-expositor who builds arguments from text, not from emotion. Pathos appears in only 20% of units, nearly always in illustrations. The series is structurally didactic — and unapologetically so.</p>
+
+  <div class="section-divider"></div>
+
+  <!-- SERMON CARDS -->
+  <div class="section-label">The Six Sessions</div>
+  <div class="sermon-grid">
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 1</div>
+      <div class="sermon-card-title">The Master Key</div>
+      <div class="sermon-card-text">Ephesians 3:19 · expository</div>
+      <div class="sermon-card-thesis">The master key to spiritual growth is focusing on the glory of God, which moves believers from knowing they belong to God, to knowing His Word, to knowing God Himself.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">26 units</span>
+        <span class="mini-stat">44 xrefs</span>
+        <span class="mini-stat">11 BT moves</span>
+      </div>
+    </div>
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 2</div>
+      <div class="sermon-card-title">Lordship & Fruit</div>
+      <div class="sermon-card-text">1 Corinthians 10:31 · topical</div>
+      <div class="sermon-card-thesis">Spiritual growth consists in glorifying God through confessing Jesus as Lord and submitting to His Lordship at any cost, resulting in bearing reproach from the world.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">56 units</span>
+        <span class="mini-stat">26 xrefs</span>
+        <span class="mini-stat">9 illust</span>
+      </div>
+    </div>
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 3</div>
+      <div class="sermon-card-title">Confessing Sin</div>
+      <div class="sermon-card-text">Nehemiah 9:33 · topical</div>
+      <div class="sermon-card-thesis">Spiritual growth requires confessing sin as personal responsibility, removing the retarding weight of unacknowledged sin and enabling progressive sanctification.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">42 units</span>
+        <span class="mini-stat">31 xrefs</span>
+        <span class="mini-stat">5 BT moves</span>
+      </div>
+    </div>
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 4</div>
+      <div class="sermon-card-title">Trust, Fruit & Praise</div>
+      <div class="sermon-card-text">Psalm 86:12 · topical</div>
+      <div class="sermon-card-thesis">Spiritual growth is synonymous with living to God's glory through trust, fruitfulness, and praise, progressively transforming believers into Christ's likeness.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">47 units</span>
+        <span class="mini-stat">35 xrefs</span>
+        <span class="mini-stat">9 illust</span>
+      </div>
+    </div>
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 5</div>
+      <div class="sermon-card-title">Obedience, Prayer & Proclamation</div>
+      <div class="sermon-card-text">1 Peter 2:2 · topical</div>
+      <div class="sermon-card-thesis">Spiritual growth is the natural result of glorifying God through obedience born of love, prayer according to His will, and proclaiming His Word.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">44 units</span>
+        <span class="mini-stat">20 xrefs</span>
+        <span class="mini-stat">7 illust</span>
+      </div>
+    </div>
+    <div class="sermon-card">
+      <div class="sermon-card-part">Part 6</div>
+      <div class="sermon-card-title">Purity, Unity & Gifts</div>
+      <div class="sermon-card-text">Psalm 16:8 · topical</div>
+      <div class="sermon-card-thesis">Spiritual growth is the result of living to God's glory through moral purity, unity with believers, and faithful exercise of spiritual gifts, resulting in joy.</div>
+      <div class="sermon-card-stats">
+        <span class="mini-stat">68 units</span>
+        <span class="mini-stat">30 xrefs</span>
+        <span class="mini-stat">7 illust</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IN HIS OWN WORDS ══ -->
+<div class="section">
+  <div class="section-label">In His Own Words</div>
+  <h2 class="section-title">The Voice of the Series</h2>
+  <p class="section-body">Before the data, the man. These are MacArthur's own sentences — drawn verbatim from the decomposed transcripts — that capture the controlling convictions of the series.</p>
+
+  <div class="quote-card" style="margin-top:30px">
+    <div class="quote-text">"Spiritual growth is not a mystical, sentimental, devotional, psychological thing. It is not a result of some clever secret or some formula that can be applied easily to life and guarantee the future."</div>
+    <div class="quote-attr">Part 1 — The Master Key</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"Glorifying God is the locus crucius, it's the sine qua non — it is the high point, it is the apex of God's revelation. The concept of glorifying God is the reason that we exist."</div>
+    <div class="quote-attr">Part 1 — The Master Key</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"We don't measure spiritual maturity by the calendar. Only when those facts conform us to the image of Christ does our knowledge relate to our growth."</div>
+    <div class="quote-attr">Part 1 — The Master Key</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"When you can rejoice that somebody does something for the Lord better than you do it, then you're aiming at His glory."</div>
+    <div class="quote-attr">Part 2 — Lordship & Fruit</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"God wants to make Christians reproachable. Christianity must be so distinct that it points out sin before it can bring about a remedy."</div>
+    <div class="quote-attr">Part 2 — Lordship & Fruit</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"As long as you are making excuses for your sinfulness, you will never grow spiritually. You will grow spiritually when you are humbly acknowledging your sin and doing something about it."</div>
+    <div class="quote-attr">Part 3 — Confessing Sin</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"God, if you say it, I believe it. And what that means is, God, I trust your word, and that gives him glory."</div>
+    <div class="quote-attr">Part 4 — Trust, Fruit & Praise</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"Simply stated, spiritual growth is an abandonment to the will of God. Every time you disobey, you're retarded. Every time you obey, you grow."</div>
+    <div class="quote-attr">Part 5 — Obedience, Prayer & Proclamation</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"Nobody grows in a vacuum. Grow in a group, not alone. I think we're like spiritual snowflakes. None of us is like any other of us."</div>
+    <div class="quote-attr">Part 6 — Purity, Unity & Gifts</div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"What is the result of living a life to the glory of God? What is the result of spiritual maturity? It is joy."</div>
+    <div class="quote-attr">Part 6 — Purity, Unity & Gifts</div>
+  </div>
+</div>
+
+<!-- ══ RHETORICAL STRUCTURE ══ -->
+<div class="section">
+  <div class="section-label">Rhetorical Architecture</div>
+  <h2 class="section-title">What MacArthur Does With His Time</h2>
+  <p class="section-body">Across 283 units, MacArthur devotes 43% of his rhetorical energy to direct exposition and 21% to theological claims. Together, those two functions — explaining the text and asserting doctrine — account for nearly two-thirds of every sermon. Illustration (13%) and application (8%) are present but secondary. This is a teacher's ratio, not a counselor's.</p>
+
+  <div class="chart-container">
+    <div class="chart-title">Rhetorical Function Distribution</div>
+    <div class="bar-row"><div class="bar-label">Exposition</div><div class="bar-track"><div class="bar-fill bar-gold" style="width:86%"><span>122 units (43%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Theological Claim</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:42%"><span>60 units (21%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Illustration</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:27%"><span>38 units (13%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Application</div><div class="bar-track"><div class="bar-fill bar-warm" style="width:15%"><span>22 units (8%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Transition</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:14%"><span>20 units (7%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Other</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:15%"><span>21 units (intro/concl/prayer/pastoral)</span></div></div></div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- FLOW VIS -->
+  <div class="section-label">Sermon Flow</div>
+  <h2 class="section-title">The Rhythm of Each Sermon</h2>
+  <p class="section-body">Each colored bar represents one functional unit. Read left to right to see how MacArthur sequences his rhetorical moves. Notice the long gold stretches — extended exposition — broken by burgundy claims and green illustrations. His pattern: establish from the text, assert the doctrine, illustrate, move on.</p>
+
+  <div class="flow-container">
+    <div class="flow-label">Part 1 — The Master Key (26 units)</div>
+    <div class="flow-row">
+      <div class="flow-unit" data-fn="introduction"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="conclusion"></div><div class="flow-unit" data-fn="prayer"></div>
+    </div>
+
+    <div class="flow-label">Part 2 — Lordship & Fruit (56 units)</div>
+    <div class="flow-row">
+      <div class="flow-unit" data-fn="introduction"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="pastoral_aside"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="conclusion"></div><div class="flow-unit" data-fn="prayer"></div>
+    </div>
+
+    <div class="flow-label">Part 6 — Purity, Unity & Gifts (68 units)</div>
+    <div class="flow-row">
+      <div class="flow-unit" data-fn="introduction"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="pastoral_aside"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="transition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="theological_claim"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="illustration"></div><div class="flow-unit" data-fn="exposition"></div><div class="flow-unit" data-fn="application"></div><div class="flow-unit" data-fn="prayer"></div>
+    </div>
+  </div>
+
+  <div class="flow-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Exposition</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--burgundy-light)"></div>Theological Claim</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--forest)"></div>Illustration</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7b9a8e"></div>Application</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(247,243,238,0.12)"></div>Transition</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a07050"></div>Pastoral Aside</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--slate)"></div>Intro/Conclusion</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(196,162,101,0.3)"></div>Prayer</div>
+  </div>
+</div>
+
+<!-- ══ ILLUSTRATION DNA ══ -->
+<div class="section">
+  <div class="section-label">Illustration DNA</div>
+  <h2 class="section-title">How MacArthur Makes Truth Vivid</h2>
+  <p class="section-body">MacArthur's illustration palette leans heavily on historical examples — biblical narratives repurposed as case studies (David and Bathsheba, Achan's sin, Abraham's faith). Personal stories are present but less frequent. Hypotheticals appear when he constructs "imagine you..." scenarios. Cultural references are rare — one Hefner quote in six sermons. Analogy is almost absent. This is a preacher who teaches by precedent, not by metaphor.</p>
+
+  <div class="chart-container">
+    <div class="chart-title">Illustration Type Distribution (38 total)</div>
+    <div class="bar-row"><div class="bar-label">Historical Example</div><div class="bar-track"><div class="bar-fill bar-gold" style="width:95%"><span>18 (47%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Personal Story</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:63%"><span>12 (32%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Hypothetical</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:37%"><span>7 (18%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Cultural Reference</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:16%"><span>3 (8%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Analogy</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:5%"><span>1 (3%)</span></div></div></div>
+  </div>
+</div>
+
+<!-- ══ THEOLOGICAL LANDSCAPE ══ -->
+<div class="section">
+  <div class="section-label">Theological Landscape</div>
+  <h2 class="section-title">Where MacArthur's Mind Goes</h2>
+  <p class="section-body">Sanctification dominates — surfacing in nearly half of everything MacArthur says across the series. This is expected for a series about spiritual growth. But the secondary distribution is revealing: the character of God (Theology Proper) and the life of the church (Ecclesiology) are the second and third most frequent themes. MacArthur's argument throughout is that sanctification is not a private project — it is grounded in God's nature and worked out in community.</p>
+
+  <div class="chart-container">
+    <div class="chart-title">How Often Each Theme Appears</div>
+    <p style="font-size:0.78rem; color:var(--warm-gray); margin-bottom:20px;">Percentage of the series in which each doctrinal theme surfaces. Themes can overlap — a single passage may touch sanctification, sin, and the character of God simultaneously.</p>
+    <div class="bar-row"><div class="bar-label">Sanctification</div><div class="bar-track"><div class="bar-fill bar-gold" style="width:93%"><span>47% of series</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Character of God</div><div class="bar-track"><div class="bar-fill bar-gold" style="width:40%"><span>20%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">The Church</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:35%"><span>17%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Sin</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:34%"><span>17%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Ethics & Morality</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:32%"><span>16%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Salvation</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:23%"><span>11%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Christ</div><div class="bar-track"><div class="bar-fill bar-warm" style="width:22%"><span>11%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Scripture</div><div class="bar-track"><div class="bar-fill bar-warm" style="width:16%"><span>8%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Holy Spirit</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:11%"><span>5%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Worship</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:10%"><span>5%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Last Things</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:7%"><span>4%</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Providence</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:6%"><span>3%</span></div></div></div>
+  </div>
+</div>
+
+<!-- ══ CROSS-REFERENCE NETWORK ══ -->
+<div class="section">
+  <div class="section-label">Scripture Network</div>
+  <h2 class="section-title">MacArthur's Biblical Geography</h2>
+  <p class="section-body">186 cross-references across six sermons — an average of 31 per sermon. MacArthur draws most heavily from Romans and John, followed by the Corinthian correspondence. The Pauline corpus dominates: Paul is referenced 38 times across the series. The Old Testament appears primarily through Psalms and Genesis narratives. This is a preacher who builds his case from epistle to epistle, using narrative as illustration rather than foundation.</p>
+
+  <div class="xref-grid">
+    <div class="xref-cell"><div class="xref-book">Romans</div><div class="xref-count">19</div></div>
+    <div class="xref-cell"><div class="xref-book">John</div><div class="xref-count">19</div></div>
+    <div class="xref-cell"><div class="xref-book">2 Corinthians</div><div class="xref-count">13</div></div>
+    <div class="xref-cell"><div class="xref-book">1 Corinthians</div><div class="xref-count">13</div></div>
+    <div class="xref-cell"><div class="xref-book">Philippians</div><div class="xref-count">12</div></div>
+    <div class="xref-cell"><div class="xref-book">Psalms</div><div class="xref-count">11</div></div>
+    <div class="xref-cell"><div class="xref-book">1 John</div><div class="xref-count">8</div></div>
+    <div class="xref-cell"><div class="xref-book">2 Peter</div><div class="xref-count">7</div></div>
+    <div class="xref-cell"><div class="xref-book">Luke</div><div class="xref-count">7</div></div>
+    <div class="xref-cell"><div class="xref-book">Ephesians</div><div class="xref-count">6</div></div>
+    <div class="xref-cell"><div class="xref-book">Hebrews</div><div class="xref-count">6</div></div>
+    <div class="xref-cell"><div class="xref-book">1 Peter</div><div class="xref-count">6</div></div>
+    <div class="xref-cell"><div class="xref-book">Matthew</div><div class="xref-count">5</div></div>
+    <div class="xref-cell"><div class="xref-book">Genesis</div><div class="xref-count">5</div></div>
+  </div>
+</div>
+
+<!-- ══ NOTABLE QUOTATIONS ══ -->
+<div class="section">
+  <div class="section-label">Voices Cited</div>
+  <h2 class="section-title">Who MacArthur Brings Into the Pulpit</h2>
+  <p class="section-body">Thirteen quotations across six sermons — sparse by any standard. MacArthur is not a preacher who leans on other voices. When he does quote, the function is telling: most are cited as authority or devotional reinforcement, not as illustration. The one notable exception is Hugh Hefner, quoted as an opponent — the Corinthian "food for the body" slogan incarnated in a contemporary figure.</p>
+
+  <div class="quote-card">
+    <div class="quote-text">"What is the chief end of man? The chief end of man is to glorify God and to enjoy him forever."</div>
+    <div class="quote-attr">Westminster Shorter Catechism <span class="quote-fn">authority</span></div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"I cannot endure existence if Jesus is to be so dishonored."</div>
+    <div class="quote-attr">Henry Martyn <span class="quote-fn">illustration</span></div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"Let my candle go out, if in that the sun of righteousness may rise with healing in his beings."</div>
+    <div class="quote-attr">Unidentified writer <span class="quote-fn">devotional</span></div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"Like a silkworm, when she weaves her work, hides herself under the silk and is never seen, so when we have done anything worthy of praise, we remain hidden and pass the praise on to God."</div>
+    <div class="quote-attr">Unknown <span class="quote-fn">illustration</span></div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"You can give without loving, but you can never love without giving."</div>
+    <div class="quote-attr">MacArthur's father <span class="quote-fn">authority</span></div>
+  </div>
+  <div class="quote-card">
+    <div class="quote-text">"God giving me the strength. Every time I introduce the topic of conversation, it will always be concerning Jesus."</div>
+    <div class="quote-attr">Charles Trumbull <span class="quote-fn">devotional</span></div>
+  </div>
+</div>
+
+<!-- ══ PEOPLE REFERENCED ══ -->
+<div class="section">
+  <div class="section-label">Cast of Characters</div>
+  <h2 class="section-title">The People in MacArthur's World</h2>
+  <p class="section-body">Paul dominates — referenced 38 times, more than twice as often as Jesus (18). This reflects the series' heavy dependence on the Pauline epistles for its sanctification theology. David, Peter, and John round out the top five — all biblical figures. Contemporary or historical theologians barely appear. MacArthur's authority structure is almost exclusively biblical.</p>
+
+  <div class="people-row">
+    <span class="person-tag">Paul <span class="person-count">×38</span></span>
+    <span class="person-tag">Jesus <span class="person-count">×18</span></span>
+    <span class="person-tag">Peter <span class="person-count">×12</span></span>
+    <span class="person-tag">David <span class="person-count">×9</span></span>
+    <span class="person-tag">John <span class="person-count">×8</span></span>
+    <span class="person-tag">Joshua <span class="person-count">×4</span></span>
+    <span class="person-tag">Abraham <span class="person-count">×4</span></span>
+    <span class="person-tag">Achan <span class="person-count">×4</span></span>
+    <span class="person-tag">Moses <span class="person-count">×3</span></span>
+    <span class="person-tag">Jeremiah <span class="person-count">×3</span></span>
+    <span class="person-tag">Nebuchadnezzar <span class="person-count">×3</span></span>
+    <span class="person-tag">Adam <span class="person-count">×2</span></span>
+    <span class="person-tag">Eve <span class="person-count">×2</span></span>
+    <span class="person-tag">Hugh Hefner <span class="person-count">×1</span></span>
+  </div>
+</div>
+
+<!-- ══ APPLICATION PATTERNS ══ -->
+<div class="section">
+  <div class="section-label">Application Profile</div>
+  <h2 class="section-title">How Concrete Is the Landing?</h2>
+  <p class="section-body">Of 22 application units across the series, 14 are abstract ("trust God," "confess your sin," "walk in purity") and only 8 are concrete (specific, actionable instruction). This is the clearest coaching opportunity the data reveals: MacArthur's applications tend to restate the principle rather than operationalize it. A pastor studying MacArthur's craft would benefit from strengthening the concrete application dimension while retaining his theological density.</p>
+
+  <div class="chart-container">
+    <div class="chart-title">Application Specificity (22 units)</div>
+    <div class="bar-row"><div class="bar-label">Abstract</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:64%"><span>14 units (64%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Concrete</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:36%"><span>8 units (36%)</span></div></div></div>
+  </div>
+</div>
+
+<!-- ══ REGISTER ══ -->
+<div class="section">
+  <div class="section-label">Rhetorical Register</div>
+  <h2 class="section-title">The Voice Behind the Voice</h2>
+  <p class="section-body">The numbers confirm what any listener already knows: MacArthur is a logos preacher. Logical argument, exegetical demonstration, and cause-and-effect reasoning account for 85% of his register assignments. Pathos (emotional appeal) appears in 20% of units — primarily in illustrations and conclusions. Narrative register surfaces in 17% of units, mostly when he retells biblical episodes. Doxological moments are rare (6%) — this is a teacher who wants you to understand before you worship.</p>
+
+  <div class="chart-container">
+    <div class="chart-title">Register Distribution (across all units)</div>
+    <div class="bar-row"><div class="bar-label">Logos</div><div class="bar-track"><div class="bar-fill bar-gold" style="width:95%"><span>242 (85%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Pathos</div><div class="bar-track"><div class="bar-fill bar-burgundy" style="width:22%"><span>57 (20%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Narrative</div><div class="bar-track"><div class="bar-fill bar-forest" style="width:18%"><span>47 (17%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Ethos</div><div class="bar-track"><div class="bar-fill bar-warm" style="width:7%"><span>18 (6%)</span></div></div></div>
+    <div class="bar-row"><div class="bar-label">Doxological</div><div class="bar-track"><div class="bar-fill bar-slate" style="width:7%"><span>17 (6%)</span></div></div></div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<div class="footer">
+  <div class="footer-text">
+    Shepherd's Guild — Series Analysis<br>
+    Decomposition Spec v3 · 6 sermons · 283 functional units<br>
+    <span style="color:var(--gold-dim)">Generated March 2026</span>
+  </div>
+</div>
+
+</body>
+</html>

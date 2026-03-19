@@ -1,0 +1,26 @@
+# Secrets
+.env
+
+# Pipeline output (reproducible from scripts + Supabase has the data)
+output/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Archive bundles (originals already unpacked)
+*.zip
+
+# Scratch / temp
+*.tmp
+*.bak

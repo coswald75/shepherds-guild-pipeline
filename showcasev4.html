@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Archive Index & Analysis · Shepherd's Guild</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  /* Exact Spurgeon palette */
+  --ink:          #1a1714;
+  --parchment:    #f7f3ee;
+  --cream:        #ede8e0;
+  --warm-gray:    #9e9688;
+  --gold:         #c4a265;
+  --gold-dim:     #a8894f;
+  --gold-bright:  #dbb978;
+  --burgundy:     #6b2d3e;
+  --forest:       #2d4a3e;
+  --slate:        #4a4640;
+  --accent:       #0f2d3d;   /* deep navy hero bg */
+  --accent-mid:   #1a4d68;
+  --accent-light: #2a6888;
+  --shadow-soft:  0 2px 20px rgba(26,23,20,0.06);
+  --shadow-card:  0 4px 30px rgba(26,23,20,0.10);
+
+  /* Derived */
+  --rule:         rgba(196,162,101,0.18);
+  --rule-hard:    rgba(196,162,101,0.35);
+  --rule-light:   rgba(26,23,20,0.08);
+  --accent-rule:  rgba(196,162,101,0.22);
+  --card-bg:      #ffffff;
+  --card-bg-tint: #faf7f2;
+  --sidebar-bg:   var(--accent);
+
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+  --sidebar-w: 268px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--sans);
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR — deep navy, like the Spurgeon hero
+───────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  height: 100vh;
+  background: var(--accent);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+/* Subtle texture overlay */
+.sidebar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.sidebar-brand {
+  padding: 22px 24px 0;
+  font-family: var(--mono); font-size: 0.6rem; color: rgba(196,162,101,0.6);
+  letter-spacing: 0.2em; text-transform: uppercase; display: block;
+}
+
+.sidebar-identity {
+  padding: 16px 24px 18px;
+  border-bottom: 1px solid rgba(196,162,101,0.15);
+}
+.sidebar-identity-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.sidebar-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(196,162,101,0.15);
+  border: 1px solid rgba(196,162,101,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 0.95rem; color: var(--gold-bright);
+  flex-shrink: 0;
+}
+.sidebar-name { font-family: var(--serif); font-size: 1.05rem; color: var(--parchment); line-height: 1.2; }
+.sidebar-church { font-family: var(--sans); font-size: 0.68rem; color: rgba(247,243,238,0.45); margin-top: 2px; }
+
+.sidebar-mini-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.mini-stat {
+  background: rgba(196,162,101,0.08);
+  border: 1px solid rgba(196,162,101,0.18);
+  border-radius: 3px; padding: 9px 11px;
+}
+.mini-stat-n {
+  font-family: var(--serif); font-size: 1.2rem;
+  color: var(--gold-bright); line-height: 1;
+}
+.mini-stat-l {
+  font-family: var(--mono); font-size: 0.5rem; color: rgba(196,162,101,0.55);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px;
+}
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 6px 0; }
+.sidebar-nav::-webkit-scrollbar { width: 0; }
+
+.nav-section-label {
+  font-family: var(--mono); font-size: 0.5rem; color: rgba(196,162,101,0.4);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 14px 24px 5px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 24px; cursor: pointer;
+  font-family: var(--sans); font-size: 0.8rem;
+  color: rgba(247,243,238,0.5);
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  user-select: none; position: relative; z-index: 1;
+}
+.nav-item:hover {
+  color: var(--parchment);
+  background: rgba(196,162,101,0.06);
+}
+.nav-item.active {
+  color: var(--gold-bright);
+  background: rgba(196,162,101,0.1);
+  border-left-color: var(--gold);
+}
+.nav-icon {
+  font-size: 0.8rem; width: 15px; text-align: center; flex-shrink: 0;
+  opacity: 0.7;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 0.48rem;
+  color: rgba(196,162,101,0.5);
+  background: rgba(196,162,101,0.08);
+  padding: 2px 6px; border-radius: 10px;
+  border: 1px solid rgba(196,162,101,0.15);
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(196,162,101,0.15);
+  position: relative; z-index: 1;
+}
+.build-cta {
+  width: 100%; font-family: var(--sans); font-size: 0.75rem; font-weight: 500;
+  color: var(--accent); background: var(--gold);
+  padding: 11px; border-radius: 2px; border: none;
+  cursor: pointer; letter-spacing: 0.07em; text-transform: uppercase;
+  transition: background 0.18s; box-shadow: 0 2px 12px rgba(196,162,101,0.25);
+}
+.build-cta:hover { background: var(--gold-bright); }
+
+/* ─────────────────────────────────────────────
+   MAIN PANE — warm parchment
+───────────────────────────────────────────── */
+.main {
+  flex: 1; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--parchment);
+}
+
+.main-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 52px; flex-shrink: 0;
+  border-bottom: 1px solid var(--rule-light);
+  background: var(--parchment);
+}
+.main-topbar-title {
+  font-family: var(--serif); font-size: 1.05rem; font-weight: 400;
+  color: var(--ink);
+}
+.main-topbar-right { display: flex; gap: 10px; align-items: center; }
+.topbar-tag {
+  font-family: var(--mono); font-size: 0.52rem; color: var(--warm-gray);
+  border: 1px solid rgba(26,23,20,0.1); padding: 4px 10px; border-radius: 2px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.topbar-pill {
+  font-family: var(--mono); font-size: 0.52rem;
+  color: var(--accent); background: rgba(15,45,61,0.08);
+  border: 1px solid rgba(15,45,61,0.12);
+  padding: 4px 10px; border-radius: 2px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+.content { flex: 1; overflow-y: auto; padding: 36px 40px; }
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--rule-hard); border-radius: 2px; }
+
+/* ─────────────────────────────────────────────
+   VIEWS
+───────────────────────────────────────────── */
+.view { display: none; animation: fadeUp 0.2s ease both; }
+.view.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Section headings */
+.section-eyebrow {
+  font-family: var(--mono); font-size: 0.58rem; color: var(--gold-dim);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-eyebrow::after { content: ''; flex: 0 0 28px; height: 1px; background: var(--gold-dim); }
+.section-title {
+  font-family: var(--serif); font-size: clamp(1.7rem, 2.5vw, 2.3rem);
+  font-weight: 300; line-height: 1.15; color: var(--ink);
+  margin-bottom: 32px;
+}
+.section-title em { font-style: italic; color: var(--gold-dim); }
+
+/* ── CARD BASE ── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  padding: 24px 26px;
+  box-shadow: var(--shadow-soft);
+}
+.card-label {
+  font-family: var(--mono); font-size: 0.52rem; color: var(--warm-gray);
+  letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 16px;
+}
+
+/* ── OVERVIEW ── */
+.overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+.bar-list { display: flex; flex-direction: column; gap: 9px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-lbl { font-family: var(--sans); font-size: 0.76rem; color: var(--slate); width: 128px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 4px; background: var(--cream); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; }
+.bar-n { font-family: var(--mono); font-size: 0.6rem; color: var(--warm-gray); width: 30px; text-align: right; flex-shrink: 0; }
+
+.method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.method-item {
+  background: var(--card-bg-tint);
+  border: 1px solid var(--rule-light); border-radius: 2px; padding: 13px 15px;
+}
+.method-item.hi { border-color: rgba(196,162,101,0.3); background: rgba(196,162,101,0.04); }
+.method-n { font-family: var(--serif); font-size: 1.55rem; font-weight: 300; color: var(--accent); line-height: 1; }
+.method-item.hi .method-n { color: var(--gold-dim); }
+.method-l { font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+.reg-list { display: flex; flex-direction: column; gap: 10px; }
+.reg-row { display: flex; align-items: center; gap: 12px; }
+.reg-name { font-family: var(--sans); font-size: 0.76rem; color: var(--slate); width: 90px; flex-shrink: 0; }
+.reg-bar { flex: 1; height: 5px; background: var(--cream); border-radius: 3px; overflow: hidden; }
+.reg-fill { height: 100%; border-radius: 3px; }
+.reg-pct { font-family: var(--mono); font-size: 0.6rem; color: var(--warm-gray); width: 32px; text-align: right; flex-shrink: 0; }
+
+/* ── EXEMPLAR ── */
+.exemplar-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.ex-card {
+  background: var(--card-bg);
+  border: 1px solid var(--rule-light); border-radius: 3px; padding: 24px 22px;
+  box-shadow: var(--shadow-soft); transition: box-shadow 0.2s, border-color 0.2s;
+}
+.ex-card:hover { box-shadow: var(--shadow-card); border-color: rgba(196,162,101,0.3); }
+.ex-card.primary {
+  border-color: rgba(196,162,101,0.45);
+  background: linear-gradient(135deg, #fff 60%, rgba(196,162,101,0.04));
+  box-shadow: 0 4px 20px rgba(196,162,101,0.12);
+}
+.ex-pct { font-family: var(--serif); font-size: 2.8rem; font-weight: 300; line-height: 1; margin-bottom: 5px; color: var(--accent); }
+.ex-card:not(.primary) .ex-pct { color: var(--warm-gray); }
+.ex-rank { font-family: var(--mono); font-size: 0.52rem; color: var(--gold-dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 5px; }
+.ex-name { font-family: var(--serif); font-size: 1.2rem; color: var(--ink); margin-bottom: 14px; }
+.ex-reasons { display: flex; flex-direction: column; gap: 5px; }
+.ex-r { font-family: var(--sans); font-size: 0.75rem; color: var(--slate); display: flex; gap: 8px; line-height: 1.4; }
+.ex-r::before { content: '→'; color: var(--gold); flex-shrink: 0; font-size: 0.65rem; margin-top: 2px; }
+
+/* ── ILLUSTRATIONS ── */
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.filter-btn {
+  font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.09em; text-transform: uppercase;
+  padding: 5px 11px; border: 1px solid rgba(26,23,20,0.14); border-radius: 2px;
+  background: none; color: var(--warm-gray); cursor: pointer; transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+.filter-btn.active { border-color: var(--gold); color: var(--accent); background: rgba(196,162,101,0.1); }
+
+.illus-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.illus-card {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 2px; padding: 18px; transition: all 0.15s;
+  box-shadow: var(--shadow-soft);
+}
+.illus-card:hover { border-color: rgba(196,162,101,0.3); box-shadow: var(--shadow-card); }
+.illus-type-lbl { font-family: var(--mono); font-size: 0.52rem; color: var(--gold-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.illus-text { font-family: var(--sans); font-size: 0.8rem; color: var(--slate); line-height: 1.7; }
+.illus-source { font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray); margin-top: 10px; letter-spacing: 0.04em; }
+
+/* ── QUOTES ── */
+.author-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 28px; }
+.author-chip {
+  font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.06em;
+  padding: 5px 11px; border-radius: 14px;
+  border: 1px solid rgba(26,23,20,0.12); color: var(--slate);
+  background: var(--card-bg); box-shadow: var(--shadow-soft);
+}
+.author-chip span { color: var(--gold-dim); margin-left: 5px; }
+
+.quotes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.quote-card {
+  background: var(--card-bg); border-left: 2px solid var(--cream);
+  padding: 16px 20px; transition: border-color 0.15s;
+  box-shadow: var(--shadow-soft);
+}
+.quote-card:hover { border-left-color: var(--gold); }
+.q-text { font-family: var(--serif); font-size: 1rem; font-style: italic; color: var(--ink); line-height: 1.65; margin-bottom: 10px; }
+.q-attr { font-family: var(--mono); font-size: 0.54rem; color: var(--gold-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ── SEARCH ── */
+.search-input-wrap {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card-bg); border: 1px solid rgba(26,23,20,0.14);
+  border-radius: 3px; padding: 13px 18px; margin-bottom: 16px;
+  box-shadow: var(--shadow-soft); transition: border-color 0.2s;
+}
+.search-input-wrap:focus-within { border-color: var(--gold-dim); box-shadow: 0 0 0 3px rgba(196,162,101,0.08); }
+.search-icon { font-size: 1rem; color: var(--warm-gray); }
+.search-input-wrap input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: var(--sans); font-size: 0.92rem; color: var(--ink);
+}
+.search-input-wrap input::placeholder { color: var(--warm-gray); }
+.search-meta { font-family: var(--mono); font-size: 0.58rem; color: var(--warm-gray); margin-bottom: 16px; min-height: 1.2em; }
+
+.prompt-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 26px; }
+.prompt-chip {
+  font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 5px 12px; border: 1px solid rgba(26,23,20,0.12); border-radius: 2px;
+  color: var(--warm-gray); background: var(--card-bg); cursor: pointer; transition: all 0.15s;
+  box-shadow: var(--shadow-soft);
+}
+.prompt-chip:hover { border-color: var(--gold-dim); color: var(--gold-dim); background: rgba(196,162,101,0.05); }
+
+.result-list { display: flex; flex-direction: column; gap: 10px; }
+.result-card {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; overflow: hidden; transition: all 0.15s;
+  box-shadow: var(--shadow-soft);
+}
+.result-card:hover { border-color: rgba(196,162,101,0.3); box-shadow: var(--shadow-card); }
+.result-header { padding: 16px 20px; }
+.result-fn {
+  font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 2px; border: 1px solid rgba(26,23,20,0.1); color: var(--warm-gray);
+  margin-bottom: 8px; display: inline-block;
+}
+.result-fn.exposition { border-color: rgba(45,74,62,0.4); color: var(--forest); }
+.result-fn.theological_claim { border-color: rgba(196,162,101,0.4); color: var(--gold-dim); }
+.result-fn.illustration { border-color: rgba(26,77,104,0.3); color: var(--accent-mid); }
+.result-fn.pastoral_aside { border-color: rgba(74,70,64,0.3); color: var(--slate); }
+.result-fn.transition, .result-fn.introduction, .result-fn.conclusion { border-color: rgba(196,162,101,0.15); color: var(--warm-gray); }
+mark { background: rgba(196,162,101,0.2); color: var(--ink); border-radius: 2px; padding: 0 2px; }
+.result-expand { font-family: var(--mono); font-size: 0.56rem; color: var(--warm-gray); background: none; border: none; cursor: pointer; padding: 6px 0 2px; letter-spacing: 0.08em; display: block; transition: color 0.2s; }
+.result-expand:hover { color: var(--gold-dim); }
+.result-content { display: none; font-size: 0.8rem; color: var(--slate); line-height: 1.8; padding: 10px 0 4px; border-top: 1px solid rgba(196,162,101,0.1); margin-top: 6px; }
+.result-content.open { display: block; }
+.result-sermon-lbl { font-family: var(--mono); font-size: 0.52rem; color: var(--warm-gray); display: block; margin-bottom: 5px; }
+#searchMoreBtn { margin: 16px auto 0; font-family: var(--mono); font-size: 0.6rem; color: var(--warm-gray); background: var(--card-bg); border: 1px solid rgba(196,162,101,0.2); padding: 8px 20px; border-radius: 2px; cursor: pointer; letter-spacing: 0.1em; transition: all 0.15s; display: none; }
+#searchMoreBtn:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+.result-fn.doctrine { border-color: rgba(168,137,79,0.4); color: var(--gold-dim); }
+.result-fn.application { border-color: rgba(107,45,62,0.4); color: var(--burgundy); }
+.result-sermon { font-family: var(--mono); font-size: 0.54rem; color: var(--warm-gray); display: block; margin-bottom: 6px; }
+.result-summary { font-family: var(--sans); font-size: 0.82rem; color: var(--slate); line-height: 1.65; }
+
+/* ── SERMONS TABLE ── */
+.sermon-tbl { width: 100%; border-collapse: collapse; }
+.sermon-tbl th {
+  font-family: var(--mono); font-size: 0.52rem; color: var(--warm-gray);
+  letter-spacing: 0.14em; text-transform: uppercase; text-align: left;
+  padding: 8px 14px; border-bottom: 1px solid var(--rule-light);
+}
+.sermon-tbl td {
+  font-family: var(--sans); font-size: 0.8rem; color: var(--slate);
+  padding: 11px 14px; border-bottom: 1px solid rgba(26,23,20,0.05); vertical-align: top;
+}
+.sermon-tbl tr:hover td { background: rgba(196,162,101,0.04); }
+.s-title-cell { color: var(--ink); font-weight: 400; }
+.s-badge {
+  font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 2px; border: 1px solid rgba(26,23,20,0.1); color: var(--warm-gray);
+}
+.s-badge.exp { border-color: rgba(45,74,62,0.4); color: var(--forest); }
+.s-badge.top { border-color: rgba(107,45,62,0.4); color: var(--burgundy); }
+
+/* ── DISTINCTION BOX ── */
+.distinction {
+  background: var(--accent);
+  border-radius: 3px; padding: 28px 32px 28px 28px;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 40px;
+  margin-top: 20px;
+  box-shadow: 0 4px 24px rgba(15,45,61,0.14);
+}
+.distinction-label {
+  font-family: var(--mono); font-size: 0.52rem; color: rgba(196,162,101,0.5);
+  letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 12px;
+}
+.distinction-text {
+  font-family: var(--serif); font-size: 1.05rem; color: var(--parchment);
+  line-height: 1.7; max-width: 560px;
+}
+.distinction-text em { font-style: italic; color: var(--gold-bright); }
+.distinction-stat { flex-shrink: 0; text-align: right; }
+.distinction-stat-n { font-family: var(--serif); font-size: 2.4rem; color: var(--gold-bright); line-height: 1; }
+.distinction-stat-l { font-family: var(--mono); font-size: 0.52rem; color: rgba(196,162,101,0.55); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 5px; }
+/* ── GROWTH AREAS ── */
+.growth-intro {
+  background: var(--accent);
+  border-radius: 3px; padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 24px rgba(15,45,61,0.12);
+}
+.growth-intro-label {
+  font-family: var(--mono); font-size: 0.52rem; color: rgba(196,162,101,0.5);
+  letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px;
+}
+.growth-intro-text {
+  font-family: var(--serif); font-size: 1.05rem; font-style: italic;
+  color: var(--parchment); line-height: 1.75;
+}
+.growth-intro-text em { color: var(--gold-bright); font-style: normal; }
+
+.growth-cards { display: flex; flex-direction: column; gap: 18px; }
+.growth-card {
+  background: var(--card-bg);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.growth-card:hover { box-shadow: var(--shadow-card); }
+
+.growth-card-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 22px 26px 18px; gap: 24px;
+  border-bottom: 1px solid rgba(26,23,20,0.05);
+}
+.growth-card-left { flex: 1; }
+.growth-number {
+  font-family: var(--mono); font-size: 0.54rem; color: var(--gold-dim);
+  letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px;
+}
+.growth-title {
+  font-family: var(--serif); font-size: 1.25rem; color: var(--ink);
+  font-weight: 400; line-height: 1.2; margin-bottom: 8px;
+}
+.growth-title em { font-style: italic; color: var(--gold-dim); }
+.growth-diagnosis {
+  font-family: var(--sans); font-size: 0.82rem; color: var(--slate);
+  line-height: 1.7; max-width: 580px;
+}
+
+.growth-metric {
+  flex-shrink: 0; text-align: right;
+  background: var(--card-bg-tint);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 14px 18px;
+  min-width: 140px;
+}
+.growth-metric-row { display: flex; gap: 16px; align-items: flex-end; justify-content: flex-end; margin-bottom: 8px; }
+.growth-metric-item {}
+.growth-metric-n { font-family: var(--serif); font-size: 1.6rem; font-weight: 300; line-height: 1; }
+.growth-metric-n.current { color: var(--accent); }
+.growth-metric-n.target { color: var(--gold-dim); }
+.growth-metric-l { font-family: var(--mono); font-size: 0.48rem; color: var(--warm-gray); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+.growth-metric-arrow { font-size: 0.75rem; color: var(--warm-gray); margin-bottom: 6px; }
+.growth-metric-caption { font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray); letter-spacing: 0.08em; text-align: right; line-height: 1.5; }
+
+.growth-card-footer {
+  padding: 14px 26px 16px;
+  background: rgba(15,45,61,0.02);
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.growth-rec-label {
+  font-family: var(--mono); font-size: 0.5rem; color: var(--gold-dim);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  white-space: nowrap; margin-top: 2px; flex-shrink: 0;
+}
+.growth-rec-arrow { color: var(--gold); font-size: 0.75rem; margin-top: 1px; flex-shrink: 0; }
+.growth-rec-text {
+  font-family: var(--sans); font-size: 0.8rem; color: var(--slate);
+  line-height: 1.65;
+}
+.growth-rec-text strong { color: var(--ink); font-weight: 500; }
+.nav-badge-addon {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 0.46rem;
+  color: rgba(196,162,101,0.7);
+  background: rgba(196,162,101,0.12);
+  padding: 2px 6px; border-radius: 10px;
+  border: 1px solid rgba(196,162,101,0.25);
+  letter-spacing: 0.06em;
+}
+.nav-item.addon-active { color: var(--gold-bright); background: rgba(196,162,101,0.13); border-left-color: var(--gold-bright); }
+
+/* ── LATENT BOOK ── */
+.book-hero {
+  background: var(--accent);
+  border-radius: 3px; padding: 32px 36px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 24px rgba(15,45,61,0.14);
+  display: flex; gap: 40px; align-items: flex-start;
+}
+.book-hero-left { flex: 1; }
+.book-hero-eyebrow {
+  font-family: var(--mono); font-size: 0.52rem; color: rgba(196,162,101,0.5);
+  letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px;
+}
+.book-hero-title {
+  font-family: var(--serif); font-size: 1.9rem; font-weight: 300;
+  color: var(--parchment); line-height: 1.15; margin-bottom: 6px;
+}
+.book-hero-title em { font-style: italic; color: var(--gold-bright); }
+.book-hero-subtitle {
+  font-family: var(--sans); font-size: 0.8rem; color: rgba(196,162,101,0.6);
+  margin-bottom: 16px; letter-spacing: 0.04em;
+}
+.book-hero-body {
+  font-family: var(--sans); font-size: 0.84rem; color: rgba(247,243,238,0.65);
+  line-height: 1.8; max-width: 520px;
+}
+.book-hero-right { flex-shrink: 0; text-align: center; }
+.book-cover-mock {
+  width: 90px; height: 130px;
+  background: linear-gradient(160deg, var(--accent-mid), var(--accent));
+  border: 1px solid rgba(196,162,101,0.35);
+  border-radius: 2px 4px 4px 2px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 3px 3px 12px rgba(0,0,0,0.3), -1px 0 0 rgba(0,0,0,0.2);
+  position: relative; margin-bottom: 8px;
+}
+.book-cover-mock::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+  background: rgba(0,0,0,0.25); border-radius: 2px 0 0 2px;
+}
+.book-cover-title {
+  font-family: var(--serif); font-size: 0.65rem; color: var(--gold-bright);
+  line-height: 1.4; text-align: center; padding: 0 10px; font-style: italic;
+}
+.book-cover-label {
+  font-family: var(--mono); font-size: 0.48rem; color: rgba(196,162,101,0.5);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.book-confidence {
+  display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;
+}
+.book-conf-row { display: flex; align-items: center; gap: 12px; }
+.book-conf-label { font-family: var(--sans); font-size: 0.76rem; color: var(--slate); width: 200px; flex-shrink: 0; }
+.book-conf-bar { flex: 1; height: 5px; background: var(--cream); border-radius: 3px; overflow: hidden; }
+.book-conf-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.book-conf-n { font-family: var(--mono); font-size: 0.6rem; color: var(--warm-gray); width: 36px; text-align: right; flex-shrink: 0; }
+.book-evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+.book-evidence-card {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 16px 18px; box-shadow: var(--shadow-soft);
+}
+.book-evidence-type { font-family: var(--mono); font-size: 0.52rem; color: var(--gold-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.book-evidence-text { font-family: var(--sans); font-size: 0.8rem; color: var(--slate); line-height: 1.65; }
+.book-evidence-src { font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray); margin-top: 8px; }
+
+/* ── ADD-ONS SHARED ── */
+.addon-hero {
+  border: 1px solid var(--rule-light); border-radius: 3px;
+  overflow: hidden; margin-bottom: 24px; box-shadow: var(--shadow-soft);
+}
+.addon-hero-band {
+  background: var(--accent); padding: 22px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+}
+.addon-name-row { display: flex; align-items: center; gap: 12px; }
+.addon-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(196,162,101,0.15); border: 1px solid rgba(196,162,101,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: var(--gold-bright); flex-shrink: 0;
+}
+.addon-name { font-family: var(--serif); font-size: 1.4rem; color: var(--parchment); }
+.addon-tagline { font-family: var(--sans); font-size: 0.78rem; color: rgba(247,243,238,0.5); margin-top: 2px; }
+.addon-price-badge {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--gold-bright);
+  background: rgba(196,162,101,0.12); border: 1px solid rgba(196,162,101,0.3);
+  padding: 6px 14px; border-radius: 2px; letter-spacing: 0.08em;
+  white-space: nowrap; flex-shrink: 0;
+}
+.addon-body { padding: 22px 28px; background: var(--card-bg); }
+.addon-desc {
+  font-family: var(--sans); font-size: 0.85rem; color: var(--slate);
+  line-height: 1.8; margin-bottom: 20px; max-width: 600px;
+}
+.addon-unlock-btn {
+  font-family: var(--sans); font-size: 0.76rem; font-weight: 500;
+  color: var(--accent); background: rgba(15,45,61,0.07);
+  border: 1px solid rgba(15,45,61,0.15); padding: 9px 20px;
+  border-radius: 2px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em;
+}
+.addon-unlock-btn:hover { background: var(--accent); color: var(--parchment); }
+
+/* Herald specific */
+.herald-preview { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 4px; }
+.herald-card {
+  border-radius: 3px; overflow: hidden; box-shadow: var(--shadow-soft);
+  border: 1px solid var(--rule-light);
+}
+.herald-card-bg {
+  padding: 20px; min-height: 120px; display: flex; flex-direction: column; justify-content: center;
+}
+.herald-card-bg.navy { background: var(--accent); }
+.herald-card-bg.parchment { background: var(--parchment); border-bottom: 1px solid var(--rule-light); }
+.herald-card-bg.dark { background: var(--ink); }
+.herald-quote-text {
+  font-family: var(--serif); font-size: 0.9rem; font-style: italic; line-height: 1.5;
+  margin-bottom: 8px;
+}
+.herald-card-bg.navy .herald-quote-text,
+.herald-card-bg.dark .herald-quote-text { color: var(--parchment); }
+.herald-card-bg.parchment .herald-quote-text { color: var(--ink); }
+.herald-attr {
+  font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.herald-card-bg.navy .herald-attr { color: rgba(196,162,101,0.7); }
+.herald-card-bg.dark .herald-attr { color: rgba(196,162,101,0.7); }
+.herald-card-bg.parchment .herald-attr { color: var(--warm-gray); }
+.herald-card-footer {
+  padding: 8px 12px; background: var(--card-bg-tint);
+  font-family: var(--mono); font-size: 0.48rem; color: var(--warm-gray);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; justify-content: space-between;
+}
+
+/* VoxPrompt specific */
+.vox-prompt-box {
+  background: var(--card-bg-tint); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 20px 22px; margin-bottom: 16px;
+  font-family: var(--mono); font-size: 0.72rem; color: var(--slate);
+  line-height: 1.9; position: relative;
+}
+.vox-prompt-label {
+  font-family: var(--mono); font-size: 0.5rem; color: var(--gold-dim);
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;
+}
+.vox-sample {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 18px 22px;
+}
+.vox-sample-label {
+  font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray);
+  letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;
+}
+.vox-sample-text {
+  font-family: var(--serif); font-size: 1rem; color: var(--ink);
+  line-height: 1.85; font-style: italic;
+}
+
+/* Hall Query specific */
+.hq-input-wrap {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--card-bg); border: 1px solid rgba(26,23,20,0.14);
+  border-radius: 3px; padding: 13px 18px; margin-bottom: 14px;
+  box-shadow: var(--shadow-soft);
+}
+.hq-input-wrap input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: var(--sans); font-size: 0.9rem; color: var(--ink);
+}
+.hq-input-wrap input::placeholder { color: var(--warm-gray); }
+.hq-scope-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.hq-scope-pill {
+  font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 12px; border: 1px solid var(--rule-light);
+  color: var(--warm-gray); background: var(--card-bg); cursor: pointer; transition: all 0.15s;
+}
+.hq-scope-pill.active { border-color: var(--gold-dim); color: var(--accent); background: rgba(196,162,101,0.08); }
+.hq-results { display: flex; flex-direction: column; gap: 10px; }
+.hq-result {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 16px 20px; box-shadow: var(--shadow-soft);
+  transition: border-color 0.15s;
+}
+.hq-result:hover { border-color: rgba(196,162,101,0.3); }
+.hq-result-who { font-family: var(--mono); font-size: 0.52rem; color: var(--gold-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+.hq-result-text { font-family: var(--serif); font-size: 1rem; font-style: italic; color: var(--ink); line-height: 1.6; margin-bottom: 6px; }
+.hq-result-src { font-family: var(--mono); font-size: 0.5rem; color: var(--warm-gray); }
+
+/* PrepKing specific */
+.prep-report {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; box-shadow: var(--shadow-soft); overflow: hidden;
+}
+.prep-report-header {
+  background: var(--card-bg-tint); border-bottom: 1px solid var(--rule-light);
+  padding: 16px 22px; display: flex; justify-content: space-between; align-items: baseline;
+}
+.prep-report-title { font-family: var(--serif); font-size: 1.05rem; color: var(--ink); }
+.prep-report-meta { font-family: var(--mono); font-size: 0.52rem; color: var(--warm-gray); letter-spacing: 0.08em; }
+.prep-section { padding: 18px 22px; border-bottom: 1px solid rgba(26,23,20,0.05); }
+.prep-section:last-child { border-bottom: none; }
+.prep-section-label { font-family: var(--mono); font-size: 0.52rem; color: var(--gold-dim); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
+.prep-item { display: flex; gap: 10px; margin-bottom: 10px; }
+.prep-item-bullet { color: var(--gold); flex-shrink: 0; font-size: 0.7rem; margin-top: 3px; }
+.prep-item-text { font-family: var(--sans); font-size: 0.8rem; color: var(--slate); line-height: 1.65; }
+.prep-item-text strong { color: var(--ink); }
+
+/* ── REFRESH BUTTON ── */
+.refresh-btn {
+  font-family: var(--sans); font-size: 0.76rem; font-weight: 500;
+  color: var(--accent); background: rgba(15,45,61,0.07);
+  border: 1px solid rgba(15,45,61,0.18); padding: 8px 16px;
+  border-radius: 2px; cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0;
+}
+.refresh-btn:hover { background: var(--accent); color: var(--parchment); }
+
+
+/* ═══════════════════════════════════════
+   V3 AIRY OVERRIDES — larger type, more breathing room
+═══════════════════════════════════════ */
+
+:root {
+  --sidebar-w: 300px;
+}
+
+/* Sidebar */
+.sidebar-brand {
+  padding: 28px 28px 0;
+  font-size: 0.62rem;
+}
+.sidebar-identity {
+  padding: 20px 28px 22px;
+}
+.sidebar-identity-row {
+  gap: 14px; margin-bottom: 18px;
+}
+.sidebar-avatar {
+  width: 50px; height: 50px; font-size: 1.05rem;
+}
+.sidebar-name { font-size: 1.15rem; }
+.sidebar-church { font-size: 0.72rem; margin-top: 3px; }
+.sidebar-mini-stats { gap: 10px; }
+.mini-stat { padding: 12px 14px; }
+.mini-stat-n { font-size: 1.45rem; }
+.mini-stat-l { font-size: 0.54rem; margin-top: 4px; }
+
+.nav-section-label {
+  padding: 18px 28px 6px;
+  font-size: 0.52rem;
+}
+.nav-item {
+  padding: 11px 28px;
+  font-size: 0.85rem;
+  gap: 13px;
+}
+.nav-icon { font-size: 0.85rem; width: 16px; }
+
+.sidebar-footer { padding: 20px 24px; }
+.build-cta { font-size: 0.78rem; padding: 13px; }
+
+/* Topbar */
+.main-topbar {
+  height: 62px;
+  padding: 0 48px;
+}
+.main-topbar-title { font-size: 1.15rem; }
+.topbar-tag, .topbar-pill { font-size: 0.55rem; padding: 5px 12px; }
+
+/* Content area */
+.content { padding: 52px 60px; }
+
+/* Section headings */
+.section-eyebrow {
+  font-size: 0.62rem;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+.section-eyebrow::after { flex: 0 0 36px; }
+.section-title {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  margin-bottom: 44px;
+  line-height: 1.2;
+}
+
+/* Card base */
+.card { padding: 32px 36px; }
+.card-label { font-size: 0.56rem; margin-bottom: 20px; }
+
+/* Overview */
+.overview-grid { gap: 24px; }
+.bar-list { gap: 13px; }
+.bar-row { gap: 14px; }
+.bar-lbl { font-size: 0.82rem; width: 140px; }
+.bar-track { height: 5px; }
+.bar-n { font-size: 0.64rem; }
+.method-grid { gap: 12px; }
+.method-item { padding: 18px 18px; }
+.method-n { font-size: 1.85rem; }
+.method-l { font-size: 0.54rem; margin-top: 6px; }
+.reg-list { gap: 14px; }
+.reg-row { gap: 16px; }
+.reg-name { font-size: 0.82rem; width: 100px; }
+.reg-bar { height: 6px; }
+.reg-pct { font-size: 0.64rem; }
+
+/* Exemplar */
+.exemplar-cards { gap: 22px; }
+.ex-card { padding: 32px 28px; }
+.ex-pct { font-size: 3.4rem; margin-bottom: 8px; }
+.ex-rank { font-size: 0.56rem; margin-bottom: 7px; }
+.ex-name { font-size: 1.4rem; margin-bottom: 18px; }
+.ex-reasons { gap: 8px; }
+.ex-r { font-size: 0.82rem; }
+
+/* Illustrations */
+.filter-row { gap: 8px; margin-bottom: 26px; }
+.filter-btn { font-size: 0.57rem; padding: 7px 14px; }
+.illus-grid { grid-template-columns: 1fr 1fr; gap: 22px; }
+.illus-card { padding: 26px 28px; }
+.illus-type-lbl { font-size: 0.56rem; margin-bottom: 12px; }
+.illus-text { font-size: 0.88rem; line-height: 1.8; }
+.illus-source { font-size: 0.54rem; margin-top: 14px; }
+
+/* Quotes */
+.author-row { gap: 9px; margin-bottom: 36px; }
+.author-chip { font-size: 0.58rem; padding: 6px 14px; }
+.quotes-grid { grid-template-columns: 1fr 1fr; gap: 22px; }
+.quote-card { padding: 24px 28px; }
+.q-text { font-size: 1.12rem; line-height: 1.75; margin-bottom: 14px; }
+.q-attr { font-size: 0.58rem; }
+
+/* Search */
+.search-input-wrap { padding: 16px 22px; margin-bottom: 20px; }
+.search-input-wrap input { font-size: 1rem; }
+.search-meta { font-size: 0.62rem; margin-bottom: 20px; }
+.prompt-chips { gap: 8px; margin-bottom: 32px; }
+.prompt-chip { font-size: 0.57rem; padding: 7px 15px; }
+.result-list { gap: 14px; }
+.result-card {}
+.result-header { padding: 22px 28px; }
+.result-fn { font-size: 0.54rem; padding: 3px 9px; margin-bottom: 10px; }
+.result-summary { font-size: 0.88rem; line-height: 1.75; }
+.result-sermon-lbl { font-size: 0.56rem; margin-bottom: 7px; }
+.result-content { font-size: 0.88rem; line-height: 1.9; }
+.result-expand { font-size: 0.6rem; padding: 8px 0 4px; }
+#searchMoreBtn { font-size: 0.64rem; padding: 10px 26px; margin-top: 22px; }
+
+/* Sermons table */
+.sermon-tbl th { font-size: 0.56rem; padding: 12px 18px; }
+.sermon-tbl td { font-size: 0.88rem; padding: 16px 18px; }
+.s-badge { font-size: 0.54rem; padding: 3px 9px; }
+
+/* Distinction */
+.distinction { padding: 36px 44px; gap: 48px; margin-top: 28px; }
+.distinction-label { font-size: 0.55rem; margin-bottom: 14px; }
+.distinction-text { font-size: 1.15rem; line-height: 1.8; }
+.distinction-stat-n { font-size: 2.8rem; }
+.distinction-stat-l { font-size: 0.55rem; margin-top: 8px; }
+
+/* Growth areas */
+.growth-intro { padding: 32px 36px; margin-bottom: 36px; }
+.growth-intro-label { font-size: 0.55rem; margin-bottom: 14px; }
+.growth-intro-text { font-size: 1.15rem; line-height: 1.85; }
+.growth-cards { gap: 26px; }
+.growth-card-header { padding: 28px 32px 24px; gap: 28px; }
+.growth-number { font-size: 0.57rem; margin-bottom: 8px; }
+.growth-title { font-size: 1.4rem; margin-bottom: 12px; }
+.growth-diagnosis { font-size: 0.88rem; line-height: 1.8; }
+.growth-metric { padding: 18px 22px; min-width: 155px; }
+.growth-metric-n { font-size: 1.85rem; }
+.growth-metric-l { font-size: 0.52rem; margin-top: 4px; }
+.growth-metric-caption { font-size: 0.54rem; }
+.growth-card-footer { padding: 18px 32px 20px; gap: 14px; }
+.growth-rec-label { font-size: 0.54rem; }
+.growth-rec-text { font-size: 0.86rem; line-height: 1.75; }
+
+/* Latent Book */
+.book-hero { padding: 40px 44px; margin-bottom: 32px; gap: 48px; }
+.book-hero-eyebrow { font-size: 0.55rem; margin-bottom: 14px; }
+.book-hero-title { font-size: 2.2rem; margin-bottom: 8px; }
+.book-hero-subtitle { font-size: 0.86rem; margin-bottom: 20px; }
+.book-hero-body { font-size: 0.9rem; line-height: 1.9; }
+.book-cover-mock { width: 100px; height: 150px; margin-bottom: 10px; }
+.book-cover-title { font-size: 0.7rem; }
+.book-confidence { gap: 16px; margin-bottom: 32px; }
+.book-conf-row { gap: 16px; }
+.book-conf-label { font-size: 0.82rem; width: 220px; }
+.book-conf-bar { height: 6px; }
+.book-conf-n { font-size: 0.64rem; }
+.book-evidence-grid { gap: 18px; }
+.book-evidence-card { padding: 22px 24px; }
+.book-evidence-type { font-size: 0.55rem; margin-bottom: 8px; }
+.book-evidence-text { font-size: 0.86rem; line-height: 1.75; }
+.book-evidence-src { font-size: 0.54rem; margin-top: 10px; }
+
+/* Add-ons */
+.addon-hero { margin-bottom: 32px; }
+.addon-hero-band { padding: 28px 36px; gap: 24px; }
+.addon-icon { width: 42px; height: 42px; font-size: 1.1rem; }
+.addon-name { font-size: 1.6rem; }
+.addon-tagline { font-size: 0.84rem; margin-top: 3px; }
+.addon-price-badge { font-size: 0.75rem; padding: 7px 18px; }
+.addon-body { padding: 30px 36px; }
+.addon-desc { font-size: 0.92rem; line-height: 1.9; margin-bottom: 24px; }
+.addon-unlock-btn { font-size: 0.82rem; padding: 11px 24px; }
+.herald-preview { gap: 16px; }
+.herald-card-bg { padding: 26px; min-height: 140px; }
+.herald-quote-text { font-size: 1rem; line-height: 1.6; margin-bottom: 10px; }
+.herald-attr { font-size: 0.52rem; }
+.herald-card-footer { padding: 10px 16px; font-size: 0.52rem; }
+
+/* Refresh button */
+.refresh-btn { font-size: 0.8rem; padding: 10px 20px; }
+
+/* ── SERMON MODAL ── */
+.sermon-modal {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15,45,61,0.75);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+  animation: fadeUp 0.2s ease both;
+}
+.sermon-modal.open { display: flex; justify-content: center; padding: 40px 20px; }
+.sermon-modal-inner {
+  background: var(--parchment);
+  border-radius: 4px;
+  width: 100%; max-width: 780px;
+  padding: 48px 52px;
+  box-shadow: 0 12px 60px rgba(0,0,0,0.35);
+  position: relative;
+  align-self: flex-start;
+}
+.sermon-modal-close {
+  position: absolute; top: 18px; right: 22px;
+  background: none; border: none; cursor: pointer;
+  font-size: 1.4rem; color: var(--warm-gray);
+  transition: color 0.15s; line-height: 1;
+}
+.sermon-modal-close:hover { color: var(--ink); }
+.sermon-modal-title {
+  font-family: var(--serif); font-size: 1.8rem; font-weight: 300;
+  color: var(--ink); line-height: 1.2; margin-bottom: 6px;
+}
+.sermon-modal-meta {
+  font-family: var(--mono); font-size: 0.56rem; color: var(--warm-gray);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 32px;
+}
+.sermon-modal-unit {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 22px 28px; margin-bottom: 14px;
+  box-shadow: var(--shadow-soft);
+}
+.sermon-modal-unit-fn {
+  font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 2px; border: 1px solid rgba(26,23,20,0.1); color: var(--warm-gray);
+  margin-bottom: 10px; display: inline-block;
+}
+.sermon-modal-unit-fn.exposition { border-color: rgba(45,74,62,0.4); color: var(--forest); }
+.sermon-modal-unit-fn.theological_claim { border-color: rgba(196,162,101,0.4); color: var(--gold-dim); }
+.sermon-modal-unit-fn.illustration { border-color: rgba(26,77,104,0.3); color: var(--accent-mid); }
+.sermon-modal-unit-fn.pastoral_aside { border-color: rgba(74,70,64,0.3); color: var(--slate); }
+.sermon-modal-unit-fn.doctrine { border-color: rgba(168,137,79,0.4); color: var(--gold-dim); }
+.sermon-modal-unit-fn.application { border-color: rgba(107,45,62,0.4); color: var(--burgundy); }
+.sermon-modal-unit-fn.transition, .sermon-modal-unit-fn.introduction, .sermon-modal-unit-fn.conclusion { border-color: rgba(196,162,101,0.15); color: var(--warm-gray); }
+.sermon-modal-unit-summary {
+  font-family: var(--sans); font-size: 0.88rem; font-weight: 500;
+  color: var(--ink); line-height: 1.7; margin-bottom: 10px;
+}
+.sermon-modal-unit-content {
+  font-family: var(--sans); font-size: 0.86rem; color: var(--slate);
+  line-height: 1.85;
+}
+
+/* ── PREFLIGHT CHECK ── */
+.preflight-grade {
+  font-family: var(--serif); font-size: 3.4rem; font-weight: 300;
+  line-height: 1; color: var(--accent); margin-bottom: 8px;
+}
+.preflight-benchmark {
+  background: var(--card-bg); border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 22px 26px;
+  box-shadow: var(--shadow-soft); margin-bottom: 14px;
+}
+.preflight-score {
+  font-family: var(--serif); font-size: 1.85rem; font-weight: 300;
+  color: var(--accent); line-height: 1;
+}
+.preflight-moments {
+  list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;
+}
+.preflight-moments li {
+  font-family: var(--sans); font-size: 0.82rem; color: var(--slate);
+  line-height: 1.65; display: flex; gap: 8px;
+}
+.preflight-moments li::before { content: '\2192'; color: var(--gold); flex-shrink: 0; font-size: 0.65rem; margin-top: 3px; }
+.preflight-missed {
+  list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;
+}
+.preflight-missed li {
+  font-family: var(--sans); font-size: 0.82rem; color: var(--warm-gray);
+  line-height: 1.65; display: flex; gap: 8px;
+}
+.preflight-missed li::before { content: '\25cb'; color: var(--warm-gray); flex-shrink: 0; font-size: 0.6rem; margin-top: 4px; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════= -->
+<div class="sidebar">
+  <span class="sidebar-brand">Shepherd's Guild</span>
+
+  <div class="sidebar-identity">
+    <div class="sidebar-identity-row">
+      <div class="sidebar-avatar" id="sidebarAvatar">...</div>
+      <div>
+        <div class="sidebar-name" id="sidebarName">Loading...</div>
+        <div class="sidebar-church" id="sidebarChurch"></div>
+      </div>
+    </div>
+    <div class="sidebar-mini-stats" id="sidebarStats">
+      <div class="mini-stat"><div class="mini-stat-n">&mdash;</div><div class="mini-stat-l">Sermons</div></div>
+      <div class="mini-stat"><div class="mini-stat-n">&mdash;</div><div class="mini-stat-l">Units</div></div>
+      <div class="mini-stat"><div class="mini-stat-n">&mdash;</div><div class="mini-stat-l">Expository</div></div>
+      <div class="mini-stat"><div class="mini-stat-n">&mdash;</div><div class="mini-stat-l">Illustrations</div></div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Archive</div>
+    <div class="nav-item active" onclick="switchView('illustrations', this)">
+      <span class="nav-icon">◇</span>Illustrations<span class="nav-badge" id="navBadgeIllus">&mdash;</span>
+    </div>
+    <div class="nav-item" onclick="switchView('quotes', this)">
+      <span class="nav-icon">❝</span>Quotes & Citations<span class="nav-badge" id="navBadgeQuotes">&mdash;</span>
+    </div>
+    <div class="nav-item" onclick="switchView('sermons', this)">
+      <span class="nav-icon">≡</span>Recent Sermons<span class="nav-badge" id="navBadgeSermons">&mdash;</span>
+    </div>
+    <div class="nav-item" onclick="switchView('search', this)">
+      <span class="nav-icon">⌕</span>Search Archive
+    </div>
+
+    <div class="nav-section-label">Analysis</div>
+    <div class="nav-item" onclick="switchView('overview', this)">
+      <span class="nav-icon">◈</span>Overview
+    </div>
+    <div class="nav-item" onclick="switchView('exemplar', this)">
+      <span class="nav-icon">◎</span>Exemplar Similarities
+    </div>
+    <div class="nav-item" onclick="switchView('growth', this)">
+      <span class="nav-icon">↗</span>Growth Areas
+    </div>
+    <div class="nav-item" onclick="switchView('preflight', this)">
+      <span class="nav-icon">⚡</span>PreFlight Check
+    </div>
+    <div class="nav-item" onclick="switchView('latentbook', this)">
+      <span class="nav-icon">◻</span>Latent Book
+    </div>
+
+    <div class="nav-section-label">Add-ons</div>
+    <div class="nav-item" onclick="switchView('herald', this)">
+      <span class="nav-icon">✦</span>Herald<span class="nav-badge-addon">Soon</span>
+    </div>
+    <div class="nav-item" onclick="switchView('voxprompt', this)">
+      <span class="nav-icon">◉</span>VoxPrompt<span class="nav-badge-addon">Soon</span>
+    </div>
+    <div class="nav-item" onclick="switchView('hallquery', this)">
+      <span class="nav-icon">⊞</span>Hall Query<span class="nav-badge-addon">Soon</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="build-cta">Build Your Archive →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MAIN PANE
+══════════════════════════════════════════= -->
+<div class="main">
+  <div class="main-topbar">
+    <span class="main-topbar-title" id="topbarTitle">Illustrations</span>
+    <div class="main-topbar-right">
+      <span class="topbar-tag">Live Showcase</span>
+      <span class="topbar-pill">Archive Index & Analysis</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── OVERVIEW ── -->
+    <div class="view" id="view-overview">
+      <div class="section-eyebrow">Voice Analysis</div>
+      <div class="section-title" id="overviewTitle">What the data reveals about <em>how you preach.</em></div>
+      <div id="overviewContent"></div>
+    </div>
+
+    <!-- ── EXEMPLAR ── -->
+    <div class="view" id="view-exemplar">
+      <div class="section-eyebrow">Exemplar Similarities</div>
+      <div class="section-title">Your preaching has a <em>lineage.</em></div>
+      <div class="exemplar-cards" id="exemplarCards"></div>
+    </div>
+
+    <!-- ── ILLUSTRATIONS ── -->
+    <div class="view active" id="view-illustrations">
+      <div class="section-eyebrow">Illustration Arsenal</div>
+      <div class="section-title" id="illusTitle">Illustrations, <em>extracted and indexed.</em></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div class="filter-row" style="margin-bottom:0;">
+          <button class="filter-btn active" onclick="setIllusFilter('All', this)">All</button>
+          <button class="filter-btn" onclick="setIllusFilter('Personal Story', this)">Personal Story</button>
+          <button class="filter-btn" onclick="setIllusFilter('Cultural Reference', this)">Cultural Ref</button>
+          <button class="filter-btn" onclick="setIllusFilter('Historical Example', this)">Historical</button>
+          <button class="filter-btn" onclick="setIllusFilter('Analogy', this)">Analogy</button>
+          <button class="filter-btn" onclick="setIllusFilter('Hypothetical', this)">Hypothetical</button>
+        </div>
+        <button class="refresh-btn" onclick="refreshIllus()">↺ Refresh Illustrations</button>
+      </div>
+      <div class="illus-grid" id="illusGrid"></div>
+    </div>
+
+    <!-- ── QUOTES ── -->
+    <div class="view" id="view-quotes">
+      <div class="section-eyebrow">Intellectual Lineage</div>
+      <div class="section-title" id="quotesTitle">Citations. <em>Indexed.</em></div>
+      <div class="author-row" id="authorRow"></div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+        <button class="refresh-btn" onclick="refreshQuotes()">↺ Refresh Quotes</button>
+      </div>
+      <div class="quotes-grid" id="quotesGrid"></div>
+    </div>
+
+    <!-- ── SEARCH ── -->
+    <div class="view" id="view-search">
+      <div class="section-eyebrow">Archive Search</div>
+      <div class="section-title">Every sermon unit, <em>searchable.</em></div>
+      <div class="search-input-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" placeholder="Try: suffering, grace, identity, the cross…"/>
+      </div>
+      <div class="filter-row" style="margin-bottom:12px;">
+        <button class="filter-btn active" onclick="setFilter(this)">All</button>
+        <button class="filter-btn" onclick="setFilter(this)">Exposition</button>
+        <button class="filter-btn" onclick="setFilter(this)">Doctrine</button>
+        <button class="filter-btn" onclick="setFilter(this)">Application</button>
+        <button class="filter-btn" onclick="setFilter(this)">Illustration</button>
+      </div>
+      <div class="search-meta" id="searchMeta">Loading index...</div>
+      <div class="prompt-chips">
+        <button class="prompt-chip">Suffering</button>
+        <button class="prompt-chip">Grace</button>
+        <button class="prompt-chip">Identity</button>
+        <button class="prompt-chip">Resurrection</button>
+        <button class="prompt-chip">Prayer</button>
+        <button class="prompt-chip">Anxiety</button>
+        <button class="prompt-chip">Glory</button>
+      </div>
+      <div class="result-list" id="resultList"></div>
+      <button id="searchMoreBtn" onclick="loadMoreResults()">Load More</button>
+    </div>
+
+    <!-- ── SERMONS ── -->
+    <div class="view" id="view-sermons">
+      <div class="section-eyebrow">Recent Sermons</div>
+      <div class="section-title" id="sermonsTitle">Sermons, <em>fully indexed.</em></div>
+      <table class="sermon-tbl">
+        <thead>
+          <tr>
+            <th>Title</th><th>Series</th><th>Text</th><th>Date</th><th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="sermonTbody">
+          </tbody>
+      </table>
+    </div>
+
+    <!-- ── GROWTH AREAS ── -->
+    <div class="view" id="view-growth">
+      <div class="section-eyebrow">Growth Areas</div>
+      <div class="section-title">Where the data points toward <em>development.</em></div>
+      <div id="growthContent"></div>
+    </div>
+
+    <!-- ── LATENT BOOK ── -->
+    <div class="view" id="view-latentbook">
+      <div class="section-eyebrow">Latent Book</div>
+      <div class="section-title">The book already <em>written</em> in your sermons.</div>
+      <div id="latentBookContent"></div>
+    </div>
+
+    <!-- ── HERALD ── -->
+    <div class="view" id="view-herald">
+      <div class="section-eyebrow">Add-ons · Herald</div>
+      <div class="section-title">Your best lines, <em>ready to share.</em></div>
+
+      <div class="addon-hero">
+        <div class="addon-hero-band">
+          <div class="addon-name-row">
+            <div class="addon-icon">✦</div>
+            <div>
+              <div class="addon-name">Herald</div>
+              <div class="addon-tagline">Quote graphic generator · Social-ready formats</div>
+            </div>
+          </div>
+          <div class="addon-price-badge">Coming Soon</div>
+        </div>
+        <div class="addon-body">
+          <div class="addon-desc">Each week, Herald surfaces your highest-impact lines from recent sermons — what we call Money Quotes — and renders them as shareable graphics in three formats. Navy, parchment, or dark. Square for Instagram, wide for Twitter/X. Download and post, or connect your accounts and we post for you.</div>
+          <button class="addon-unlock-btn">Join Waitlist →</button>
+        </div>
+      </div>
+
+      <div class="section-eyebrow" style="margin-bottom:14px;">Sample Graphics · This Month's Quotes</div>
+      <div class="herald-preview">
+        <div class="herald-card">
+          <div class="herald-card-bg navy">
+            <div class="herald-quote-text">"Lament is not the opposite of faith. It is what faith sounds like when the night is long."</div>
+            <div class="herald-attr">Chris Oswald · Providence Community Church</div>
+          </div>
+          <div class="herald-card-footer"><span>Navy · Square</span><span>↓ Download</span></div>
+        </div>
+        <div class="herald-card">
+          <div class="herald-card-bg parchment">
+            <div class="herald-quote-text">"The Psalms do not ask you to feel less. They ask you to bring everything you feel to the one who can bear it."</div>
+            <div class="herald-attr">Chris Oswald · Providence Community Church</div>
+          </div>
+          <div class="herald-card-footer"><span>Parchment · Square</span><span>↓ Download</span></div>
+        </div>
+        <div class="herald-card">
+          <div class="herald-card-bg dark">
+            <div class="herald-quote-text">"Union with Christ is not a doctrine to be mastered. It is the water you swim in."</div>
+            <div class="herald-attr">Chris Oswald · Providence Community Church</div>
+          </div>
+          <div class="herald-card-footer"><span>Dark · Wide</span><span>↓ Download</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── VOXPROMPT ── -->
+    <div class="view" id="view-voxprompt">
+      <div class="section-eyebrow">Add-ons · VoxPrompt</div>
+      <div class="section-title">Your voice, <em>on demand.</em></div>
+
+      <div class="addon-hero">
+        <div class="addon-hero-band">
+          <div class="addon-name-row">
+            <div class="addon-icon">◉</div>
+            <div>
+              <div class="addon-name">VoxPrompt</div>
+              <div class="addon-tagline">AI system prompt · Trained on your corpus · Voice-matched output</div>
+            </div>
+          </div>
+          <div class="addon-price-badge">Coming Soon</div>
+        </div>
+        <div class="addon-body">
+          <div class="addon-desc">VoxPrompt is a system prompt for any AI — Claude, ChatGPT, or others — built from your decomposition data. Paste it in, and the AI writes closer to how you think: your theological emphases, your illustration instincts, your sentence rhythms. Use it for drafting email copy, study materials, or a starting point for sermon outlines.</div>
+          <button class="addon-unlock-btn">Join Waitlist →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HALL QUERY ── -->
+    <div class="view" id="view-hallquery">
+      <div class="section-eyebrow">Add-ons · Hall Query</div>
+      <div class="section-title">Search the masters. <em>Find what they said.</em></div>
+
+      <div class="addon-hero">
+        <div class="addon-hero-band">
+          <div class="addon-name-row">
+            <div class="addon-icon">⊞</div>
+            <div>
+              <div class="addon-name">Hall Query</div>
+              <div class="addon-tagline">Semantic search · Public domain preachers only · Guild Hall corpus</div>
+            </div>
+          </div>
+          <div class="addon-price-badge">Coming Soon</div>
+        </div>
+        <div class="addon-body">
+          <div class="addon-desc">Search across the full decomposed corpus of public domain Guild Hall preachers — Spurgeon, Watson, Ryle, and others. Find how they handled a specific text, what they said about a doctrine, or which illustrations they used on suffering, grace, or the cross. Every result is sourced to a specific sermon.</div>
+          <button class="addon-unlock-btn">Join Waitlist →</button>
+        </div>
+      </div>
+
+      <div class="hq-input-wrap">
+        <span style="color:var(--warm-gray); font-size:0.85rem;">⌕</span>
+        <input type="text" placeholder="Search: what did Spurgeon say about affliction?" value="what does Ryle say about the Sermon on the Mount?" readonly/>
+        <span style="font-family:var(--mono); font-size:0.52rem; color:var(--warm-gray); letter-spacing:0.06em;">ENTER</span>
+      </div>
+      <div class="hq-scope-row">
+        <span class="hq-scope-pill active">All preachers</span>
+        <span class="hq-scope-pill">Spurgeon</span>
+        <span class="hq-scope-pill">Ryle</span>
+        <span class="hq-scope-pill">Watson</span>
+      </div>
+      <div class="hq-results">
+        <div class="hq-result">
+          <div class="hq-result-who">J.C. Ryle · Expository Thoughts on Matthew</div>
+          <div class="hq-result-text">"The Sermon on the Mount is not meant to tell us how to be saved. It is meant to tell us what saved people look like. Reverse that order and you will end up with a religion of merit — which is no religion at all."</div>
+          <div class="hq-result-src">Unit 004 · Sermon: "The Beatitudes and the Kingdom" · Rhetorical function: Doctrine</div>
+        </div>
+        <div class="hq-result">
+          <div class="hq-result-who">C.H. Spurgeon · Metropolitan Tabernacle Pulpit</div>
+          <div class="hq-result-text">"Every beatitude is a paradox. The poor are rich; the mourners are comforted; the meek inherit. Christ has a habit of turning the world upside down — which is to say, right side up."</div>
+          <div class="hq-result-src">Unit 012 · Sermon: "Blessed Are the Poor in Spirit" · Rhetorical function: Exposition</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PREFLIGHT CHECK ── -->
+    <div class="view" id="view-preflight">
+      <div class="section-eyebrow">Pre-Flight Check</div>
+      <div class="section-title">Test your sermon against <em>your benchmarks.</em></div>
+
+      <div class="preflight-input-area">
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-label">Paste Your Sermon Manuscript</div>
+          <textarea id="preflightText" placeholder="Paste your sermon text here..." style="width:100%;min-height:200px;border:1px solid var(--rule-light);border-radius:3px;padding:16px;font-family:var(--sans);font-size:0.88rem;color:var(--ink);line-height:1.8;resize:vertical;background:var(--card-bg-tint);outline:none;"></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+            <div style="font-family:var(--mono);font-size:0.54rem;color:var(--warm-gray);letter-spacing:0.08em;" id="preflightWordCount">0 words</div>
+            <button class="build-cta" style="width:auto;padding:11px 28px;" onclick="runPreflight()" id="preflightBtn">Run Pre-Flight Check →</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="preflightResults" style="display:none;"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://twbunmbzyqcqzgffdrib.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3YnVubWJ6eXFjcXpnZmZkcmliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODgxODUsImV4cCI6MjA4NzE2NDE4NX0.8Y6tMnX5bhIWxTS7llFZElPY-st7rji0MtlTzxeqiW8';
+const DEFAULT_PREACHER_ID = '9c6f8d69-de55-45db-ac60-0fe6d0cfff59';
+const PREACHER_ID = new URLSearchParams(window.location.search).get('id') || DEFAULT_PREACHER_ID;
+const REST = SUPABASE_URL + '/rest/v1';
+const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+const ILLUS_TYPE_MAP = {
+  'personal_story':    'Personal Story',
+  'cultural_reference':'Cultural Reference',
+  'historical_example':'Historical Example',
+  'analogy':           'Analogy',
+  'hypothetical':      'Hypothetical'
+};
+
+let sermonMap = {};
+let allSermonIds = '';
+let ALL_ILLUS = [];
+let illusFilter = 'All';
+let currentResults = [];
+let activeSearchFilter = 'all';
+let displayedCount = 0;
+const PAGE_SIZE = 10;
+let searchListenerAdded = false;
+
+let ALL_QUOTES = [];
+let analysisData = null;
+let preacherName = '';
+let churchName = '';
+
+// ── FETCH PREACHER INFO ──
+async function loadPreacherInfo() {
+  try {
+    const res = await fetch(REST + '/preachers?id=eq.' + PREACHER_ID + '&select=name,churches(name)', { headers: HEADERS });
+    const rows = await res.json();
+    if (rows.length > 0) {
+      preacherName = rows[0].name || '';
+      churchName = (rows[0].churches && rows[0].churches.name) ? rows[0].churches.name : '';
+    }
+  } catch(e) { console.error('loadPreacherInfo failed:', e); }
+}
+
+// ── FETCH ANALYSIS DATA ──
+async function loadAnalysis() {
+  try {
+    const res = await fetch(REST + '/preacher_analysis?preacher_id=eq.' + PREACHER_ID + '&select=stats,exemplar_matches,hall_distinction,growth_intro,growth_areas,latent_book,quotes', { headers: HEADERS });
+    const rows = await res.json();
+    if (rows.length > 0) {
+      analysisData = rows[0];
+      if (analysisData.quotes && Array.isArray(analysisData.quotes)) {
+        ALL_QUOTES = analysisData.quotes;
+      }
+    }
+  } catch(e) { console.error('loadAnalysis failed:', e); }
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+}
+
+function numFmt(n) {
+  if (n == null) return '\u2014';
+  return Number(n).toLocaleString();
+}
+
+// ── RENDER SIDEBAR ──
+function renderSidebar() {
+  var stats = (analysisData && analysisData.stats) || {};
+  var name = stats.preacher_name || preacherName || 'Preacher';
+  var church = stats.church_name || churchName || '';
+
+  document.getElementById('sidebarAvatar').textContent = getInitials(name);
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarChurch').textContent = church;
+  document.title = 'Archive Index & Analysis \u00b7 ' + name + ' \u00b7 Shepherd\u2019s Guild';
+
+  var sc = stats.sermon_count, tu = stats.total_units, ep = stats.expository_pct, ic = stats.illustration_count;
+  document.getElementById('sidebarStats').innerHTML =
+    '<div class="mini-stat"><div class="mini-stat-n">' + numFmt(sc) + '</div><div class="mini-stat-l">Sermons</div></div>' +
+    '<div class="mini-stat"><div class="mini-stat-n">' + numFmt(tu) + '</div><div class="mini-stat-l">Units</div></div>' +
+    '<div class="mini-stat"><div class="mini-stat-n">' + (ep != null ? ep + '%' : '\u2014') + '</div><div class="mini-stat-l">Expository</div></div>' +
+    '<div class="mini-stat"><div class="mini-stat-n">' + numFmt(ic) + '</div><div class="mini-stat-l">Illustrations</div></div>';
+
+  // Update nav badges
+  var navIllus = document.getElementById('navBadgeIllus');
+  var navQuotes = document.getElementById('navBadgeQuotes');
+  var navSermons = document.getElementById('navBadgeSermons');
+  if (navIllus && ic != null) navIllus.textContent = ic;
+  if (navQuotes && ALL_QUOTES.length > 0) navQuotes.textContent = ALL_QUOTES.length;
+  if (navSermons && sc != null) navSermons.textContent = sc;
+
+  // Update section titles that reference counts
+  var illusTitle = document.getElementById('illusTitle');
+  if (illusTitle && ic != null) illusTitle.innerHTML = ic + ' illustrations, <em>extracted and indexed.</em>';
+  var sermonsTitle = document.getElementById('sermonsTitle');
+  if (sermonsTitle && sc != null) sermonsTitle.innerHTML = sc + ' sermons, <em>fully indexed.</em>';
+
+  // Update quotes title and author chips
+  var quotesTitle = document.getElementById('quotesTitle');
+  var authorRow = document.getElementById('authorRow');
+  var tqa = stats.top_quoted_authors || [];
+  if (quotesTitle && ALL_QUOTES.length > 0) {
+    var lead = tqa.length > 0 ? tqa[0].author : '';
+    quotesTitle.innerHTML = ALL_QUOTES.length + ' citations.' + (lead ? ' <em>' + lead + ' leads.</em>' : '');
+  }
+  if (authorRow && tqa.length > 0) {
+    authorRow.innerHTML = tqa.map(function(a) {
+      return '<div class="author-chip">' + a.author + '<span>' + a.count + '\u00d7</span></div>';
+    }).join('');
+  }
+
+  // Search meta
+  var searchMeta = document.getElementById('searchMeta');
+  if (searchMeta && tu != null) searchMeta.textContent = numFmt(tu) + ' units indexed \u2014 enter a term to search';
+}
+
+// ── RENDER OVERVIEW ──
+function renderOverview() {
+  var container = document.getElementById('overviewContent');
+  if (!container || !analysisData) return;
+  var stats = analysisData.stats || {};
+  var hd = analysisData.hall_distinction || {};
+  var name = stats.preacher_name || preacherName || 'you';
+  var firstName = name.split(' ')[0];
+
+  // Update the overview title
+  var overviewTitle = document.getElementById('overviewTitle');
+  if (overviewTitle) overviewTitle.innerHTML = 'What the data reveals about <em>how ' + firstName + ' preaches.</em>';
+
+  // Theological Fingerprint
+  var tf = stats.theological_fingerprint || {};
+  var tfEntries = Object.entries(tf).sort(function(a, b) { return b[1] - a[1]; });
+  var maxTf = tfEntries.length > 0 ? tfEntries[0][1] : 1;
+  var barColors = ['var(--accent)', 'var(--accent)', 'var(--accent-mid)', 'var(--accent-mid)', 'var(--gold-dim)', 'var(--gold-dim)', 'var(--warm-gray)', 'var(--warm-gray)'];
+  var tfHtml = tfEntries.map(function(e, i) {
+    var pct = Math.round((e[1] / maxTf) * 100);
+    var color = barColors[Math.min(i, barColors.length - 1)];
+    return '<div class="bar-row"><span class="bar-lbl">' + e[0] + '</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div><span class="bar-n">' + e[1] + '</span></div>';
+  }).join('');
+
+  // Homiletical Method
+  var hm = stats.homiletical_method || {};
+  var hmEntries = Object.entries(hm).sort(function(a, b) { return b[1] - a[1]; });
+  var hmHtml = hmEntries.map(function(e, i) {
+    var label = e[0].replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    var hiClass = i < 2 ? ' hi' : '';
+    return '<div class="method-item' + hiClass + '"><div class="method-n">' + e[1] + '</div><div class="method-l">' + label + '</div></div>';
+  }).join('');
+
+  // Rhetorical Register
+  var rr = stats.rhetorical_register || {};
+  var rrEntries = Object.entries(rr).sort(function(a, b) { return b[1] - a[1]; });
+  var rrColors = ['var(--accent)', 'var(--burgundy)', 'var(--gold-dim)', 'var(--warm-gray)', 'var(--accent-light)'];
+  var rrHtml = rrEntries.map(function(e, i) {
+    var label = e[0].charAt(0).toUpperCase() + e[0].slice(1);
+    var color = rrColors[Math.min(i, rrColors.length - 1)];
+    return '<div class="reg-row"><span class="reg-name">' + label + '</span><div class="reg-bar"><div class="reg-fill" style="width:' + e[1] + '%;background:' + color + '"></div></div><span class="reg-pct">' + e[1] + '%</span></div>';
+  }).join('');
+
+  var totalUnits = stats.total_units ? numFmt(stats.total_units) : '';
+
+  // Hall Distinction
+  var hdLabel = hd.label || '';
+  var hdText = hd.text || '';
+  var hdStatN = hd.stat_n || '';
+  var hdStatL = hd.stat_label || '';
+
+  container.innerHTML =
+    '<div class="overview-grid">' +
+      '<div class="card"><div class="card-label">Theological Fingerprint</div><div class="bar-list">' + tfHtml + '</div></div>' +
+      '<div class="card"><div class="card-label">Homiletical Method</div><div class="method-grid">' + hmHtml + '</div></div>' +
+      '<div class="card" style="grid-column:1/3;"><div class="card-label">Rhetorical Register' + (totalUnits ? ' \u2014 Distribution across ' + totalUnits + ' units' : '') + '</div><div class="reg-list">' + rrHtml + '</div></div>' +
+    '</div>' +
+    (hdText ? '<div class="distinction"><div><div class="distinction-label">' + hdLabel + '</div><div class="distinction-text">' + hdText + '</div></div>' +
+    (hdStatN ? '<div class="distinction-stat"><div class="distinction-stat-n">' + hdStatN + '</div><div class="distinction-stat-l">' + hdStatL + '</div></div>' : '') +
+    '</div>' : '');
+}
+
+// ── RENDER EXEMPLAR ──
+function renderExemplar() {
+  var container = document.getElementById('exemplarCards');
+  if (!container || !analysisData) return;
+  var matches = analysisData.exemplar_matches || [];
+  if (!Array.isArray(matches)) matches = [];
+
+  container.innerHTML = matches.map(function(m, i) {
+    var primary = i === 0 ? ' primary' : '';
+    var reasons = (m.reasons || []).map(function(r) { return '<div class="ex-r">' + r + '</div>'; }).join('');
+    return '<div class="ex-card' + primary + '">' +
+      '<div class="ex-pct">' + (m.match_pct || '') + '%</div>' +
+      '<div class="ex-rank">' + (m.rank || '') + '</div>' +
+      '<div class="ex-name">' + (m.preacher_name || '') + '</div>' +
+      '<div class="ex-reasons">' + reasons + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── RENDER GROWTH ──
+function renderGrowth() {
+  var container = document.getElementById('growthContent');
+  if (!container || !analysisData) return;
+  var intro = analysisData.growth_intro || {};
+  var areas = analysisData.growth_areas || [];
+
+  var introHtml = '';
+  if (intro.text) {
+    introHtml = '<div class="growth-intro">' +
+      '<div class="growth-intro-label">' + (intro.label || 'What This Means For Your Development') + '</div>' +
+      '<div class="growth-intro-text">' + intro.text + '</div>' +
+    '</div>';
+  }
+
+  var cardsHtml = areas.map(function(a) {
+    var metricsHtml = '';
+    if (a.metric_current != null) {
+      metricsHtml = '<div class="growth-metric">' +
+        '<div class="growth-metric-row">' +
+          '<div class="growth-metric-item"><div class="growth-metric-n current">' + (a.metric_current || '') + '</div><div class="growth-metric-l">' + (a.metric_current_label || '') + '</div></div>' +
+          '<div class="growth-metric-arrow">\u2192</div>' +
+          '<div class="growth-metric-item"><div class="growth-metric-n target">' + (a.metric_target || '') + '</div><div class="growth-metric-l">' + (a.metric_target_label || '') + '</div></div>' +
+        '</div>' +
+        '<div class="growth-metric-caption">' + (a.metric_caption || '') + '</div>' +
+      '</div>';
+    }
+    return '<div class="growth-card">' +
+      '<div class="growth-card-header">' +
+        '<div class="growth-card-left">' +
+          '<div class="growth-number">' + (a.number || '') + '</div>' +
+          '<div class="growth-title">' + (a.title_html || '') + '</div>' +
+          '<div class="growth-diagnosis">' + (a.diagnosis || '') + '</div>' +
+        '</div>' +
+        metricsHtml +
+      '</div>' +
+      '<div class="growth-card-footer">' +
+        '<span class="growth-rec-label">' + (a.rec_label || 'Recommendation') + '</span>' +
+        '<span class="growth-rec-arrow">\u2192</span>' +
+        '<span class="growth-rec-text">' + (a.recommendation || '') + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML = introHtml + '<div class="growth-cards">' + cardsHtml + '</div>';
+}
+
+// ── RENDER LATENT BOOK ──
+function renderLatentBook() {
+  var container = document.getElementById('latentBookContent');
+  if (!container || !analysisData) return;
+  var lb = analysisData.latent_book || {};
+
+  // Hero
+  var heroHtml = '';
+  if (lb.title) {
+    heroHtml = '<div class="book-hero">' +
+      '<div class="book-hero-left">' +
+        '<div class="book-hero-eyebrow">Primary Recommendation' + (lb.confidence ? ' \u00b7 Confidence: ' + lb.confidence : '') + '</div>' +
+        '<div class="book-hero-title">' + lb.title + '</div>' +
+        (lb.subtitle ? '<div class="book-hero-subtitle">' + lb.subtitle + '</div>' : '') +
+        (lb.body ? '<div class="book-hero-body">' + lb.body + '</div>' : '') +
+      '</div>' +
+      '<div class="book-hero-right">' +
+        '<div class="book-cover-mock"><div class="book-cover-title">' + (lb.cover_title || lb.title.replace(/<[^>]*>/g, '')) + '</div></div>' +
+        '<div class="book-cover-label">Latent manuscript</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Evidence signals
+  var signalsHtml = '';
+  var signals = lb.evidence_signals || [];
+  if (signals.length > 0) {
+    signalsHtml = '<div class="section-eyebrow" style="margin-bottom:14px;">Evidence Signals</div>' +
+      '<div class="book-confidence">' +
+      signals.map(function(s) {
+        return '<div class="book-conf-row">' +
+          '<div class="book-conf-label">' + s.label + '</div>' +
+          '<div class="book-conf-bar"><div class="book-conf-fill" style="width:' + s.pct + '%;"></div></div>' +
+          '<div class="book-conf-n">' + s.pct + '%</div>' +
+        '</div>';
+      }).join('') +
+      '</div>';
+  }
+
+  // Evidence cards
+  var cardsHtml = '';
+  var cards = lb.evidence_cards || [];
+  if (cards.length > 0) {
+    cardsHtml = '<div class="book-evidence-grid">' +
+      cards.map(function(c) {
+        return '<div class="book-evidence-card">' +
+          '<div class="book-evidence-type">' + (c.type || '') + '</div>' +
+          '<div class="book-evidence-text">' + (c.text || '') + '</div>' +
+          (c.source ? '<div class="book-evidence-src">' + c.source + '</div>' : '') +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  // Secondary candidate
+  var secHtml = '';
+  var sec = lb.secondary;
+  if (sec) {
+    secHtml = '<div style="margin-top:28px;">' +
+      '<div class="section-eyebrow" style="margin-bottom:14px;">Secondary Candidate</div>' +
+      '<div class="growth-card">' +
+        '<div class="growth-card-header">' +
+          '<div class="growth-card-left">' +
+            '<div class="growth-number">' + (sec.number || 'Runner-up') + '</div>' +
+            '<div class="growth-title">' + (sec.title_html || '') + '</div>' +
+            '<div class="growth-diagnosis">' + (sec.diagnosis || '') + '</div>' +
+          '</div>' +
+          (sec.metric_current ? '<div class="growth-metric">' +
+            '<div class="growth-metric-row">' +
+              '<div class="growth-metric-item"><div class="growth-metric-n current">' + (sec.metric_current || '') + '</div><div class="growth-metric-l">' + (sec.metric_current_label || '') + '</div></div>' +
+              '<div class="growth-metric-arrow">+</div>' +
+              '<div class="growth-metric-item"><div class="growth-metric-n target">' + (sec.metric_target || '') + '</div><div class="growth-metric-l">' + (sec.metric_target_label || '') + '</div></div>' +
+            '</div>' +
+            '<div class="growth-metric-caption">' + (sec.metric_caption || '') + '</div>' +
+          '</div>' : '') +
+        '</div>' +
+        '<div class="growth-card-footer">' +
+          '<span class="growth-rec-label">Next Step</span>' +
+          '<span class="growth-rec-arrow">\u2192</span>' +
+          '<span class="growth-rec-text">' + (sec.next_step || sec.recommendation || '') + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  container.innerHTML = heroHtml + signalsHtml + cardsHtml + secHtml;
+}
+
+async function initSermons() {
+  if (allSermonIds) return;
+  try {
+    const res = await fetch(REST + '/sermons?preacher_id=eq.' + PREACHER_ID + '&select=id,title,date,series_name,primary_text,sermon_type&order=date.desc', { headers: HEADERS });
+    const sermons = await res.json();
+    sermons.forEach(function(s) { sermonMap[s.id] = s; });
+    allSermonIds = sermons.map(function(s) { return s.id; }).join(',');
+  } catch(e) { console.error('initSermons failed:', e); }
+}
+
+async function loadIllustrations() {
+  await initSermons();
+  if (!allSermonIds) { console.warn('initSermons returned no IDs'); return; }
+  try {
+    const res = await fetch(REST + '/units?sermon_id=in.(' + allSermonIds + ')&rhetorical_function=eq.illustration&select=id,sermon_id,illustration_type,summary&order=sermon_id,unit_index&limit=200', { headers: HEADERS });
+    const units = await res.json();
+    ALL_ILLUS = units.map(function(u) {
+      const sermon = sermonMap[u.sermon_id] || {};
+      const typeLabel = ILLUS_TYPE_MAP[u.illustration_type] || (u.illustration_type || 'Illustration').replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      const sd = sermon.date ? new Date(sermon.date).toLocaleDateString('en-US', {month:'short', year:'numeric'}) : '';
+      const source = [sermon.title, sermon.primary_text, sd].filter(Boolean).join(' \u00b7 ');
+      return { type: typeLabel, text: u.summary || '', source: source, sermon_id: u.sermon_id };
+    });
+  } catch(e) { console.error('loadIllustrations failed:', e); ALL_ILLUS = []; }
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+async function renderIllus() {
+  const grid = document.getElementById('illusGrid');
+  if (!grid) return;
+  if (ALL_ILLUS.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:24px;font-family:var(--mono);font-size:0.65rem;color:var(--warm-gray);">Loading illustrations\u2026</div>';
+    await loadIllustrations();
+  }
+  const pool = illusFilter === 'All' ? ALL_ILLUS : ALL_ILLUS.filter(function(i) { return i.type === illusFilter; });
+  const shown = shuffle(pool).slice(0, 12);
+  if (shown.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:24px;font-family:var(--mono);font-size:0.65rem;color:var(--warm-gray);">No illustrations found for this type.</div>';
+    return;
+  }
+  grid.innerHTML = shown.map(function(i) {
+    var clickAttr = i.sermon_id ? ' onclick="openSermon(\'' + i.sermon_id + '\')" style="cursor:pointer"' : '';
+    return '<div class="illus-card"' + clickAttr + '><div class="illus-type-lbl">' + i.type + '</div><div class="illus-text">' + i.text + '</div>' + (i.source ? '<div class="illus-source">' + i.source + '</div>' : '') + '</div>';
+  }).join('');
+}
+
+function refreshIllus() { renderIllus(); }
+
+function setIllusFilter(filter, btn) {
+  illusFilter = filter;
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderIllus();
+}
+
+function renderQuotes() {
+  const grid = document.getElementById('quotesGrid');
+  if (!grid) return;
+  const shown = shuffle(ALL_QUOTES).slice(0, 12);
+  grid.innerHTML = shown.map(function(q) {
+    var clickAttr = q.sermon_id ? ' onclick="openSermon(\'' + q.sermon_id + '\')" style="cursor:pointer;" title="Click to view sermon"' : '';
+    return '<div class="quote-card"' + clickAttr + '><div class="q-text">\u201c' + q.text + '\u201d</div><div class="q-attr">' + q.attr + '</div>' + (q.source ? '<div style="font-family:var(--mono);font-size:0.48rem;color:var(--warm-gray);margin-top:2px;">' + q.source + '</div>' : '') + '</div>';
+  }).join('');
+}
+
+function refreshQuotes() { renderQuotes(); }
+
+async function renderSermonTable() {
+  const tbody = document.getElementById('sermonTbody');
+  if (!tbody) return;
+  if (!allSermonIds) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;font-family:var(--mono);font-size:0.65rem;color:var(--warm-gray);">Loading\u2026</td></tr>';
+    await initSermons();
+  }
+  const sermons = Object.values(sermonMap);
+  tbody.innerHTML = sermons.map(function(s) {
+    const date = s.date ? new Date(s.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+    const type = s.sermon_type || 'Expository';
+    const badgeCls = type.toLowerCase() === 'expository' ? 'exp' : 'top';
+    return '<tr><td class="s-title-cell">' + (s.title || 'Untitled') + '</td><td>' + (s.series_name || '') + '</td><td>' + (s.primary_text || '') + '</td><td>' + date + '</td><td><span class="s-badge ' + badgeCls + '">' + type + '</span></td></tr>';
+  }).join('');
+}
+
+function setFilter(btn) {
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  const txt = btn.textContent.trim().toLowerCase();
+  activeSearchFilter = txt === 'all' ? 'all' : txt.replace(/ /g, '_');
+  const input = document.getElementById('searchInput');
+  if (input && input.value.trim()) runSearch();
+}
+
+function suggestSearch(term) {
+  const input = document.getElementById('searchInput');
+  if (input) { input.value = term; runSearch(); }
+}
+
+async function runSearch() {
+  const input = document.getElementById('searchInput');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+  if (!allSermonIds) await initSermons();
+  const meta = document.getElementById('searchMeta');
+  const container = document.getElementById('resultList');
+  if (meta) meta.textContent = 'Searching\u2026';
+  if (container) container.innerHTML = '';
+  const moreBtn = document.getElementById('searchMoreBtn');
+  if (moreBtn) moreBtn.style.display = 'none';
+  try {
+    const kw = encodeURIComponent('*' + raw + '*');
+    const fnClause = (activeSearchFilter && activeSearchFilter !== 'all') ? '&rhetorical_function=eq.' + activeSearchFilter : '';
+    const url = REST + '/units?sermon_id=in.(' + allSermonIds + ')' + fnClause + '&or=(summary.ilike.' + kw + ',key_claim.ilike.' + kw + ',content.ilike.' + kw + ')&select=id,sermon_id,unit_index,rhetorical_function,summary,key_claim,content,illustration_type&order=sermon_id,unit_index&limit=200';
+    const res = await fetch(url, { headers: HEADERS });
+    const units = await res.json();
+    currentResults = units;
+    displayedCount = 0;
+    if (meta) meta.innerHTML = units.length + ' result' + (units.length !== 1 ? 's' : '') + ' for \u201c<em>' + raw + '</em>\u201d';
+    if (units.length === 0) {
+      if (container) container.innerHTML = '<div style="text-align:center;padding:40px;font-family:var(--serif);font-style:italic;color:var(--warm-gray);">No results for \u201c' + raw + '\u201d</div>';
+      return;
+    }
+    renderNextPage(raw);
+  } catch(e) {
+    if (meta) meta.textContent = 'Search failed \u2014 please try again.';
+    console.error(e);
+  }
+}
+
+function renderNextPage(query) {
+  query = query || (document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim() : '');
+  const container = document.getElementById('resultList');
+  if (!container) return;
+  const slice = currentResults.slice(displayedCount, displayedCount + PAGE_SIZE);
+  displayedCount += slice.length;
+  slice.forEach(function(unit) {
+    const sermon = sermonMap[unit.sermon_id] || {};
+    const fn = (unit.rhetorical_function || '').replace(/_/g, ' ');
+    const fnCls = unit.rhetorical_function || '';
+    const sermonDate = sermon.date ? new Date(sermon.date).getFullYear() : '';
+    const sermonTitle = sermon.title || 'Untitled';
+    const summary = highlight(unit.summary || '', query);
+    const claim = unit.key_claim ? '<div style="font-family:var(--serif);font-size:0.88rem;font-style:italic;color:var(--warm-gray);margin-top:6px;line-height:1.6;">' + highlight(unit.key_claim, query) + '</div>' : '';
+    const hasContent = unit.content && unit.content.length > 0;
+    const expandBtn = hasContent ? '<button class="result-expand" onclick="toggleContent(this)">\u25b6 View excerpt</button><div class="result-content">' + highlight(unit.content, query) + '</div>' : '';
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = '<div class="result-header"><span class="result-fn ' + fnCls + '">' + fn + '</span><span class="result-sermon-lbl">' + sermonTitle + (sermonDate ? ' \u00b7 ' + sermonDate : '') + '</span><div class="result-summary">' + summary + '</div>' + claim + expandBtn + '</div>';
+    container.appendChild(card);
+  });
+  const moreBtn = document.getElementById('searchMoreBtn');
+  if (moreBtn) {
+    if (displayedCount < currentResults.length) {
+      moreBtn.style.display = 'block';
+      moreBtn.textContent = 'Load More (' + (currentResults.length - displayedCount) + ' remaining) \u2193';
+    } else { moreBtn.style.display = 'none'; }
+  }
+}
+
+function loadMoreResults() { renderNextPage(); }
+
+function highlight(text, query) {
+  if (!text || !query) return text || '';
+  const escaped = query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  return text.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+}
+
+function toggleContent(btn) {
+  const content = btn.nextElementSibling;
+  const open = content.classList.toggle('open');
+  btn.textContent = open ? '\u25bc Hide excerpt' : '\u25b6 View excerpt';
+}
+
+const titleMap = {
+  overview:'Overview', exemplar:'Exemplar Similarities', illustrations:'Illustrations',
+  quotes:'Quotes & Citations', search:'Search Archive', sermons:'Recent Sermons',
+  growth:'Growth Areas', preflight:'PreFlight Check', latentbook:'Latent Book',
+  herald:'Herald \u00b7 Quote Graphics', voxprompt:'VoxPrompt \u00b7 Your Voice',
+  hallquery:'Hall Query \u00b7 Search the Masters'
+};
+
+function switchView(id, navEl) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  document.getElementById('view-' + id).classList.add('active');
+  navEl.classList.add('active');
+  document.getElementById('topbarTitle').textContent = titleMap[id] || id;
+  document.querySelector('.content').scrollTop = 0;
+  if (id === 'sermons') renderSermonTable();
+  if (id === 'search') {
+    initSermons();
+    if (!searchListenerAdded) {
+      const input = document.getElementById('searchInput');
+      if (input) { input.addEventListener('keydown', function(e) { if (e.key === 'Enter') runSearch(); }); searchListenerAdded = true; }
+    }
+  }
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('prompt-chip')) suggestSearch(e.target.textContent.trim());
+});
+
+document.addEventListener('DOMContentLoaded', async function() {
+  // Load preacher info and analysis data in parallel
+  await Promise.all([loadPreacherInfo(), loadAnalysis()]);
+
+  // Render sidebar with fetched data
+  renderSidebar();
+
+  // Render analysis sections
+  renderOverview();
+  renderExemplar();
+  renderGrowth();
+  renderLatentBook();
+
+  // Init archive sections (these already work dynamically)
+  initSermons();
+  renderIllus();
+  renderQuotes();
+  const input = document.getElementById('searchInput');
+  if (input && !searchListenerAdded) {
+    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') runSearch(); });
+    searchListenerAdded = true;
+  }
+});
+
+// ── SERMON MODAL ──
+async function openSermon(sermonId) {
+  var modal = document.getElementById('sermonModal');
+  var content = document.getElementById('sermonModalContent');
+  if (!modal || !content) return;
+
+  var sermon = sermonMap[sermonId] || {};
+  var title = sermon.title || 'Untitled';
+  var date = sermon.date ? new Date(sermon.date).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'}) : '';
+  var metaParts = [sermon.series_name, sermon.primary_text, date].filter(Boolean);
+
+  content.innerHTML = '<div class="sermon-modal-title">' + title + '</div>' +
+    '<div class="sermon-modal-meta">' + metaParts.join(' \u00b7 ') + '</div>' +
+    '<div style="padding:24px;text-align:center;font-family:var(--mono);font-size:0.65rem;color:var(--warm-gray);">Loading units\u2026</div>';
+  modal.classList.add('open');
+
+  try {
+    var res = await fetch(REST + '/units?sermon_id=eq.' + sermonId + '&select=unit_index,rhetorical_function,summary,key_claim,content&order=unit_index', { headers: HEADERS });
+    var units = await res.json();
+
+    var unitsHtml = units.map(function(u) {
+      var fn = (u.rhetorical_function || '').replace(/_/g, ' ');
+      var fnCls = u.rhetorical_function || '';
+      return '<div class="sermon-modal-unit">' +
+        '<span class="sermon-modal-unit-fn ' + fnCls + '">' + fn + '</span>' +
+        (u.summary ? '<div class="sermon-modal-unit-summary">' + u.summary + '</div>' : '') +
+        (u.content ? '<div class="sermon-modal-unit-content">' + u.content + '</div>' : '') +
+      '</div>';
+    }).join('');
+
+    content.innerHTML = '<div class="sermon-modal-title">' + title + '</div>' +
+      '<div class="sermon-modal-meta">' + metaParts.join(' \u00b7 ') + '</div>' +
+      unitsHtml;
+  } catch(e) {
+    content.innerHTML = '<div class="sermon-modal-title">' + title + '</div>' +
+      '<div class="sermon-modal-meta">' + metaParts.join(' \u00b7 ') + '</div>' +
+      '<div style="padding:24px;font-family:var(--mono);font-size:0.65rem;color:var(--warm-gray);">Failed to load sermon units.</div>';
+    console.error('openSermon failed:', e);
+  }
+}
+
+function closeSermon() {
+  var modal = document.getElementById('sermonModal');
+  if (modal) modal.classList.remove('open');
+}
+
+// Close sermon modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSermon();
+});
+
+// ── PREFLIGHT CHECK ──
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'preflightText') {
+    var words = e.target.value.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('preflightWordCount').textContent = words + ' words';
+  }
+});
+
+async function runPreflight() {
+  var textarea = document.getElementById('preflightText');
+  var btn = document.getElementById('preflightBtn');
+  var resultsDiv = document.getElementById('preflightResults');
+  if (!textarea || !btn || !resultsDiv) return;
+
+  var text = textarea.value.trim();
+  var words = text.split(/\s+/).filter(Boolean).length;
+  if (words < 100) {
+    alert('Please paste at least 100 words of sermon text.');
+    return;
+  }
+
+  btn.textContent = 'Analyzing\u2026';
+  btn.disabled = true;
+
+  try {
+    var res = await fetch(SUPABASE_URL + '/functions/v1/preflight-check', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      },
+      body: JSON.stringify({ preacher_id: PREACHER_ID, sermon_text: text })
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    renderPreflightResults(data);
+  } catch(e) {
+    console.error('runPreflight failed:', e);
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:32px;">' +
+      '<div style="font-family:var(--serif);font-size:1.15rem;color:var(--ink);margin-bottom:12px;">PreFlight Check requires server setup.</div>' +
+      '<div style="font-family:var(--sans);font-size:0.86rem;color:var(--slate);line-height:1.7;">Run <strong>preflight_check.py</strong> locally for now.</div>' +
+    '</div>';
+  } finally {
+    btn.textContent = 'Run Pre-Flight Check \u2192';
+    btn.disabled = false;
+  }
+}
+
+function renderPreflightResults(data) {
+  var resultsDiv = document.getElementById('preflightResults');
+  if (!resultsDiv) return;
+
+  var grade = data.overall_grade || data.grade || 'N/A';
+  var summary = data.summary || '';
+  var benchmarks = data.benchmarks || data.benchmark_scores || [];
+  var strongest = data.strongest_moment || '';
+  var recommendation = data.one_thing_to_change || data.recommendation || '';
+
+  // Overall grade card (distinction-style)
+  var gradeHtml = '<div class="distinction" style="margin-top:0;margin-bottom:24px;">' +
+    '<div>' +
+      '<div class="distinction-label">Overall Assessment</div>' +
+      '<div class="distinction-text">' + summary + '</div>' +
+    '</div>' +
+    '<div class="distinction-stat">' +
+      '<div class="distinction-stat-n">' + grade + '</div>' +
+      '<div class="distinction-stat-l">Overall Grade</div>' +
+    '</div>' +
+  '</div>';
+
+  // Benchmark score cards
+  var benchHtml = '';
+  if (benchmarks.length > 0) {
+    benchHtml = '<div class="section-eyebrow" style="margin-bottom:14px;">Benchmark Scores</div>' +
+      benchmarks.map(function(b) {
+        var label = b.benchmark || b.name || b.label || '';
+        var score = b.score || b.grade || '';
+        var assessment = b.assessment || b.detail || b.description || '';
+        var momentsHtml = '';
+        if (b.moments_found && b.moments_found.length > 0) {
+          momentsHtml = '<div class="preflight-moments"><ul>' +
+            b.moments_found.map(function(m) { return '<li>' + m + '</li>'; }).join('') +
+          '</ul></div>';
+        }
+        var missedHtml = '';
+        if (b.missed_opportunities && b.missed_opportunities.length > 0) {
+          missedHtml = '<div style="font-family:var(--mono);font-size:0.48rem;color:var(--warm-gray);letter-spacing:0.1em;text-transform:uppercase;margin-top:12px;margin-bottom:6px;">Missed Opportunities</div>' +
+            '<div class="preflight-missed"><ul>' +
+            b.missed_opportunities.map(function(m) { return '<li>' + m + '</li>'; }).join('') +
+          '</ul></div>';
+        }
+        return '<div class="preflight-benchmark" style="margin-bottom:18px;">' +
+          '<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px;">' +
+            '<div class="preflight-score">' + score + '</div>' +
+            '<div style="font-family:var(--mono);font-size:0.52rem;color:var(--gold-dim);letter-spacing:0.14em;text-transform:uppercase;">' + label + '</div>' +
+          '</div>' +
+          (assessment ? '<div style="font-family:var(--sans);font-size:0.82rem;color:var(--slate);line-height:1.65;margin-bottom:8px;">' + assessment + '</div>' : '') +
+          momentsHtml + missedHtml +
+        '</div>';
+      }).join('') +
+    '<div style="margin-bottom:24px;"></div>';
+  }
+
+  // Strongest moment
+  var momentHtml = '';
+  if (strongest) {
+    momentHtml = '<div class="section-eyebrow" style="margin-bottom:14px;">Strongest Moment</div>' +
+      '<div class="quote-card" style="margin-bottom:24px;"><div class="q-text">\u201c' + strongest + '\u201d</div></div>';
+  }
+
+  // Recommendation
+  var recHtml = '';
+  if (recommendation) {
+    recHtml = '<div class="growth-card" style="margin-bottom:0;">' +
+      '<div class="growth-card-footer" style="border-top:none;">' +
+        '<span class="growth-rec-label">One Thing to Change</span>' +
+        '<span class="growth-rec-arrow">\u2192</span>' +
+        '<span class="growth-rec-text">' + recommendation + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  resultsDiv.innerHTML = gradeHtml + benchHtml + momentHtml + recHtml;
+  resultsDiv.style.display = 'block';
+}
+
+
+</script>
+
+<!-- ── SERMON MODAL ── -->
+<div class="sermon-modal" id="sermonModal" onclick="if(event.target===this)closeSermon()">
+  <div class="sermon-modal-inner">
+    <button class="sermon-modal-close" onclick="closeSermon()">&times;</button>
+    <div id="sermonModalContent"></div>
+  </div>
+</div>
+
+</body>
+</html>

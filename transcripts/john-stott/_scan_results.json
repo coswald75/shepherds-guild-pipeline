@@ -1,0 +1,810 @@
+[
+  {
+    "title": "Who's On Trial? (Daniel 7:9–14)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/612e1557-883d-455d-b3e1-edf2fb1fb10d.mp3",
+    "date": "Sun, 01 Mar 2026 12:00:00 GMT",
+    "description": "The King Who Chose to Die: Who's On Trial?",
+    "duration": "00:35:47",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358922&fullpage=True"
+  },
+  {
+    "title": "I Am Judgement (John 9:24–41)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/19ce5d92-c466-458c-a191-a1ade98e7291.mp3",
+    "date": "Sun, 01 Mar 2026 12:00:00 GMT",
+    "description": "Who Do You Say I Am: I Am Judgement",
+    "duration": "00:36:28",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358921&fullpage=True"
+  },
+  {
+    "title": "Obedient Unto Death (Mark 14:32–52)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/de36705b-0d39-41fe-a202-570e3899cce5.mp3",
+    "date": "Sun, 22 Feb 2026 12:00:00 GMT",
+    "description": "The King Who Chose to Die: Obedient Unto Death",
+    "duration": "00:33:20",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358543&fullpage=True"
+  },
+  {
+    "title": "I Am the Light of the World (John 9:1–23)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/27b14738-2f78-4912-8610-d539dfd900f9.mp3",
+    "date": "Sun, 22 Feb 2026 12:00:00 GMT",
+    "description": "Who Do You Say That I Am: I Am the Light of the World",
+    "duration": "00:33:53",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358520&fullpage=True"
+  },
+  {
+    "title": "A Meal for Sinners (Mark 14:12–31)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/417d8234-0c66-46d4-a808-5db884c8d9b3.mp3",
+    "date": "Sun, 15 Feb 2026 12:00:00 GMT",
+    "description": "The King Who Chose to Die: A Meal for Sinners",
+    "duration": "00:27:03",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358195&fullpage=True"
+  },
+  {
+    "title": "What You Really Need (2 Peter 1:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/f5f69a3d-0c7f-4e07-83d0-a77dbf43ff56.mp3",
+    "date": "Sun, 15 Feb 2026 12:00:00 GMT",
+    "description": "Apostle Peter on Christian Growth: What You Really Need",
+    "duration": "00:34:52",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=358126&fullpage=True"
+  },
+  {
+    "title": "Beautiful Discipleship (Mark 14:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b0bcd916-0b6f-413b-a75f-b30b3979c5f6.mp3",
+    "date": "Sun, 08 Feb 2026 12:00:00 GMT",
+    "description": "The King Who Chose to Die: Beautiful Discipleship",
+    "duration": "00:18:13",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357803&fullpage=True"
+  },
+  {
+    "title": "Christian Growth: the Only Way to Do It (1 Peter 1:22 – 2:3)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/ac6d4540-3ee9-4989-8bbd-031eede4c4ed.mp3",
+    "date": "Sun, 08 Feb 2026 12:00:00 GMT",
+    "description": "Apostle Peter on Christian Growth: the Only Way to Do It",
+    "duration": "00:29:01",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357797&fullpage=True"
+  },
+  {
+    "title": "The Cost of Global Mission (Acts 20:22–24)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/8ed19f5d-0e3d-41a4-84df-e33a99a62eeb.mp3",
+    "date": "Sun, 01 Feb 2026 12:00:00 GMT",
+    "description": "World Mission Sunday: The Cost of Global Mission",
+    "duration": "00:30:52",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357453&fullpage=True"
+  },
+  {
+    "title": "Why Antioch and Not Jerusalem (Acts 2:42–47)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/ac07050b-beac-4688-a615-18df9ff8d901.mp3",
+    "date": "Sun, 01 Feb 2026 12:00:00 GMT",
+    "description": "World Mission Sunday: Why Antioch and Not Jerusalem",
+    "duration": "00:24:41",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357450&fullpage=True"
+  },
+  {
+    "title": "Living the truth (Matthew 19:16–26)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/6ca1c5b7-271a-40bf-9f4f-378bd6280edb.mp3",
+    "date": "Sun, 25 Jan 2026 12:00:00 GMT",
+    "description": "Series: Finding Truth",
+    "duration": "00:26:32",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357021&fullpage=True"
+  },
+  {
+    "title": "Finding Contentment Compared to Them (Luke 18:9–14)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/c76f02dc-51f1-402d-954a-459c5309505a.mp3",
+    "date": "Sun, 25 Jan 2026 12:00:00 GMT",
+    "description": "Series: Finding Contentment",
+    "duration": "00:24:06",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=357011&fullpage=True"
+  },
+  {
+    "title": "Why Does Truth Matter? (Romans 6:1–14)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/ac68871d-b2e8-49f5-aa8c-a99f5c791789.mp3",
+    "date": "Sun, 18 Jan 2026 12:00:00 GMT",
+    "description": "Finding Truth: Why Does Truth Matter?",
+    "duration": "00:26:15",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=356582&fullpage=True"
+  },
+  {
+    "title": "Finding Contentment With Who I Am (Romans 6:1–14)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b739b187-fb9e-4d63-99c2-e940035eabcb.mp3",
+    "date": "Sun, 18 Jan 2026 12:00:00 GMT",
+    "description": "Finding Contentment: With Who I Am",
+    "duration": "00:24:08",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=356557&fullpage=True"
+  },
+  {
+    "title": "Where Does Truth Come From? (John 14:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/10ec255b-9b69-439e-81e2-3e310fd122a1.mp3",
+    "date": "Sun, 11 Jan 2026 12:00:00 GMT",
+    "description": "Finding Truth: Where Does Truth Come From?",
+    "duration": "00:28:42",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=356246&fullpage=True"
+  },
+  {
+    "title": "Finding Contentment With What I Have (Luke 12:15–21)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/40663daa-9e50-4ca4-8b3e-b11dfb207b82.mp3",
+    "date": "Sun, 11 Jan 2026 12:00:00 GMT",
+    "description": "Finding Contentment: With What I Have",
+    "duration": "00:26:35",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=356245&fullpage=True"
+  },
+  {
+    "title": "The Word of Truth (Psalm 119)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/135abe35-3cfd-49e9-a62b-ef971c2f4a51.mp3",
+    "date": "Sun, 04 Jan 2026 12:00:00 GMT",
+    "description": "Daily Bread: The Word of Truth",
+    "duration": "00:30:44",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355774&fullpage=True"
+  },
+  {
+    "title": "Thoroughly Equipped (2 Timothy 3:10–17)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/682f44c2-0d20-4e62-8e6f-efb2d0d0469a.mp3",
+    "date": "Sun, 04 Jan 2026 12:00:00 GMT",
+    "description": "Daily Bread: Thoroughly Equipped",
+    "duration": "00:32:27",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355732&fullpage=True"
+  },
+  {
+    "title": "Joy in Our Going Out (Isaiah 55)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/12bcd84a-24f2-4df1-826b-2e760f5a8372.mp3",
+    "date": "Sun, 04 Jan 2026 12:00:00 GMT",
+    "description": "Christmas Cheer: Joy in Our Going Out",
+    "duration": "00:19:42",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355717&fullpage=True"
+  },
+  {
+    "title": "Daily Bread (Psalm 19)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/97da8d2f-b77b-45e2-8b38-2a4d57db04b2.mp3",
+    "date": "Sun, 28 Dec 2025 12:00:00 GMT",
+    "description": "Daily Bread",
+    "duration": "00:20:36",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355660&fullpage=True"
+  },
+  {
+    "title": "Joy to the World (Isaiah 61)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/210296f8-149e-4da7-9d5b-e1cc8f4315a3.mp3",
+    "date": "Sun, 28 Dec 2025 12:00:00 GMT",
+    "description": "Christmas Cheer: Joy to the World",
+    "duration": "00:29:51",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355498&fullpage=True"
+  },
+  {
+    "title": "How Superman is based on the Christmas story — and why Jesus is better (Matthew 1:18–25)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/aa786642-614d-4ee0-903b-35ac17a7b531.mp3",
+    "date": "Thu, 25 Dec 2025 12:00:00 GMT",
+    "description": "Christmas 2025: How Superman is based on the Christmas story — and why Jesus is better",
+    "duration": "00:12:39",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355490&fullpage=True"
+  },
+  {
+    "title": "Joy in the Darkness (Isaiah 9:1–7)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/5555e3ed-b03a-4255-8ec2-d4b074212228.mp3",
+    "date": "Sun, 21 Dec 2025 12:00:00 GMT",
+    "description": "Christmas Cheer: Joy in the Darkness",
+    "duration": "00:31:43",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355128&fullpage=True"
+  },
+  {
+    "title": "What Are We Waiting For? (Luke 2:22–40)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/99d1fb71-aa57-4671-abaf-5a3fc574eaae.mp3",
+    "date": "Sat, 20 Dec 2025 12:00:00 GMT",
+    "description": "Christmas Carol Services 2025: What Are We Waiting For?",
+    "duration": "00:12:33",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355119&fullpage=True"
+  },
+  {
+    "title": "Help Me! (John 1:1–5)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b41c7f2e-e308-4d76-b2bc-cc31e428b004.mp3",
+    "date": "Thu, 18 Dec 2025 12:00:00 GMT",
+    "description": "Christmas Carol Services 2025: Help Me!",
+    "duration": "00:12:45",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=355113&fullpage=True"
+  },
+  {
+    "title": "Spiritual Experiences (Luke 2:1–20)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/dd791a9b-2b9e-4251-ab83-d49ca320db1f.mp3",
+    "date": "Mon, 15 Dec 2025 12:00:00 GMT",
+    "description": "Carol Services 2025: Spiritual Experiences",
+    "duration": "00:12:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354867&fullpage=True"
+  },
+  {
+    "title": "Joy of the Redeemed (Isaiah 35)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/5440670f-aa7a-4b96-959a-d3397725f368.mp3",
+    "date": "Sun, 14 Dec 2025 12:00:00 GMT",
+    "description": "Christmas Cheer: Joy of the Redeemed",
+    "duration": "00:28:59",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354832&fullpage=True"
+  },
+  {
+    "title": "Walking When You Can't See Where You're Going (2 Corinthians 4:7–18)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/112108d2-70bb-42a7-8f35-41924f5e8f69.mp3",
+    "date": "Sun, 07 Dec 2025 12:00:00 GMT",
+    "description": "Walking in Weakness: Walking When You Can't See Where You're Going",
+    "duration": "00:17:19",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354518&fullpage=True"
+  },
+  {
+    "title": "Every Member Matters (Acts 6:1–7)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/403374dd-8c75-4196-adf2-ecff4629637c.mp3",
+    "date": "Sun, 07 Dec 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Every Member Matters",
+    "duration": "00:28:29",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354517&fullpage=True"
+  },
+  {
+    "title": "'They Will Walk and Not Be Faint' (Isaiah 40)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/6d7a37de-4292-4806-a696-c58acdb11fdd.mp3",
+    "date": "Sun, 30 Nov 2025 12:00:00 GMT",
+    "description": "Walking in Weakness: 'They Will Walk and Not Be Faint'",
+    "duration": "00:17:26",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354080&fullpage=True"
+  },
+  {
+    "title": "Can't stop the Spirit (Acts 5:12–42)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/58837f6e-4538-4166-92bd-1a603d0aaa45.mp3",
+    "date": "Sun, 30 Nov 2025 12:00:00 GMT",
+    "description": "Series: Mission Unstoppable",
+    "duration": "00:29:33",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=354055&fullpage=True"
+  },
+  {
+    "title": "The Return of the King (Mark 13:24–37)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b847b1f7-ce1b-4889-a8f1-b8850f181048.mp3",
+    "date": "Sun, 23 Nov 2025 12:00:00 GMT",
+    "description": "The King's Authority: The Return of the King",
+    "duration": "00:30:06",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=353609&fullpage=True"
+  },
+  {
+    "title": "Take God Seriously (Acts 4:32 – 5:11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/6545c2f0-f055-42a7-ab82-c234462e3ea6.mp3",
+    "date": "Sun, 23 Nov 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Take God Seriously",
+    "duration": "00:34:32",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=353606&fullpage=True"
+  },
+  {
+    "title": "Accept no Imitations (Mark 13:1–23)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/e8ba52ac-5169-4c50-8296-e00d22936c5d.mp3",
+    "date": "Sun, 16 Nov 2025 12:00:00 GMT",
+    "description": "The King's Authority: Accept no Imitations",
+    "duration": "00:30:32",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=353106&fullpage=True"
+  },
+  {
+    "title": "Opposition Overcome (Acts 4:23–31)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/253943f7-011b-4ccc-9670-fc81c7b6e689.mp3",
+    "date": "Sun, 16 Nov 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Opposition Overcome",
+    "duration": "00:31:19",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=353105&fullpage=True"
+  },
+  {
+    "title": "The Kings Sight (Mark 12:38–44)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/2d04951b-15ec-4f50-9f5e-6090ef24c050.mp3",
+    "date": "Sun, 09 Nov 2025 12:00:00 GMT",
+    "description": "Series: The King's Authority",
+    "duration": "00:26:26",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352670&fullpage=True"
+  },
+  {
+    "title": "Courage (Acts 4:1–22)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/1afa1b33-c3bf-43bc-9c53-99e2ed4562e0.mp3",
+    "date": "Sun, 09 Nov 2025 12:00:00 GMT",
+    "description": "Series: Mission Unstoppable",
+    "duration": "00:26:41",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352663&fullpage=True"
+  },
+  {
+    "title": "Lord of Lords (Mark 12:35–37)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/1ab69824-0411-4e5b-b52b-560179120aeb.mp3",
+    "date": "Sun, 02 Nov 2025 12:00:00 GMT",
+    "description": "The King's Authority: Lord of Lords",
+    "duration": "00:28:49",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352408&fullpage=True"
+  },
+  {
+    "title": "Bad News & Good News (Acts 3:17–26)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/4ad70402-2638-4686-9764-52eee0e77e14.mp3",
+    "date": "Sun, 02 Nov 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Bad News & Good News",
+    "duration": "00:28:49",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352404&fullpage=True"
+  },
+  {
+    "title": "We're Here to Love (Mark 12:28–34)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/d4425f25-11a2-4915-92f9-3a27a5a04211.mp3",
+    "date": "Sun, 26 Oct 2025 12:00:00 GMT",
+    "description": "The King's Authority: We're Here to Love",
+    "duration": "00:33:24",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352056&fullpage=True"
+  },
+  {
+    "title": "The Name Has Power (Acts 3:1–16)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/cd415021-b615-45db-a71b-705b0a872393.mp3",
+    "date": "Sun, 26 Oct 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: The Name Has Power",
+    "duration": "00:26:10",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=352053&fullpage=True"
+  },
+  {
+    "title": "The Restoration of All Things (Acts 3:17–26)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/94713518-25f3-4473-8a02-795a740a3ab7.mp3",
+    "date": "Sun, 19 Oct 2025 12:00:00 GMT",
+    "description": "Whole Church, Whole Earth: The Restoration of All Things",
+    "duration": "00:40:30",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=351676&fullpage=True"
+  },
+  {
+    "title": "Total Mission (Matthew 28:16–20)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/aca2a4aa-75ab-4b84-8e5f-1d3965f0cbb4.mp3",
+    "date": "Sun, 19 Oct 2025 12:00:00 GMT",
+    "description": "Whole Church, Whole Earth: Total Mission",
+    "duration": "00:37:41",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=351659&fullpage=True"
+  },
+  {
+    "title": "God of the Living, Not the Dead (Mark 12:18–27)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/a7f67672-7b62-412a-a59d-35baa7bbedfb.mp3",
+    "date": "Sun, 12 Oct 2025 12:00:00 GMT",
+    "description": "The King's Authority: God of the Living, Not the Dead",
+    "duration": "00:32:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=351284&fullpage=True"
+  },
+  {
+    "title": "Transformed People (Acts 2:40–47)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/e228a969-1fee-46d4-a12a-565aa732471a.mp3",
+    "date": "Sun, 12 Oct 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Transformed People",
+    "duration": "00:29:53",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=351263&fullpage=True"
+  },
+  {
+    "title": "True Image (Mark 12:13–17)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/7044b139-e2d2-4ef8-abe4-9946ee99a4da.mp3",
+    "date": "Sun, 05 Oct 2025 12:00:00 GMT",
+    "description": "The King's Authority: True Image",
+    "duration": "00:25:05",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350904&fullpage=True"
+  },
+  {
+    "title": "Forgiveness for All (Acts 2:22–41)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/4ee3dac7-f260-4168-af0d-eee2d8d44fe2.mp3",
+    "date": "Sun, 05 Oct 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Forgiveness for All",
+    "duration": "00:30:03",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350887&fullpage=True"
+  },
+  {
+    "title": "The True Heir (Mark 12:1–12)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/f4274746-f20d-4e69-bd18-2f8f97436163.mp3",
+    "date": "Sun, 28 Sep 2025 12:00:00 GMT",
+    "description": "The King's Authority: The True Heir",
+    "duration": "00:33:21",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350639&fullpage=True"
+  },
+  {
+    "title": "Long Live the King (Acts 2:22–36)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/78195877-4051-48b9-b8f4-f91ffbf4ef49.mp3",
+    "date": "Sun, 28 Sep 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Long Live the King",
+    "duration": "00:33:34",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350629&fullpage=True"
+  },
+  {
+    "title": "True Repentance (Mark 11:27–33)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/fd1b22b1-01a8-46af-ae7b-9a99b71fb41c.mp3",
+    "date": "Sun, 21 Sep 2025 12:00:00 GMT",
+    "description": "Series: The King's Authority",
+    "duration": "00:23:51",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350217&fullpage=True"
+  },
+  {
+    "title": "The Days of the Spirit (Acts 2:1–21)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/6455bbcc-3621-499e-8c16-67e6f0e2b2eb.mp3",
+    "date": "Sun, 21 Sep 2025 12:00:00 GMT",
+    "description": "Series: Mission Unstoppable",
+    "duration": "00:28:14",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=350214&fullpage=True"
+  },
+  {
+    "title": "True Faith (Mark 11:12–25)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/5b43605f-45d6-475d-9a62-cbaee4292b0e.mp3",
+    "date": "Sun, 14 Sep 2025 12:00:00 GMT",
+    "description": "The King's Authority: True Faith",
+    "duration": "00:29:38",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349887&fullpage=True"
+  },
+  {
+    "title": "Unstoppable Witness (Acts 1:12–26)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/5a1d45be-90cb-4f4f-b7c2-c88d7b89ff5b.mp3",
+    "date": "Sun, 14 Sep 2025 12:00:00 GMT",
+    "description": "Mission Unstoppable: Unstoppable Witness",
+    "duration": "00:28:45",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349855&fullpage=True"
+  },
+  {
+    "title": "The True King (Mark 11:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/a589fc3b-a513-41e4-b5dc-20eee4083bb6.mp3",
+    "date": "Sun, 07 Sep 2025 12:00:00 GMT",
+    "description": "Series: The King's Authority",
+    "duration": "00:24:27",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349565&fullpage=True"
+  },
+  {
+    "title": "To the Ends of the Earth (Acts 1:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/f68f4a15-47c1-45bd-bc3a-469bc1cee006.mp3",
+    "date": "Sun, 07 Sep 2025 12:00:00 GMT",
+    "description": "Series: Mission Unstoppable",
+    "duration": "00:26:03",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349564&fullpage=True"
+  },
+  {
+    "title": "Worship & Listen (Psalm 95)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/28ebe48a-829f-43eb-b083-3f15c0010643.mp3",
+    "date": "Sun, 31 Aug 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:21:14",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349118&fullpage=True"
+  },
+  {
+    "title": "Church & Future New Creation (Ephesians 2:13–22)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/c99ec15c-ce97-4f4a-ab23-e2d9a46bbd0d.mp3",
+    "date": "Sun, 31 Aug 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:28:08",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=349116&fullpage=True"
+  },
+  {
+    "title": "A Cry for Justice (Psalm 94)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/066f7a2b-d91b-438d-bcca-d418fe36f3fd.mp3",
+    "date": "Sun, 24 Aug 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:37:15",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348894&fullpage=True"
+  },
+  {
+    "title": "The Spirit Who Gives Life (John 6:25–69)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/448b55ce-dfd9-4c59-911b-faefab8f8a6c.mp3",
+    "date": "Sun, 24 Aug 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:30:03",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348893&fullpage=True"
+  },
+  {
+    "title": "The Mighty Lord Reigns (Psalm 93)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/2dd34ae5-9430-42f7-89a9-e74445c72e32.mp3",
+    "date": "Sun, 17 Aug 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:27:28",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348476&fullpage=True"
+  },
+  {
+    "title": "The Work of Christ (2) (1 Thessalonians 4:14 – 5:23)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/7bcfba7c-9595-41ad-88a4-0c8ee29ef711.mp3",
+    "date": "Sun, 17 Aug 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:25:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348470&fullpage=True"
+  },
+  {
+    "title": "Song for the Sabbath (Psalm 92)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/07c024e1-a626-4ad9-9058-b870d987784d.mp3",
+    "date": "Sun, 10 Aug 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:24:15",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348128&fullpage=True"
+  },
+  {
+    "title": "The Work of Christ (1) (Colossians 1:15–23)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/31c4cc33-3731-429f-9fe6-60a067621a68.mp3",
+    "date": "Sun, 10 Aug 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:29:33",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=348109&fullpage=True"
+  },
+  {
+    "title": "The Shelter that Never Shuts (Psalm 91)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/855949a9-7b27-4d12-b5fd-5333b51fb871.mp3",
+    "date": "Sun, 03 Aug 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:31:36",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347791&fullpage=True"
+  },
+  {
+    "title": "The Son (John 1:1–18)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/8f22d05a-47d7-4516-a46e-dbf209588197.mp3",
+    "date": "Sun, 03 Aug 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:28:52",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347773&fullpage=True"
+  },
+  {
+    "title": "A Song of Realities (Psalm 90)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/05128577-83f1-48e0-b3b8-9ce18b82edc4.mp3",
+    "date": "Sun, 27 Jul 2025 12:00:00 GMT",
+    "description": "Series: Psalms in the Summer",
+    "duration": "00:29:04",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347490&fullpage=True"
+  },
+  {
+    "title": "The Father (Hebrews 12:4–13)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b6e90b85-a17c-42c8-a6a2-ddb2418f649c.mp3",
+    "date": "Sun, 27 Jul 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:40:21",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347449&fullpage=True"
+  },
+  {
+    "title": "Who Can Be Against Us (Romans 8:31–39)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/72f6d192-eb67-4f55-8f41-f4ace4547c5f.mp3",
+    "date": "Sun, 20 Jul 2025 12:00:00 GMT",
+    "description": "Series: More than Conquerors",
+    "duration": "00:25:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347144&fullpage=True"
+  },
+  {
+    "title": "I Believe (2 Corinthians 13:5–14)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/d1d56388-00f0-4230-96be-82b65a1f2da7.mp3",
+    "date": "Sun, 20 Jul 2025 12:00:00 GMT",
+    "description": "Series: I Believe (Nicene Creed)",
+    "duration": "00:16:14",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=347138&fullpage=True"
+  },
+  {
+    "title": "From Groans to Glory (Romans 8:18–30)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/a7ee1388-30c0-41ef-89fd-6bfd62679bcb.mp3",
+    "date": "Sun, 13 Jul 2025 12:00:00 GMT",
+    "description": "Series: More Than Conquerors",
+    "duration": "00:35:13",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=346792&fullpage=True"
+  },
+  {
+    "title": "The profit that matters (Philippians 4:10–23)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/fde1b5a5-c17f-482c-9b07-080d69647f43.mp3",
+    "date": "Sun, 13 Jul 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:27:53",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=346777&fullpage=True"
+  },
+  {
+    "title": "If Christ is in you (Romans 8:1–17)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/2a72ba7a-2971-472f-8f70-8c12077a30cb.mp3",
+    "date": "Sun, 06 Jul 2025 12:00:00 GMT",
+    "description": "Series: More Than Conquerors",
+    "duration": "00:30:46",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=346412&fullpage=True"
+  },
+  {
+    "title": "Agree in the Lord (Philippians 4:1–9)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/8c4a095d-02ab-4455-8968-07cc4ecfd4ec.mp3",
+    "date": "Sun, 06 Jul 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:29:26",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=346396&fullpage=True"
+  },
+  {
+    "title": "Repentance is Delicious (Isaiah 55)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/fc38707b-7381-485f-8585-5cce9a1ebd1d.mp3",
+    "date": "Sun, 29 Jun 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:26:18",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=345980&fullpage=True"
+  },
+  {
+    "title": "Citizenship in Heaven (Philippians 3:1–21)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/2152c61a-db4b-4c49-84d7-5259f80a9668.mp3",
+    "date": "Sun, 29 Jun 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:27:26",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=345976&fullpage=True"
+  },
+  {
+    "title": "A Spreading Family, a Secure City (Isaiah 54)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/be2336af-5f2a-431d-8b2e-2f0ed44e8042.mp3",
+    "date": "Sun, 22 Jun 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:31:19",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344937&fullpage=True"
+  },
+  {
+    "title": "Shining Like Stars (Philippians 2:12–30)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b2a7f3ea-3396-4cb0-9154-21e3a18d8567.mp3",
+    "date": "Sun, 22 Jun 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:25:24",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344918&fullpage=True"
+  },
+  {
+    "title": "Calvary of the Old Testament (Isaiah 52:13 – 53:12)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/4b85f558-138e-41d0-bb44-76c908f26685.mp3",
+    "date": "Sun, 15 Jun 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:36:14",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344482&fullpage=True"
+  },
+  {
+    "title": "Mind of Christ: Humility (Philippians 1:27 – 2:11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/bc09b748-92ee-4162-8aa8-4928e799fe98.mp3",
+    "date": "Sun, 15 Jun 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:30:34",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344436&fullpage=True"
+  },
+  {
+    "title": "Wake Up (Isaiah 51:1 – 52:12)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/6168468e-5501-48fc-a963-299bd0b6d952.mp3",
+    "date": "Sun, 08 Jun 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:28:33",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344149&fullpage=True"
+  },
+  {
+    "title": "Everywhere a Mission Field (Philippians 1:12–26)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/2f7c350a-2b2c-4006-b51d-4ad69969af21.mp3",
+    "date": "Sun, 08 Jun 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:32:00",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=344109&fullpage=True"
+  },
+  {
+    "title": "Walking in the True Light (Isaiah 50)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/5002aa81-086d-4e7c-9a15-93bb351a1ecf.mp3",
+    "date": "Sun, 01 Jun 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:30:48",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=343674&fullpage=True"
+  },
+  {
+    "title": "Brought to Completion (Philippians 1:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/f0db8d81-ebc2-416d-b2f0-962ac4d6ef76.mp3",
+    "date": "Sun, 01 Jun 2025 12:00:00 GMT",
+    "description": "Series: Mind the Gap",
+    "duration": "00:29:42",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=343672&fullpage=True"
+  },
+  {
+    "title": "Good news for the whole world (Isaiah 49)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b68f799e-bcb8-4dc0-87db-9697387e52da.mp3",
+    "date": "Sun, 25 May 2025 12:00:00 GMT",
+    "description": "Series: Isaiah",
+    "duration": "00:36:57",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=343430&fullpage=True"
+  },
+  {
+    "title": "Will we Hear (Jeremiah 36)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/d1f3cfb7-c332-4caa-8d94-cb1e60ac0d5b.mp3",
+    "date": "Sun, 25 May 2025 12:00:00 GMT",
+    "description": "",
+    "duration": "00:33:32",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=343429&fullpage=True"
+  },
+  {
+    "title": "Everyday Work (Colossians 1:15–20)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/cac1a0a8-46ba-497b-850e-9dd18a78a164.mp3",
+    "date": "Sun, 18 May 2025 12:00:00 GMT",
+    "description": "Series: Workplace Sunday",
+    "duration": "00:22:55",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=342878&fullpage=True"
+  },
+  {
+    "title": "Being Ambassadors for Christ at Work (1 Peter 2:9–25)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/35e33b0c-3938-4221-a57e-bd3a53a6a900.mp3",
+    "date": "Sun, 18 May 2025 12:00:00 GMT",
+    "description": "Series: Workplace Sunday",
+    "duration": "00:34:44",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=342826&fullpage=True"
+  },
+  {
+    "title": "Secularism and the Kingdom Story (2 Timothy 4:2–5)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/b0a16090-038b-4bad-874b-ba89b1a08d39.mp3",
+    "date": "Sun, 11 May 2025 12:00:00 GMT",
+    "description": "",
+    "duration": "00:31:29",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=342121&fullpage=True"
+  },
+  {
+    "title": "House of Sacrifice (2 Samuel 24)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/80bec821-e155-474e-832d-394785c2f96e.mp3",
+    "date": "Sun, 11 May 2025 12:00:00 GMT",
+    "description": "Series: House of David",
+    "duration": "00:34:42",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=342105&fullpage=True"
+  },
+  {
+    "title": "The Church as Prophet, Priest and King (1 Peter 2:9)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/e9901994-c904-4e32-a91c-669997ee4ac0.mp3",
+    "date": "Sun, 04 May 2025 12:00:00 GMT",
+    "description": "Series: Prophet, Priest and King",
+    "duration": "00:25:32",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341760&fullpage=True"
+  },
+  {
+    "title": "Everlasting House (2 Samuel 22:1 – 23:7)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/ed010920-04c3-4383-8837-54685fb850c8.mp3",
+    "date": "Sun, 04 May 2025 12:00:00 GMT",
+    "description": "Series: House of David",
+    "duration": "00:30:02",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341759&fullpage=True"
+  },
+  {
+    "title": "Characters at the Cross",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/de7145fc-24b6-4730-9721-1e6034abf0d4.mp3",
+    "date": "Fri, 18 Apr 2025 12:00:00 GMT",
+    "description": "Good Friday Mediation Service",
+    "duration": "01:05:04",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341491&fullpage=True"
+  },
+  {
+    "title": "Jesus Our King (Colossians 2:13–15)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/a0d62416-c688-4090-adef-11267eb2146b.mp3",
+    "date": "Sun, 27 Apr 2025 12:00:00 GMT",
+    "description": "Series: Prophet, Priest and King",
+    "duration": "00:27:50",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341427&fullpage=True"
+  },
+  {
+    "title": "House of Blood (2 Samuel 21)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/bc43f8a4-d9a9-463c-bddc-dbe1c68573ff.mp3",
+    "date": "Sun, 27 Apr 2025 12:00:00 GMT",
+    "description": "Series: House of David",
+    "duration": "00:33:16",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341418&fullpage=True"
+  },
+  {
+    "title": "Jesus Our Priest (Hebrews 4:14 – 5:6)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/283e5258-47d7-4d20-bd2e-1b1dddff40c9.mp3",
+    "date": "Sun, 20 Apr 2025 12:00:00 GMT",
+    "description": "Series: Prophet, Priest and King",
+    "duration": "00:25:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341045&fullpage=True"
+  },
+  {
+    "title": "Good News! (Luke 24:36–53)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/4f441529-a321-46b6-b3cd-bd30a508fb69.mp3",
+    "date": "Sun, 20 Apr 2025 12:00:00 GMT",
+    "description": "Easter Sunday: Good news!",
+    "duration": "00:29:55",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=341034&fullpage=True"
+  },
+  {
+    "title": "Jesus our Prophet (Matthew 21:1–11)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/66591db2-b1ea-4d92-a23e-73753e0b9319.mp3",
+    "date": "Sun, 13 Apr 2025 12:00:00 GMT",
+    "description": "Series: Prophet, Priest and King",
+    "duration": "00:28:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=340661&fullpage=True"
+  },
+  {
+    "title": "Fight for Unity (2 Samuel 20)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/9b54f674-0bd1-4e45-847e-e742d0ab3753.mp3",
+    "date": "Sun, 13 Apr 2025 12:00:00 GMT",
+    "description": "Series: House of David",
+    "duration": "00:31:14",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=340612&fullpage=True"
+  },
+  {
+    "title": "Don't Love in Vain (1 Corinthians 16)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/71296bdc-e1c3-4d8d-b7e8-f4a3ec00c3c7.mp3",
+    "date": "Sun, 06 Apr 2025 12:00:00 GMT",
+    "description": "Series: You Only Live Twice",
+    "duration": "00:31:51",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=340080&fullpage=True"
+  },
+  {
+    "title": "Victory! Sort of... (2 Samuel 18 – 19)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/aee81fc4-48a4-4243-a0e2-cc25e3f74093.mp3",
+    "date": "Sun, 06 Apr 2025 12:00:00 GMT",
+    "description": "Series: House of David",
+    "duration": "00:31:25",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=340064&fullpage=True"
+  },
+  {
+    "title": "Don't Work in Vain (1 Corinthians 15:50–58)",
+    "audio_url": "https://s3.us-east-1.amazonaws.com/media.allsouls.org/f2ccfa15-a71d-4f1e-b255-f7a3895bae57.mp3",
+    "date": "Sun, 30 Mar 2025 12:00:00 GMT",
+    "description": "Series: You Only Live Twice",
+    "duration": "00:36:23",
+    "link": "https://www.allsouls.org/Media/Player.aspx?media_id=339762&fullpage=True"
+  }
+]

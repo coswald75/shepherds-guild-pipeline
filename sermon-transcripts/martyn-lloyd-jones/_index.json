@@ -1,0 +1,233 @@
+{
+  "slug": "martyn-lloyd-jones",
+  "fullName": "Martyn-Lloyd Jones",
+  "totalSermons": 37,
+  "fetched": 37,
+  "withTranscript": 37,
+  "noTranscript": 0,
+  "scrapedAt": "2026-03-06T16:51:44.769Z",
+  "sermons": [
+    {
+      "id": "85VGv57Ujh_JHJc8",
+      "title": "(Revival) Part 1 - Phenomena",
+      "mediaType": "AUDIO",
+      "duration": 2300
+    },
+    {
+      "id": "yLhIlpKiezPOx7Z5",
+      "title": "(Revival) Part 2 - Preparatory Stages",
+      "mediaType": "AUDIO",
+      "duration": 2652
+    },
+    {
+      "id": "PMvDIhw-e6lvjBdn",
+      "title": "Full Salvation",
+      "mediaType": "AUDIO",
+      "duration": 3060
+    },
+    {
+      "id": "Ip1_OUrw0BxzR3rp",
+      "title": "So Great Salvation",
+      "mediaType": "AUDIO",
+      "duration": 3077
+    },
+    {
+      "id": "pNbjhTFWZPeVhKnP",
+      "title": "The Apostles Doctrine",
+      "mediaType": "AUDIO",
+      "duration": 3582
+    },
+    {
+      "id": "BNbT_o6DGSlWatLt",
+      "title": "Not in Word Only",
+      "mediaType": "AUDIO",
+      "duration": 3295
+    },
+    {
+      "id": "MWrcF0tPTV2gyBTt",
+      "title": "Revelation and Reason",
+      "mediaType": "AUDIO",
+      "duration": 3300
+    },
+    {
+      "id": "Y9-y6TLy3ZdUZY_m",
+      "title": "(Revival) Part 3 - Prayer For",
+      "mediaType": "AUDIO",
+      "duration": 2606
+    },
+    {
+      "id": "6L_JGlP2vUcc4hda",
+      "title": "(Revival) Part 5 - Glory of God",
+      "mediaType": "AUDIO",
+      "duration": 2795
+    },
+    {
+      "id": "5nC1we8hB8QbgnY8",
+      "title": "Ignorance, Prejudice",
+      "mediaType": "AUDIO",
+      "duration": 2836
+    },
+    {
+      "id": "DwedEC3Sbn85P-S0",
+      "title": "Power in Persecution",
+      "mediaType": "AUDIO",
+      "duration": 2821
+    },
+    {
+      "id": "QG_3tdF5reLttZhg",
+      "title": "Judgment to Come Pt 1",
+      "mediaType": "AUDIO",
+      "duration": 1773
+    },
+    {
+      "id": "erjVYPs8crACxHez",
+      "title": "(Revival) Part 4 - Should Pray",
+      "mediaType": "AUDIO",
+      "duration": 2578
+    },
+    {
+      "id": "DyMEPPMBJF9er_KV",
+      "title": "(Revival) Part 6 - Crowning Day",
+      "mediaType": "AUDIO",
+      "duration": 2763
+    },
+    {
+      "id": "5aW3xWgLhBJKwwDv",
+      "title": "Judgment to Come Pt 2",
+      "mediaType": "AUDIO",
+      "duration": 1779
+    },
+    {
+      "id": "O3jzk_rtBhugg4Yz",
+      "title": "A New Reformation",
+      "mediaType": "AUDIO",
+      "duration": 3572
+    },
+    {
+      "id": "XAR9fXNfazwhdsop",
+      "title": "Working Out Our Own Salvation",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "xp1cDiYSKeSUczal",
+      "title": "He and He Alone",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "kYHkOXY13r0pki8U",
+      "title": "Breadth, Length, Depth, Height",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "WjKM1-ORLZm3jpkh",
+      "title": "The Light of the World",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "vJ9N2IvWvAMaWN-t",
+      "title": "The Wrath of God",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "_4jfgJRXk2ouU9_y",
+      "title": "What Is Revival?",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "lsntEyoe1pwOLug8",
+      "title": "Jonathan Edwards and the Crucial Importance of Revival",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "Zg9PuBHK6YpXp9Nn",
+      "title": "In the Beloved",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "2gRfD2RmipBNw1_y",
+      "title": "Faith on Trial: The Problem Stated",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "-a2Jf7ehYXUtRWkK",
+      "title": "Jesus on Prayer",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "2q4XitrUdQZR9DOj",
+      "title": "The Parable of the Prodigal Son",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "meGtdpKdou9TIIiK",
+      "title": "Humanism-the Fifth Woe",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "tENGP4dT8xuxKHIR",
+      "title": "Spiritual Strength",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "GSYvBtk5ENsOlyXS",
+      "title": "God or Mammon",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "d5FkoCJ0PvaC9wXQ",
+      "title": "A Living Hope of the Hereafter",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "0IPUKPKPKy_G0LJt",
+      "title": "The Salt of the Earth",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "6SeEBFREoweoh8t_",
+      "title": "The Call to Battle",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "tcll0jshlK_p9s1d",
+      "title": "Purpose of the Law",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "IQFjzvh7baXHXmLP",
+      "title": "Kingdom of God",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "XMk8bxoYI5hSf1JY",
+      "title": "Christian and Non-Christian",
+      "mediaType": "TEXT",
+      "duration": 0
+    },
+    {
+      "id": "nk9CFWjsm-vj_rT1",
+      "title": "The Real Reason for Revival",
+      "mediaType": "TEXT",
+      "duration": 0
+    }
+  ]
+}

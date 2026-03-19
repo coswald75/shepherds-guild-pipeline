@@ -1,0 +1,23 @@
+{
+  "slug": "david-jeremiah",
+  "fullName": "David Jeremiah",
+  "totalSermons": 2,
+  "fetched": 2,
+  "withTranscript": 2,
+  "noTranscript": 0,
+  "scrapedAt": "2026-03-06T16:51:45.743Z",
+  "sermons": [
+    {
+      "id": "TJaLIcuE2S8Iss2o",
+      "title": "Suffering and Glory",
+      "mediaType": "AUDIO",
+      "duration": 2565
+    },
+    {
+      "id": "mRG6PNonbg3ImRfb",
+      "title": "Trusting God in the Good Times",
+      "mediaType": "TEXT",
+      "duration": 0
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "slug": "tim-keller",
+  "fullName": "Tim Keller",
+  "totalSermons": 12,
+  "fetched": 12,
+  "withTranscript": 12,
+  "noTranscript": 0,
+  "scrapedAt": "2026-03-06T16:51:37.427Z",
+  "sermons": [
+    {
+      "id": "R4gpNilLwJ8G2qot",
+      "title": "A Spirit Hath Not Flesh and Bones",
+      "mediaType": "AUDIO",
+      "duration": 2023
+    },
+    {
+      "id": "dXGFsjMED_utT6fw",
+      "title": "A World of Idols",
+      "mediaType": "AUDIO",
+      "duration": 2758
+    },
+    {
+      "id": "y000tTSi4yl1lOm3",
+      "title": "Absolutism: Don't We All Have to Find Truth for Ourselves?",
+      "mediaType": "AUDIO",
+      "duration": 2420
+    },
+    {
+      "id": "LxSp6kTTV0cAh9HD",
+      "title": "Converted by the Spirit",
+      "mediaType": "AUDIO",
+      "duration": 2752
+    },
+    {
+      "id": "ohXX3ZdT7v5bwKuy",
+      "title": "Nakedness & the Holiness of God",
+      "mediaType": "AUDIO",
+      "duration": 2816
+    },
+    {
+      "id": "mQlI0Nr4T27hFjSc",
+      "title": "Suffering: If God Is Good, Why Is There So Much Evil in the World?",
+      "mediaType": "AUDIO",
+      "duration": 1863
+    },
+    {
+      "id": "vlYRyyRLTzFRF3jw",
+      "title": "And Kissed Him",
+      "mediaType": "AUDIO",
+      "duration": 2026
+    },
+    {
+      "id": "rSE9mBAcFyguZgf7",
+      "title": "Exclusivity: How Can There Be Just One True Religion?",
+      "mediaType": "AUDIO",
+      "duration": 2355
+    },
+    {
+      "id": "iVoxSu7ZwogXl8rl",
+      "title": "The Gospel",
+      "mediaType": "AUDIO",
+      "duration": 2281
+    },
+    {
+      "id": "7Hs67H5MOGhLo02i",
+      "title": "Give Me Mine",
+      "mediaType": "AUDIO",
+      "duration": 2141
+    },
+    {
+      "id": "imoXsUItu5NK5uQN",
+      "title": "Hell: Isn't the God of Christianity an Angry Judge?",
+      "mediaType": "AUDIO",
+      "duration": 2146
+    },
+    {
+      "id": "6yv4Y0jBBm_hrwRD",
+      "title": "Tears",
+      "mediaType": "AUDIO",
+      "duration": 2078
+    }
+  ]
+}

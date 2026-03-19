@@ -1,0 +1,47 @@
+{
+  "slug": "da-carson",
+  "fullName": "D.A. Carson",
+  "totalSermons": 6,
+  "fetched": 6,
+  "withTranscript": 6,
+  "noTranscript": 0,
+  "scrapedAt": "2026-03-06T16:51:38.434Z",
+  "sermons": [
+    {
+      "id": "J9x2FCIQIUgtN9vH",
+      "title": "The God Who Helps",
+      "mediaType": "VIDEO",
+      "duration": 3134
+    },
+    {
+      "id": "j-GgI-a8lmXyEjU5",
+      "title": "(Postmodern Times) Apostolic Evangelism",
+      "mediaType": "AUDIO",
+      "duration": 3331
+    },
+    {
+      "id": "TIMTPwXas9KdBmOA",
+      "title": "(Postmodern Times) Faith in the Cross of Christ",
+      "mediaType": "AUDIO",
+      "duration": 3840
+    },
+    {
+      "id": "o_k3vwpbaTQOPmnr",
+      "title": "(Postmodern Times) Post Modernism and Biblical Literacy",
+      "mediaType": "AUDIO",
+      "duration": 4174
+    },
+    {
+      "id": "0gqsxMYYz3xgIokM",
+      "title": "(Postmodern Times) World View Evangelism",
+      "mediaType": "AUDIO",
+      "duration": 3158
+    },
+    {
+      "id": "VkkqWMF9LkMuPBmQ",
+      "title": "(Postmodern Times) First Steps Towards Regrouping",
+      "mediaType": "AUDIO",
+      "duration": 4796
+    }
+  ]
+}

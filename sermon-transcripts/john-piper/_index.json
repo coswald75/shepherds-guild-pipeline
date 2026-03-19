@@ -1,0 +1,611 @@
+{
+  "slug": "john-piper",
+  "fullName": "John Piper",
+  "totalSermons": 442,
+  "fetched": 100,
+  "withTranscript": 100,
+  "noTranscript": 0,
+  "scrapedAt": "2026-03-06T16:51:36.125Z",
+  "sermons": [
+    {
+      "id": "3yVz1YDUZ9-zmtw1",
+      "title": "\"Consider How to Stir Up One Another to Love\"",
+      "mediaType": "AUDIO",
+      "duration": 2801
+    },
+    {
+      "id": "mz5AzlT9rJPNDHPW",
+      "title": "At the Price of God's Own Blood",
+      "mediaType": "AUDIO",
+      "duration": 1659
+    },
+    {
+      "id": "vz79WlHS0Tc1dQkj",
+      "title": "\"I Am Sending You Out as Sheep in the Midst of Wolves\"",
+      "mediaType": "VIDEO",
+      "duration": 2884
+    },
+    {
+      "id": "p5MGN_ahyNcNFvQb",
+      "title": "\"Where Are the Faithful Young Men?\"",
+      "mediaType": "VIDEO",
+      "duration": 166
+    },
+    {
+      "id": "mMag9W65ild6DaVO",
+      "title": "\"You Will Suffer\"",
+      "mediaType": "VIDEO",
+      "duration": 618
+    },
+    {
+      "id": "6hgAU1Fas5cQlMy2",
+      "title": "(Education for Exultation) Building Our Lives on the Bible",
+      "mediaType": "AUDIO",
+      "duration": 2241
+    },
+    {
+      "id": "9_ke5AV7qcO9GmBv",
+      "title": "(Biographies) Charles Spurgeon",
+      "mediaType": "AUDIO",
+      "duration": 4422
+    },
+    {
+      "id": "9nR0xwQOvkadANmv",
+      "title": "Are You Wasting Your Life",
+      "mediaType": "VIDEO",
+      "duration": 2726
+    },
+    {
+      "id": "6mwv1NWeQfjkvHhd",
+      "title": "(Biographies) Adoniram Judson",
+      "mediaType": "AUDIO",
+      "duration": 4268
+    },
+    {
+      "id": "xLOHDOGYyEtCho9S",
+      "title": "(Biographies) Augustine",
+      "mediaType": "AUDIO",
+      "duration": 5668
+    },
+    {
+      "id": "PzZtxTkIJ4_jBA17",
+      "title": "All These Things Will Be Added to You?",
+      "mediaType": "VIDEO",
+      "duration": 252
+    },
+    {
+      "id": "FARSfrWmyr1txA_V",
+      "title": "(Biographies) George Mueller",
+      "mediaType": "AUDIO",
+      "duration": 4532
+    },
+    {
+      "id": "lF0WBsdDIran-EmK",
+      "title": "(Biographies) John Calvin",
+      "mediaType": "AUDIO",
+      "duration": 5595
+    },
+    {
+      "id": "44JIjSRVipG1ntB1",
+      "title": "Do You Know God?",
+      "mediaType": "VIDEO",
+      "duration": 217
+    },
+    {
+      "id": "KD6WN64KsCPdS3n3",
+      "title": "Battling Lust",
+      "mediaType": "AUDIO",
+      "duration": 1352
+    },
+    {
+      "id": "6Gy7PGmKsJTJz1xU",
+      "title": "(Biographies) Athanasius",
+      "mediaType": "AUDIO",
+      "duration": 4865
+    },
+    {
+      "id": "f89a-6GHDpYgAUXl",
+      "title": "(Biographies) Jonathan Edwards",
+      "mediaType": "AUDIO",
+      "duration": 4905
+    },
+    {
+      "id": "JbTI98hNhg9XwRXt",
+      "title": "(Biographies) John Owen",
+      "mediaType": "AUDIO",
+      "duration": 5582
+    },
+    {
+      "id": "bXP9uDDeWyiSwL56",
+      "title": "Prayer Causes Things to Happen",
+      "mediaType": "VIDEO",
+      "duration": 201
+    },
+    {
+      "id": "PknBmF0utWiibkXw",
+      "title": "(Biographies) D. Martyn Lloyd-Jones",
+      "mediaType": "AUDIO",
+      "duration": 4806
+    },
+    {
+      "id": "7hVRMJZyll42IzKd",
+      "title": "Don't Waste Your Life  - Part 1",
+      "mediaType": "VIDEO",
+      "duration": 527
+    },
+    {
+      "id": "Kb7_D6gx4N2Dt6hO",
+      "title": "(Biographies) John Bunyan",
+      "mediaType": "AUDIO",
+      "duration": 5595
+    },
+    {
+      "id": "rTCWJM7NxBVRB4_o",
+      "title": "(Biographies) Martin Luther",
+      "mediaType": "AUDIO",
+      "duration": 4777
+    },
+    {
+      "id": "52LDI8YUm7KMPzwN",
+      "title": "A Generation Passionate",
+      "mediaType": "VIDEO",
+      "duration": 1581
+    },
+    {
+      "id": "4TWd0N9m6Lx-uTZY",
+      "title": "Ask Your Father in Heaven",
+      "mediaType": "VIDEO",
+      "duration": 2496
+    },
+    {
+      "id": "vb01XM-DTnOUNrq_",
+      "title": "All Things Were Created Through Him and for Him",
+      "mediaType": "VIDEO",
+      "duration": 2681
+    },
+    {
+      "id": "e4hUvAimJUVduDyH",
+      "title": "(Education for Exultation) if the Lord Wills",
+      "mediaType": "AUDIO",
+      "duration": 2162
+    },
+    {
+      "id": "I9-L8AR9jL5K65Ec",
+      "title": "(Education for Exultation) Christ Crucified, Our Boast",
+      "mediaType": "AUDIO",
+      "duration": 2415
+    },
+    {
+      "id": "XUiBAuFTZydc1Jda",
+      "title": "(Biographies) Charles Simeon",
+      "mediaType": "AUDIO",
+      "duration": 5121
+    },
+    {
+      "id": "sKpjPi8nbL7gC1Y_",
+      "title": "Abortion and the Narrow Way That Leads to Life",
+      "mediaType": "VIDEO",
+      "duration": 2484
+    },
+    {
+      "id": "abPDFgz7Dpp2b_gB",
+      "title": "(Education for Exultation) the Word Was God and Became Flesh",
+      "mediaType": "AUDIO",
+      "duration": 2179
+    },
+    {
+      "id": "PeuZhTo0fbAfz9nU",
+      "title": "(Biographies) William Wilberforce",
+      "mediaType": "AUDIO",
+      "duration": 5204
+    },
+    {
+      "id": "m7uQsbCgyhxegI5E",
+      "title": "(Education for Exultation) I Am the Lord, and Besides Me There Is No Savior",
+      "mediaType": "AUDIO",
+      "duration": 2696
+    },
+    {
+      "id": "fdEOfBRbwz9UXzgU",
+      "title": "(Biographies) William Tyndale",
+      "mediaType": "AUDIO",
+      "duration": 4724
+    },
+    {
+      "id": "zwgL_J3nHhbKmlFu",
+      "title": "Command of God the Obedience of Faith",
+      "mediaType": "VIDEO",
+      "duration": 2640
+    },
+    {
+      "id": "t7WOb9nzf93J_9q5",
+      "title": "(Education for Exultation) Fulfilling the Law of Love",
+      "mediaType": "AUDIO",
+      "duration": 2470
+    },
+    {
+      "id": "E3AKWE-MFoQmpSBS",
+      "title": "(Biographies) John Newton",
+      "mediaType": "AUDIO",
+      "duration": 5692
+    },
+    {
+      "id": "xOY8lFN7EvlTcHsx",
+      "title": "How Our Suffering Glorifies God",
+      "mediaType": "AUDIO",
+      "duration": 2256
+    },
+    {
+      "id": "63HjfBJONdu9Uu6d",
+      "title": "The Supremacy of Christ",
+      "mediaType": "VIDEO",
+      "duration": 653
+    },
+    {
+      "id": "A6rzUDc1TDXxMpAq",
+      "title": "(Men of Whom the World Was Not Worthy) Brainerd, David Oh That I May Never Loiter in My Heavenly Jou",
+      "mediaType": "AUDIO",
+      "duration": 4988
+    },
+    {
+      "id": "VqjWTA8ydyjWM_3g",
+      "title": "Sex and the Single Person",
+      "mediaType": "AUDIO",
+      "duration": 2587
+    },
+    {
+      "id": "DhaQeFKVbBZgn0GH",
+      "title": "(Men of Whom the World Was Not Worthy) Augustine the Swan Is Not Silent",
+      "mediaType": "AUDIO",
+      "duration": 5526
+    },
+    {
+      "id": "Ol_MTrhl28F_8Rdf",
+      "title": "By Signs and Wonders Where Christ Has Not Been Named",
+      "mediaType": "VIDEO",
+      "duration": 2785
+    },
+    {
+      "id": "wtjeRLXl_H0IKKFR",
+      "title": "A Pastor's Offering to God of Holy People",
+      "mediaType": "VIDEO",
+      "duration": 2261
+    },
+    {
+      "id": "jIMq_3cfwAvWUgpn",
+      "title": "(Biographies) J. Gresham Machen",
+      "mediaType": "AUDIO",
+      "duration": 5714
+    },
+    {
+      "id": "ycmujZ1WWlaZQ0hl",
+      "title": "Battling the Unbelief of Anxiety",
+      "mediaType": "AUDIO",
+      "duration": 1850
+    },
+    {
+      "id": "_sRtsPV1zLyb-NTJ",
+      "title": "Battling the Unbelief of Lust",
+      "mediaType": "AUDIO",
+      "duration": 1906
+    },
+    {
+      "id": "fWHsG0Wr3ST9dQuv",
+      "title": "David Brainerd",
+      "mediaType": "AUDIO",
+      "duration": 3559
+    },
+    {
+      "id": "TAq6uDyvQskTm-FC",
+      "title": "(Biographies) William Cowper",
+      "mediaType": "AUDIO",
+      "duration": 5632
+    },
+    {
+      "id": "dxvvmPUl6JElM0TE",
+      "title": "Commending and Welcoming Radical Risk Takers for Christ",
+      "mediaType": "VIDEO",
+      "duration": 2756
+    },
+    {
+      "id": "dxvvmPUl6JElM0TE",
+      "title": "Commending and Welcoming Radical Risk Takers for Christ",
+      "mediaType": "VIDEO",
+      "duration": 2756
+    },
+    {
+      "id": "QHKPaaAnWYFErnb0",
+      "title": "(Men of Whom the World Was Not Worthy) Bunyan, John to Live Upon God That Is Invisible",
+      "mediaType": "AUDIO",
+      "duration": 5424
+    },
+    {
+      "id": "2tT1wQSC7QJGEHth",
+      "title": "Learning to Pray in the Spirit and the Word (Part One)",
+      "mediaType": "AUDIO",
+      "duration": 2328
+    },
+    {
+      "id": "0w6KphsC7zIU5hQa",
+      "title": "Carry My Love to My Beloved",
+      "mediaType": "VIDEO",
+      "duration": 2539
+    },
+    {
+      "id": "BCh2sntF73Dhg_nI",
+      "title": "No, Mr. President: John Piper's Response to President Obama",
+      "mediaType": "VIDEO",
+      "duration": 205
+    },
+    {
+      "id": "FrOV3LlS1pLN0huB",
+      "title": "(Education for Exultation) the Gideon Venture",
+      "mediaType": "AUDIO",
+      "duration": 2770
+    },
+    {
+      "id": "p9QyfNG5JODsWhv9",
+      "title": "Boiling for Christ",
+      "mediaType": "AUDIO",
+      "duration": 2546
+    },
+    {
+      "id": "UB2SPRepLhs6pA2n",
+      "title": "(Education for Exultation) the Isaac Factor",
+      "mediaType": "AUDIO",
+      "duration": 2110
+    },
+    {
+      "id": "eq_ab0PVVjyQqjk2",
+      "title": "How Shall People Come to Faith in Christ?",
+      "mediaType": "AUDIO",
+      "duration": 2551
+    },
+    {
+      "id": "RM5uRnunkz_gzgHY",
+      "title": "How the Supremacy of Christ Creates Radical Christian Sacrifice",
+      "mediaType": "AUDIO",
+      "duration": 3905
+    },
+    {
+      "id": "USJoIhDM-8cSl9Yi",
+      "title": "Feed the Flame of Gods Gift",
+      "mediaType": "VIDEO",
+      "duration": 3506
+    },
+    {
+      "id": "bB5xtnyFXJchoFwP",
+      "title": "I Am the Light of the World",
+      "mediaType": "VIDEO",
+      "duration": 2397
+    },
+    {
+      "id": "oL0x_l-8QCFghaom",
+      "title": "At Home With the Lord",
+      "mediaType": "AUDIO",
+      "duration": 2091
+    },
+    {
+      "id": "qoo82eWrTeIN4W_v",
+      "title": "Doing Missions When Dying Is Gain - Part 1",
+      "mediaType": "AUDIO",
+      "duration": 1478
+    },
+    {
+      "id": "TzdMgfE5hrws0iZW",
+      "title": "I Will Build My Church – From All Peoples",
+      "mediaType": "AUDIO",
+      "duration": 2718
+    },
+    {
+      "id": "0xQTnGX10_n7mDMi",
+      "title": "Desiring God",
+      "mediaType": "AUDIO",
+      "duration": 2060
+    },
+    {
+      "id": "0uznia__7FGyKY3n",
+      "title": "Learning to Pray in the Spirit and the Word (Part Two)",
+      "mediaType": "AUDIO",
+      "duration": 2805
+    },
+    {
+      "id": "554NdHShtXTsxxCf",
+      "title": "(Education for Exultation) Let All the Peoples Praise Him",
+      "mediaType": "AUDIO",
+      "duration": 2664
+    },
+    {
+      "id": "icomxAJT5KAGumH-",
+      "title": "A Generation Passionate for God's Holiness",
+      "mediaType": "AUDIO",
+      "duration": 2041
+    },
+    {
+      "id": "FZrfmYyYR3NhCRNJ",
+      "title": "Battling the Unbelief of Bitterness",
+      "mediaType": "AUDIO",
+      "duration": 2225
+    },
+    {
+      "id": "l0tUdwx_BHso06FY",
+      "title": "Jesus Christ in the Book of Romans",
+      "mediaType": "VIDEO",
+      "duration": 1996
+    },
+    {
+      "id": "Ey-TC0bbEG2ka8zj",
+      "title": "Don't Waste Your Life",
+      "mediaType": "AUDIO",
+      "duration": 2555
+    },
+    {
+      "id": "0W1aY7mSLQDwVEew",
+      "title": "Doing the Works of Jesus and Greater Works",
+      "mediaType": "VIDEO",
+      "duration": 2644
+    },
+    {
+      "id": "jwzHgIlWuQSUOcts",
+      "title": "Called-Justifed",
+      "mediaType": "AUDIO",
+      "duration": 1937
+    },
+    {
+      "id": "FrnMClGQfHVTJl_Y",
+      "title": "What About Muslims, Hindus, Buddhist, and Jewish People?",
+      "mediaType": "VIDEO",
+      "duration": 202
+    },
+    {
+      "id": "VPO0nMOMxWTKRzDT",
+      "title": "Do Not Sell the Gospel",
+      "mediaType": "AUDIO",
+      "duration": 1345
+    },
+    {
+      "id": "9x9EF8cSamPJy6xX",
+      "title": "How to Submit to the Righteousness of God",
+      "mediaType": "AUDIO",
+      "duration": 2443
+    },
+    {
+      "id": "xYsyOgaxNf6fMsFc",
+      "title": "Ambushing Satan With Song",
+      "mediaType": "AUDIO",
+      "duration": 1864
+    },
+    {
+      "id": "mE1yIvkA6i7beWnn",
+      "title": "God Created Us for His Glory",
+      "mediaType": "AUDIO",
+      "duration": 1534
+    },
+    {
+      "id": "cYrvz29DxVr2sN7X",
+      "title": "Piper Responds to the Prosperity Gospel",
+      "mediaType": "VIDEO",
+      "duration": 357
+    },
+    {
+      "id": "KaIYhP1neJ4i8qhO",
+      "title": "(Education for Exultation) One Generation Shall Praise Your Works to Another",
+      "mediaType": "AUDIO",
+      "duration": 2238
+    },
+    {
+      "id": "ihGoulUPflCmZWlR",
+      "title": "Desiring God - Lesson 1",
+      "mediaType": "AUDIO",
+      "duration": 3982
+    },
+    {
+      "id": "m5CptXWxC7MJmlKP",
+      "title": "God at Work in Every Womb (Sanctity of Human Life Sunday)",
+      "mediaType": "AUDIO",
+      "duration": 2602
+    },
+    {
+      "id": "7SvyFxM8QGrWSdJE",
+      "title": "If You Abide in My Word, You Are Truly My Disciples",
+      "mediaType": "AUDIO",
+      "duration": 2710
+    },
+    {
+      "id": "0ugwV0u57k39LfEP",
+      "title": "Abortion, Race, Gender, and Christ",
+      "mediaType": "AUDIO",
+      "duration": 2577
+    },
+    {
+      "id": "etily70259rke3CO",
+      "title": "I Will Not Be a Velvet-Mouthed Preacher!",
+      "mediaType": "AUDIO",
+      "duration": 5008
+    },
+    {
+      "id": "N-opRhBJRjYjhWjB",
+      "title": "(Education for Exultation) Set Apart Rick, Randy, and the Rest for the Work",
+      "mediaType": "AUDIO",
+      "duration": 2648
+    },
+    {
+      "id": "9QPFLuFrExnGYHRG",
+      "title": "God Vindicated His Righteousness",
+      "mediaType": "AUDIO",
+      "duration": 2197
+    },
+    {
+      "id": "1ZdR6s6WbkWeV4mW",
+      "title": "Battling the Unbelief of Impatience",
+      "mediaType": "AUDIO",
+      "duration": 1698
+    },
+    {
+      "id": "moVuxRVneO8ndRAe",
+      "title": "He Knew What Was in Man",
+      "mediaType": "VIDEO",
+      "duration": 2959
+    },
+    {
+      "id": "UmUdSA-pEzA7d9SC",
+      "title": "Encouraging Each Other at the End of the Age",
+      "mediaType": "VIDEO",
+      "duration": 2584
+    },
+    {
+      "id": "cUseJT72L-IU3bZh",
+      "title": "All Things Subject to the Risen Christ",
+      "mediaType": "AUDIO",
+      "duration": 2538
+    },
+    {
+      "id": "62pzzB59xt6IVF8t",
+      "title": "Battling the Unbelief of Despondency",
+      "mediaType": "AUDIO",
+      "duration": 1172
+    },
+    {
+      "id": "uMKivIaBg9rOg6Ha",
+      "title": "A Woman Who Fears the Lord Is to Be Praised",
+      "mediaType": "AUDIO",
+      "duration": 2032
+    },
+    {
+      "id": "PeTqq5Wpclll27OO",
+      "title": "Tulip - Part 1 (Introduction)",
+      "mediaType": "AUDIO",
+      "duration": 2692
+    },
+    {
+      "id": "kG5i5lTWXJ3JU8mf",
+      "title": "Grow in Grace and in the Knowledge of Our Lord",
+      "mediaType": "AUDIO",
+      "duration": 1747
+    },
+    {
+      "id": "XlGm7MwXNvnXAC8n",
+      "title": "Job - Part 1",
+      "mediaType": "AUDIO",
+      "duration": 69
+    },
+    {
+      "id": "fVzEukvaAiokuJRC",
+      "title": "Don't Waste Your Life  - Part 2",
+      "mediaType": "VIDEO",
+      "duration": 424
+    },
+    {
+      "id": "6WkL5x_TL5Lu0p-1",
+      "title": "The Truth Will Set You Free",
+      "mediaType": "VIDEO",
+      "duration": 2807
+    },
+    {
+      "id": "KmRSqCGcwo6QcjUa",
+      "title": "A Service of Sorrow (World Trade Center Response)",
+      "mediaType": "AUDIO",
+      "duration": 1986
+    }
+  ]
+}

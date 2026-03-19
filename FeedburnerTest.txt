@@ -1,0 +1,5 @@
+
+
+http://feeds.feedburner.com/AllSoulsChurchSundays
+
+python sermontranscribe.py rss "http://feeds.feedburner.com/AllSoulsChurchSundays" --preacher "John Stott" --limit 30

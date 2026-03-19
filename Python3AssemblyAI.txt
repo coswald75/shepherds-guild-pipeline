@@ -1,0 +1,1 @@
+python AssemblyAIsermon_scraper.py rss http://feeds.feedburner.com/AllSoulsChurchSundays --preacher "John Stott" --scan-only

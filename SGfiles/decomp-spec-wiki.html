@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shepherd's Guild — Decomposition Spec Wiki</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --parchment: #f7f3ee;
+    --cream: #ede8e0;
+    --warm-gray: #9e9688;
+    --gold: #c4a265;
+    --gold-dim: #a8894f;
+    --gold-bright: #dbb978;
+    --burgundy: #6b2d3e;
+    --burgundy-light: #8a3d52;
+    --forest: #2d4a3e;
+    --slate: #4a4640;
+    --shadow-soft: 0 2px 20px rgba(26, 23, 20, 0.06);
+    --shadow-card: 0 4px 30px rgba(26, 23, 20, 0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 60px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(196,162,101,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 80% at 80% 20%, rgba(107,45,62,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c4a265' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .cover-content {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+  }
+
+  .guild-mark {
+    width: 56px;
+    height: 56px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 40px;
+    opacity: 0;
+    animation: fadeUp 1s 0.2s forwards;
+  }
+
+  .guild-mark svg { width: 24px; height: 24px; }
+
+  .cover-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 1s 0.4s forwards;
+  }
+
+  .cover-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-weight: 300;
+    line-height: 1.15;
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: fadeUp 1s 0.6s forwards;
+  }
+
+  .cover-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--gold-bright);
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 1s 0.8s forwards;
+  }
+
+  .cover-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    margin: 0 auto;
+    opacity: 0;
+    animation: fadeUp 1s 1s forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(247, 243, 238, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(196, 162, 101, 0.15);
+    padding: 0 30px;
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    height: 52px;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-inner::-webkit-scrollbar { display: none; }
+
+  .nav a {
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--slate);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .nav a:hover {
+    color: var(--burgundy);
+    background: rgba(196, 162, 101, 0.1);
+  }
+
+  /* ── BODY ── */
+  .report-body {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 30px;
+  }
+
+  section {
+    padding: 72px 0 40px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: var(--ink);
+  }
+
+  .section-intro {
+    font-size: 0.98rem;
+    color: var(--slate);
+    max-width: 680px;
+    margin-bottom: 40px;
+    line-height: 1.8;
+  }
+
+  /* ── TERM CARDS ── */
+  .term-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .term-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(196, 162, 101, 0.08);
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .term-card:hover {
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+
+  .term-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .term-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--burgundy);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .term-category {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--warm-gray);
+    margin-bottom: 10px;
+  }
+
+  .term-def {
+    font-size: 0.88rem;
+    color: var(--slate);
+    line-height: 1.7;
+  }
+
+  .term-def strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .term-example {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--cream);
+    font-size: 0.82rem;
+    color: var(--warm-gray);
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .term-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(196, 162, 101, 0.12);
+    color: var(--gold-dim);
+  }
+
+  .term-badge.pending {
+    background: rgba(107, 45, 62, 0.1);
+    color: var(--burgundy);
+  }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    margin: 0 0 40px;
+  }
+
+  /* ── ENUM TABLE ── */
+  .enum-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+  }
+
+  .enum-table th {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--warm-gray);
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 2px solid var(--cream);
+  }
+
+  .enum-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--cream);
+    font-size: 0.88rem;
+    color: var(--slate);
+    line-height: 1.6;
+    vertical-align: top;
+  }
+
+  .enum-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--burgundy);
+    white-space: nowrap;
+    width: 200px;
+  }
+
+  .enum-table tr:hover td {
+    background: rgba(196, 162, 101, 0.04);
+  }
+
+  /* ── TIER VISUALIZATION ── */
+  .tier-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 40px;
+  }
+
+  .tier-block {
+    padding: 28px 32px;
+    border-left: 4px solid;
+    background: #fff;
+    position: relative;
+  }
+
+  .tier-block:first-child {
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -2px 20px rgba(26,23,20,0.04);
+  }
+  .tier-block:last-child {
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 20px rgba(26,23,20,0.06);
+  }
+
+  .tier-block + .tier-block {
+    border-top: 1px solid var(--cream);
+  }
+
+  .tier-block.t1 { border-left-color: var(--burgundy); }
+  .tier-block.t2 { border-left-color: var(--gold); }
+  .tier-block.t3 { border-left-color: var(--forest); }
+
+  .tier-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .tier-block.t1 .tier-label { color: var(--burgundy); }
+  .tier-block.t2 .tier-label { color: var(--gold-dim); }
+  .tier-block.t3 .tier-label { color: var(--forest); }
+
+  .tier-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .tier-desc {
+    font-size: 0.88rem;
+    color: var(--slate);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .tier-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .field-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--cream);
+    color: var(--slate);
+  }
+
+  /* ── PENDING SECTION ── */
+  .pending-banner {
+    background: linear-gradient(135deg, var(--ink) 0%, #2a2520 100%);
+    border-radius: 16px;
+    padding: 40px;
+    color: var(--parchment);
+    margin-bottom: 40px;
+  }
+
+  .pending-banner .section-label {
+    color: var(--gold-bright);
+  }
+
+  .pending-banner .section-title {
+    color: var(--parchment);
+    margin-bottom: 8px;
+  }
+
+  .pending-banner .section-intro {
+    color: rgba(247,243,238,0.6);
+  }
+
+  .pending-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .pending-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(196,162,101,0.15);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+
+  .pending-card .term-name {
+    color: var(--gold-bright);
+  }
+
+  .pending-card .term-category {
+    color: rgba(247,243,238,0.4);
+  }
+
+  .pending-card .term-def {
+    color: rgba(247,243,238,0.7);
+  }
+
+  .pending-card .products {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .product-tag {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: rgba(196,162,101,0.15);
+    color: var(--gold-bright);
+  }
+
+  /* ── FOOTER ── */
+  .report-footer {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 60px 30px;
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  .footer-mark {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .footer-mark svg { width: 18px; height: 18px; }
+
+  .footer-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-text {
+    font-size: 0.78rem;
+    color: var(--warm-gray);
+    margin-top: 8px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .term-grid { grid-template-columns: 1fr; }
+    .enum-table td:first-child { width: auto; }
+    .pending-grid { grid-template-columns: 1fr; }
+    .tier-block { padding: 20px 24px; }
+  }
+
+  @media print {
+    .nav { display: none; }
+    section { opacity: 1 !important; transform: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ COVER ═══════ -->
+<div class="cover">
+  <div class="cover-content">
+    <div class="guild-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#c4a265" stroke-width="1.5">
+        <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
+        <path d="M12 22V12"/>
+        <path d="M2 7l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="cover-label">Shepherd's Guild — Reference Document</div>
+    <h1 class="cover-title">Decomposition Spec Wiki</h1>
+    <p class="cover-subtitle">A glossary of every field, enum, and taxonomy in the Sermon Decomposition Spec v2</p>
+    <div class="cover-divider"></div>
+  </div>
+</div>
+
+<!-- ═══════ NAV ═══════ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#sermon-level">Sermon-Level</a>
+    <a href="#sermon-type">Sermon Type</a>
+    <a href="#tone">Tone</a>
+    <a href="#hermeneutics">Hermeneutics</a>
+    <a href="#units">Units</a>
+    <a href="#rhetorical">Rhetorical Function</a>
+    <a href="#citations">Citations</a>
+    <a href="#doctrine">Doctrine</a>
+    <a href="#bt-moves">BT Moves</a>
+    <a href="#pending">Pending</a>
+  </div>
+</nav>
+
+<div class="report-body">
+
+<!-- ═══════ SERMON-LEVEL FIELDS ═══════ -->
+<section id="sermon-level">
+  <div class="section-label">01 — Sermon-Level Fields</div>
+  <h2 class="section-title">The Metadata Envelope</h2>
+  <p class="section-intro">Every sermon receives a complete set of top-level metadata before being broken into functional units. These fields serve discovery, filtering, and clustering across the entire corpus.</p>
+
+  <div class="term-grid">
+    <div class="term-card">
+      <div class="term-name">title</div>
+      <div class="term-category">String</div>
+      <div class="term-def">The sermon's title as given in the manuscript or as inferred from the content. If the pastor titled it, use his title. If untitled, construct one from the primary text and main thesis.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">preacher</div>
+      <div class="term-category">String</div>
+      <div class="term-def">The name of the pastor or speaker who delivered the sermon. Used for corpus-level attribution and multi-pastor church archives.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">date</div>
+      <div class="term-category">String / Null</div>
+      <div class="term-def">The date the sermon was preached, if detectable from the manuscript. Enables chronological browsing and tracking how a pastor's treatment of themes evolves over time.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">primary_text</div>
+      <div class="term-category">Scripture Reference</div>
+      <div class="term-def">The main scripture passage for the sermon as a whole — the text being exposited. This is distinct from cross-references (other passages brought in for support). A sermon on Romans 8:28-30 has that as its primary text, even if it also quotes Isaiah and Ephesians.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">series_name / series_position</div>
+      <div class="term-category">String / Null</div>
+      <div class="term-def">If the sermon belongs to a preaching series, the series name and position (e.g., "Part 3 of 7"). Enables series-level browsing and tracking how the pastor builds argument across multiple weeks.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">abstract</div>
+      <div class="term-category">String (4–6 sentences)</div>
+      <div class="term-def">The sermon's argument in compressed form. Not a teaser or marketing blurb — a genuine summary capturing the logical arc from problem to resolution. Should enable someone to understand the sermon's full trajectory without reading it.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">main_thesis</div>
+      <div class="term-category">String (1 sentence)</div>
+      <div class="term-def">The sermon's controlling claim — the single proposition the entire sermon exists to establish. Every unit in the sermon should, in some way, serve this thesis. If you had to reduce the sermon to one sentence, this is it.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">target_audience_cues</div>
+      <div class="term-category">String</div>
+      <div class="term-def">Detectable signals about who the sermon is addressing. Not the literal audience (the congregation), but rhetorical audience markers: "new believers," "parents," "leaders," "the whole congregation," "the discouraged." Reveals what the pastor assumes about his listeners' needs.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">all_quotations</div>
+      <div class="term-category">Rolled-Up Array</div>
+      <div class="term-def">A top-level convenience array collecting every human-author quotation from across all units, with <code>unit_index</code> references back to where each appears. Enables corpus-wide quotation search without scanning every unit.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">all_cross_references</div>
+      <div class="term-category">Rolled-Up Array</div>
+      <div class="term-def">A top-level convenience array collecting every cross-reference (scripture from outside the primary text) across all units, with <code>unit_index</code> references. Enables corpus-wide scripture search.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SERMON TYPE ═══════ -->
+<section id="sermon-type">
+  <div class="section-label">02 — Sermon Type</div>
+  <h2 class="section-title">Classification by Structure</h2>
+  <p class="section-intro">How the sermon is architecturally organized — what principle governs the outline and the flow of argument.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>expository</td>
+        <td>The sermon walks through a passage of Scripture verse by verse or section by section. The text's own structure determines the sermon's structure. The pastor's job is to explain what the text says, what it means, and what it demands. The most common type in Reformed/evangelical preaching.</td>
+      </tr>
+      <tr>
+        <td>topical</td>
+        <td>The sermon is organized around a topic or theme rather than a single passage. Scripture is brought in to support the topic, but no one passage drives the structure. Example: "What the Bible says about anxiety" drawing from multiple books.</td>
+      </tr>
+      <tr>
+        <td>textual</td>
+        <td>The sermon takes a short text (often a single verse or phrase) and develops multiple points from it — but without walking through surrounding context the way an expository sermon would. The text provides the seed; the sermon grows outward from it.</td>
+      </tr>
+      <tr>
+        <td>narrative</td>
+        <td>The sermon follows a biblical narrative (a story), retelling and interpreting it in sequence. The structure mirrors the story's own arc: setting, conflict, resolution, meaning. Common in Old Testament preaching on Genesis, Exodus, the historical books.</td>
+      </tr>
+      <tr>
+        <td>polemic</td>
+        <td>The sermon is organized as an argument against a specific error, false teaching, or cultural position. Scripture is marshaled as evidence in a case. Rare in most pastoral preaching but appears when a pastor addresses a doctrinal controversy directly.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ TONE ═══════ -->
+<section id="tone">
+  <div class="section-label">03 — Tone</div>
+  <h2 class="section-title">Emotional & Rhetorical Register</h2>
+  <p class="section-intro">The overall emotional posture of the sermon. Multiple tones can coexist — a sermon can be both pastoral and prophetic, or didactic and celebratory. The array captures the blend.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>pastoral</td>
+        <td>The voice of the shepherd. Warm, caring, personally engaged with the listener's struggles and needs. The pastor speaks as one who knows his people and wants their good. Marked by direct address, empathy, and comfort.</td>
+      </tr>
+      <tr>
+        <td>prophetic</td>
+        <td>The voice of confrontation. The pastor addresses sin, complacency, injustice, or spiritual danger with urgency and moral weight. Not angry — authoritative. The tone says "this must change" and carries the weight of divine mandate behind it.</td>
+      </tr>
+      <tr>
+        <td>didactic</td>
+        <td>The voice of the teacher. Information-dense, explanatory, structured for comprehension. The pastor is primarily transmitting knowledge — explaining a doctrine, clarifying a text, building conceptual scaffolding. The emotional temperature is cooler; the intellectual demand is higher.</td>
+      </tr>
+      <tr>
+        <td>celebratory</td>
+        <td>The voice of worship. Joyful, exultant, marked by wonder at who God is and what he has done. Often surfaces at theological climaxes — the moment the sermon lands on a truth so good the response is praise rather than instruction.</td>
+      </tr>
+      <tr>
+        <td>lament</td>
+        <td>The voice of grief. The pastor enters into suffering — the congregation's, the world's, his own — and gives it voice. Honest about pain without rushing to resolution. Theologically grounded sorrow that makes space for the hard realities of life in a fallen world.</td>
+      </tr>
+      <tr>
+        <td>polemic</td>
+        <td>The voice of contention. The pastor engages a specific error, false teaching, or dangerous idea and argues against it directly. Distinguished from prophetic by its target: prophetic confronts behavior; polemic confronts ideas.</td>
+      </tr>
+      <tr>
+        <td>evangelistic</td>
+        <td>The voice of invitation. The pastor addresses the unconverted or the uncommitted and urges them toward Christ. Marked by direct appeal, promise-centered language, urgency, and an explicit call to respond. Can be warm or urgent or both.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ HERMENEUTICS ═══════ -->
+<section id="hermeneutics">
+  <div class="section-label">04 — Hermeneutical Method</div>
+  <h2 class="section-title">How the Pastor Reads the Text</h2>
+  <p class="section-intro">The interpretive lens the pastor brings to the passage. Most sermons use more than one method — an expository sermon might be primarily grammatical-historical but include a redemptive-historical move when it connects the Old Testament text to Christ. The array captures the blend.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>grammatical_historical</td>
+        <td>Close attention to the original language, historical context, and authorial intent. The pastor asks: what did these words mean to the original audience in their original setting? Word studies, verb tenses, cultural background, literary structure. The bread and butter of expository preaching.</td>
+      </tr>
+      <tr>
+        <td>redemptive_historical</td>
+        <td>The passage is read as a moment in the unfolding drama of redemption — creation, fall, redemption, consummation. A Christotelic reading: every text points toward, anticipates, or finds its fulfillment in Christ, even when Christ is not explicitly named. The pastor traces the trajectory from this text to the cross and beyond.</td>
+      </tr>
+      <tr>
+        <td>canonical</td>
+        <td>Interpreting the passage in light of the whole canon of Scripture. "Scripture interprets Scripture" is the active method — the pastor brings other biblical texts to bear on this one, building an intertextual web. When a pastor reads a Psalm through the lens of Paul's letters, that's canonical hermeneutics at work.</td>
+      </tr>
+      <tr>
+        <td>applicatory</td>
+        <td>Primary emphasis on "what does this mean for us" with less exegetical scaffolding. The pastor moves quickly from text to life — the interpretive energy goes into bridging the gap between ancient text and modern listener. Common in topical preaching and in pastors whose gift is practical wisdom.</td>
+      </tr>
+      <tr>
+        <td>polemic</td>
+        <td>The passage is marshaled to refute an error or defend a contested doctrine. The interpretive lens is adversarial — the pastor reads the text with a specific opponent in view (whether named or unnamed) and draws out the text's implications for that dispute.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ UNIT-LEVEL FIELDS ═══════ -->
+<section id="units">
+  <div class="section-label">05 — Unit-Level Fields</div>
+  <h2 class="section-title">The Functional Unit</h2>
+  <p class="section-intro">Each sermon is decomposed into functional units — sections defined by rhetorical function shift, not paragraph breaks or character count. A unit can be a single sentence (a transition) or several paragraphs (extended exposition). When the rhetorical function changes, a new unit begins.</p>
+
+  <div class="term-grid">
+    <div class="term-card">
+      <div class="term-name">unit_index</div>
+      <div class="term-category">Integer</div>
+      <div class="term-def">Sequential position in the sermon, starting at 1. Defines the order of units and enables cross-referencing between units (e.g., "this illustration serves the claim made in unit 5").</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">rhetorical_function</div>
+      <div class="term-category">Enum (9 values)</div>
+      <div class="term-def">The primary purpose this unit serves in the sermon's argument. The controlled taxonomy of nine functions is the backbone of the decomposition — it's what makes the data searchable, filterable, and commercially valuable. See next section for full definitions.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">content</div>
+      <div class="term-category">String (Verbatim)</div>
+      <div class="term-def">The pastor's exact language for this unit. <strong>No paraphrasing, no cleanup, no grammatical correction.</strong> The voice is the asset. Every product downstream depends on having the authentic words. If the pastor said "ain't" or started a sentence with "And," that's what appears here.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">summary</div>
+      <div class="term-category">String (2–3 sentences)</div>
+      <div class="term-def">What this unit accomplishes in the sermon's argument — not what it says, but what it <em>does</em>. "This unit establishes the historical context for Moses' complaint" rather than "Moses complains to God." The summary captures function, not just content.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">key_claim</div>
+      <div class="term-category">String (1 sentence) / Null</div>
+      <div class="term-def">The single most important assertion this unit makes. A propositional distillation — the one thing you'd remember if you forgot everything else. Null for transitions, prayers, and some illustrations that serve other units' claims rather than making claims of their own.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">people_referenced</div>
+      <div class="term-category">Array of Strings</div>
+      <div class="term-def">Historical figures, theologians, biblical characters mentioned in this unit. Enables searching the corpus for every time the pastor mentions Augustine, or Luther, or Ruth, or Nebuchadnezzar.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ RHETORICAL FUNCTION ═══════ -->
+<section id="rhetorical">
+  <div class="section-label">06 — Rhetorical Function Taxonomy</div>
+  <h2 class="section-title">Nine Functions</h2>
+  <p class="section-intro">The controlled vocabulary for what a unit does in the sermon. This taxonomy is the core IP — it's what separates annotated argument structure from raw transcripts. Only these nine values are permitted; the model may not invent new ones.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>exposition</td>
+        <td>Direct engagement with the biblical text. The pastor is doing exegetical work: explaining what a word means, unpacking a verb tense, providing historical context, tracing the logic of a passage. The text is the subject; the pastor is the guide. This is where the interpretive homework lives.</td>
+      </tr>
+      <tr>
+        <td>theological_claim</td>
+        <td>A doctrinal assertion derived from or supported by the exposition. The pastor moves from "the text says this" to "therefore this is true about God, humanity, salvation, etc." The claim may be explicitly stated or implicitly constructed from the exposition. Distinguished from exposition by its propositional nature — it asserts, not just explains.</td>
+      </tr>
+      <tr>
+        <td>illustration</td>
+        <td>A story, analogy, historical example, or hypothetical scenario that serves the argument. Illustrations don't make claims — they make claims vivid, memorable, or emotionally accessible. They exist to serve a prior or subsequent claim. A pastor who tells a story about his father is illustrating; the point he draws from the story is a claim or application.</td>
+      </tr>
+      <tr>
+        <td>application</td>
+        <td>Direct address about what to do, believe, or become in response to the truth established. The pastor shifts from "this is true" to "here's what that means for you Monday morning." Characterized by imperative verbs, second-person address, and concrete instruction. The bridge from doctrine to life.</td>
+      </tr>
+      <tr>
+        <td>introduction</td>
+        <td>The opening frame of the sermon. Sets up the text, the problem, the question, or the tension the sermon will address. May include a hook (attention-getter), a reading of the primary text, or contextual background. Its job is to make the congregation care about what's coming.</td>
+      </tr>
+      <tr>
+        <td>conclusion</td>
+        <td>The closing frame. Summarizes the argument, reiterates the main thesis, issues a final charge, or lifts the congregation into worship. Often the most emotionally concentrated unit in the sermon. A good conclusion doesn't just end — it lands.</td>
+      </tr>
+      <tr>
+        <td>transition</td>
+        <td>Connective tissue between major sections. "Having seen what the text says, let's now ask what it means." "That's the first point. Here's the second." Transitions signal structural shifts and help the listener track the argument. Can be as short as a single sentence.</td>
+      </tr>
+      <tr>
+        <td>pastoral_aside</td>
+        <td>A direct shepherding moment where the pastor steps outside the expositional flow to address his people personally. "I know some of you are going through a season of doubt right now." "If you're struggling with this, please come talk to me." The voice shifts from teacher to shepherd. Marked by sudden intimacy and personal concern.</td>
+      </tr>
+      <tr>
+        <td>prayer</td>
+        <td>An opening, closing, or mid-sermon prayer. The pastor addresses God rather than the congregation. May appear anywhere in the sermon — some pastors pray at transitions, some pray after especially weighty claims. The rhetorical register shifts from horizontal (pastor-to-people) to vertical (pastor-to-God).</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ THREE-TIER CITATIONS ═══════ -->
+<section id="citations">
+  <div class="section-label">07 — Three-Tier Citation Architecture</div>
+  <h2 class="section-title">Three Kinds of Citation</h2>
+  <p class="section-intro">The spec separates three fundamentally different kinds of cited material — each requiring different retrieval logic. A pastor reading his primary text is not the same act as a pastor quoting Spurgeon, and the data must reflect that distinction.</p>
+
+  <div class="tier-stack">
+    <div class="tier-block t1">
+      <div class="tier-label">Tier 1 — Primary Text Citations</div>
+      <div class="tier-title">The Sermon's Own Passage</div>
+      <div class="tier-desc">Verses from the passage being exposited — the scripture the sermon exists to explain. When a pastor preaching on Exodus 5 reads Exodus 5:22-23 aloud, that's a Tier 1 citation. It's source material, not supporting evidence. The text is not being quoted <em>in support</em> of an argument; the text <em>is</em> the argument.</div>
+      <div class="tier-fields">
+        <span class="field-tag">reference</span>
+        <span class="field-tag">mode: full_reading</span>
+        <span class="field-tag">mode: partial_reading</span>
+        <span class="field-tag">mode: reference_in_passing</span>
+      </div>
+    </div>
+    <div class="tier-block t2">
+      <div class="tier-label">Tier 2 — Cross-References</div>
+      <div class="tier-title">Scripture from Outside the Passage</div>
+      <div class="tier-desc">Other biblical texts brought in for support, contrast, illumination, or typological connection. When a pastor preaching on Exodus 5 quotes Romans 8:28, that's a Tier 2 cross-reference — he's bringing a different part of the canon to bear on his primary text. These reveal the pastor's hermeneutical instincts: which scriptures does he instinctively connect?</div>
+      <div class="tier-fields">
+        <span class="field-tag">reference</span>
+        <span class="field-tag">function: authority</span>
+        <span class="field-tag">function: contrast</span>
+        <span class="field-tag">function: echo</span>
+        <span class="field-tag">function: fulfillment</span>
+        <span class="field-tag">function: parallel</span>
+        <span class="field-tag">function: corrective</span>
+        <span class="field-tag">supports_claim</span>
+      </div>
+    </div>
+    <div class="tier-block t3">
+      <div class="tier-label">Tier 3 — Quotations</div>
+      <div class="tier-title">Human Authors Only</div>
+      <div class="tier-desc">Words from people, not from Scripture — Spurgeon, Piper, Edwards, a hymn writer, a secular author. Tracked with verbatim text, attribution, source work (if identifiable), and the function the quote serves. These reveal the pastor's intellectual influences and rhetorical habits.</div>
+      <div class="tier-fields">
+        <span class="field-tag">text</span>
+        <span class="field-tag">attribution</span>
+        <span class="field-tag">source</span>
+        <span class="field-tag">function: authority</span>
+        <span class="field-tag">function: illustration</span>
+        <span class="field-tag">function: provocation</span>
+        <span class="field-tag">function: devotional</span>
+        <span class="field-tag">function: opponent</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 500; margin-bottom: 20px;">Cross-Reference Functions</h3>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>authority</td>
+        <td>The cross-reference is brought in as proof — "Scripture confirms this point." The pastor cites another passage because it settles the question or lends decisive weight to the claim being made.</td>
+      </tr>
+      <tr>
+        <td>contrast</td>
+        <td>The cross-reference shows the difference between two realities — old and new covenant, law and grace, judgment and mercy. The pastor juxtaposes passages to illuminate what makes this text distinctive.</td>
+      </tr>
+      <tr>
+        <td>echo</td>
+        <td>A softer connection than authority — the cross-reference resonates with the primary text without directly proving it. Shared imagery, shared vocabulary, a family resemblance between two passages. The canon whispering to itself.</td>
+      </tr>
+      <tr>
+        <td>fulfillment</td>
+        <td>The cross-reference shows a promise-fulfillment relationship. An Old Testament prophecy finds its realization in a New Testament event, or a type finds its antitype. The pastor is tracing the arc of redemptive history.</td>
+      </tr>
+      <tr>
+        <td>parallel</td>
+        <td>A structural or thematic parallel between two passages — similar situations, similar responses, similar patterns. The pastor draws the comparison to show that what happened in one text illuminates what's happening in another.</td>
+      </tr>
+      <tr>
+        <td>corrective</td>
+        <td>The cross-reference is brought in to guard against misreading the primary text. "You might think this passage means X, but Paul clarifies in Romans that it means Y." A pre-emptive hermeneutical correction.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-divider" style="margin-top: 40px;"></div>
+  <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 500; margin-bottom: 20px;">Quotation Functions</h3>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Value</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>authority</td>
+        <td>The quote is cited because the author carries weight — a trusted theologian, a church father, a respected scholar. The pastor borrows credibility: "Calvin himself said..."</td>
+      </tr>
+      <tr>
+        <td>illustration</td>
+        <td>The quote serves as an illustration — a vivid way of saying what the pastor is already arguing. Bunyan's Pilgrim's Progress, a memorable phrase from a hymn. The quote illuminates; it doesn't prove.</td>
+      </tr>
+      <tr>
+        <td>provocation</td>
+        <td>The quote is cited to provoke a reaction — to shock, to challenge, to disrupt complacency. May come from an ally or an opponent. The rhetorical purpose is to disturb, not to comfort.</td>
+      </tr>
+      <tr>
+        <td>devotional</td>
+        <td>The quote is cited for its affective power — to move the heart, not just the mind. Hymn stanzas, poetry, prayers from the tradition. The pastor wants the congregation to <em>feel</em> what the text means, and the quote does that work.</td>
+      </tr>
+      <tr>
+        <td>opponent</td>
+        <td>The quote comes from someone the pastor disagrees with — cited in order to be refuted, corrected, or shown to be inadequate. The pastor gives the opponent's view fairly and then dismantles it.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ DOCTRINAL LOCI ═══════ -->
+<section id="doctrine">
+  <div class="section-label">08 — Doctrinal Loci</div>
+  <h2 class="section-title">Sixteen Theological Categories</h2>
+  <p class="section-intro">The controlled taxonomy for tagging each unit's theological content. These categories come from the traditional divisions of systematic theology. A single unit can carry multiple tags — a passage on Christ's atonement touches both Christology and Soteriology.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Locus</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Theology Proper</td>
+        <td>The doctrine of God himself — his existence, attributes, nature, and works. God's holiness, sovereignty, love, justice, omniscience, aseity (self-existence). When the sermon is primarily about who God is in himself, this is the locus.</td>
+      </tr>
+      <tr>
+        <td>Christology</td>
+        <td>The doctrine of Christ — his person (divine and human natures), his offices (prophet, priest, king), his work (incarnation, life, death, resurrection, ascension, return). Any unit centered on who Jesus is or what he has done.</td>
+      </tr>
+      <tr>
+        <td>Pneumatology</td>
+        <td>The doctrine of the Holy Spirit — his person, his role in salvation (regeneration, sanctification, sealing), his gifts, his indwelling of believers, his work in the church. Often underrepresented in preaching; the Spirit is frequently assumed rather than exposited.</td>
+      </tr>
+      <tr>
+        <td>Soteriology</td>
+        <td>The doctrine of salvation — how sinners are made right with God. Justification, redemption, reconciliation, propitiation, adoption, election, effectual calling, perseverance. The broadest and most frequent locus in evangelical preaching.</td>
+      </tr>
+      <tr>
+        <td>Hamartiology</td>
+        <td>The doctrine of sin — its origin, nature, effects, and extent. Original sin, total depravity, the fall, the relationship between sin and death. When the pastor is diagnosing the human problem before presenting the solution.</td>
+      </tr>
+      <tr>
+        <td>Anthropology</td>
+        <td>The doctrine of humanity — what it means to be human. Created in God's image, the nature of the soul, human dignity, the fall's effect on human nature, gender and embodiment. Distinct from Hamartiology (which focuses on the sin problem specifically).</td>
+      </tr>
+      <tr>
+        <td>Ecclesiology</td>
+        <td>The doctrine of the church — its nature, mission, ordinances (baptism, Lord's Supper), governance, membership, discipline, unity. When the pastor addresses what the church is and how it should function.</td>
+      </tr>
+      <tr>
+        <td>Eschatology</td>
+        <td>The doctrine of last things — death, judgment, heaven, hell, the return of Christ, the new creation, the intermediate state. Not just end-times speculation — includes the pastoral urgency that comes from eternal perspective.</td>
+      </tr>
+      <tr>
+        <td>Bibliology</td>
+        <td>The doctrine of Scripture — its inspiration, authority, inerrancy, sufficiency, clarity, and role in the Christian life. When the pastor is making claims about the Bible itself rather than just teaching from it.</td>
+      </tr>
+      <tr>
+        <td>Sanctification</td>
+        <td>The ongoing process of becoming more like Christ after conversion. Growth in holiness, the role of the Spirit in transformation, the means of grace, the battle against remaining sin. Distinguished from Soteriology's focus on how we <em>become</em> saved — this is about how we <em>grow</em> after being saved.</td>
+      </tr>
+      <tr>
+        <td>Providence / Sovereignty</td>
+        <td>God's active governance of all things — his control over history, nations, circumstances, and individual lives. The relationship between God's sovereignty and human responsibility. When the pastor argues that God is in control of a specific situation or circumstance.</td>
+      </tr>
+      <tr>
+        <td>Covenant Theology</td>
+        <td>The framework of God's relationship with his people through covenants — Adamic, Noahic, Abrahamic, Mosaic, Davidic, New. The continuity and discontinuity between Old and New Testaments. How the promises of God unfold across redemptive history through covenant commitments.</td>
+      </tr>
+      <tr>
+        <td>Ethics / Moral Theology</td>
+        <td>How Christians should live — moral reasoning, ethical principles, the relationship between law and gospel, specific ethical instruction. When the sermon moves from "what is true" to "what is right" — not just application (which is broader) but specifically moral and ethical reasoning.</td>
+      </tr>
+      <tr>
+        <td>Doxology / Worship</td>
+        <td>The theology and practice of worship — why we worship, how we worship, the nature of praise, the role of music, the relationship between liturgy and life. Also tagged when the sermon itself breaks into worship — when the pastor's exposition becomes doxology.</td>
+      </tr>
+      <tr>
+        <td>Spiritual Warfare</td>
+        <td>The reality and dynamics of spiritual conflict — Satan, demonic opposition, the believer's armor, temptation, the cosmic dimension of the Christian life. When the sermon acknowledges and addresses the unseen adversary and the nature of the battle.</td>
+      </tr>
+      <tr>
+        <td>Pastoral Theology</td>
+        <td>The theology of care — how pastors and churches minister to people in suffering, doubt, grief, transition, and crisis. Also covers the nature and calling of pastoral ministry itself. When the sermon functions as an act of shepherding more than teaching.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ BIBLICAL-THEOLOGICAL MOVES ═══════ -->
+<section id="bt-moves">
+  <div class="section-label">09 — Biblical-Theological Moves</div>
+  <h2 class="section-title">Seven Move Types</h2>
+  <p class="section-intro">Detected instances of biblical theology at work — moments where the pastor traces connections across the canon, showing how themes develop, types are fulfilled, and the story of redemption unfolds. Each move captures the source text, target text, and the pastor's own framing of the connection.</p>
+
+  <table class="enum-table">
+    <thead>
+      <tr><th>Move Type</th><th>Definition</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>typology</td>
+        <td>An Old Testament person, event, or institution is presented as a "type" — a divinely intended prefiguration — of a New Testament reality. Adam as a type of Christ. The Passover lamb as a type of Christ's sacrifice. The tabernacle as a type of God's presence with his people. The pastor traces the correspondence and says "this earlier thing points forward to this later thing."</td>
+      </tr>
+      <tr>
+        <td>fulfillment</td>
+        <td>A direct prophecy-to-fulfillment connection. Isaiah 53 fulfilled in Christ's passion. Jeremiah 31's new covenant fulfilled at the Last Supper. The pastor identifies an explicit Old Testament promise and shows where it landed in history. More specific than typology — this is about verbal predictions, not just structural parallels.</td>
+      </tr>
+      <tr>
+        <td>progressive_revelation</td>
+        <td>The same doctrine is shown to develop and deepen across the canon. What was dimly understood in the Old Testament becomes clearer in the New. The pastor traces how God revealed truth in stages — not contradicting earlier revelation, but filling it in. The hardest move for AI models to detect because it requires understanding what was <em>not yet known</em> at each stage.</td>
+      </tr>
+      <tr>
+        <td>narrative_arc</td>
+        <td>The pastor connects the passage to the larger story of Scripture — creation, fall, redemption, consummation. The sermon places this text on the map of the grand narrative. "This moment in Exodus is the first step toward what God will ultimately accomplish in Christ." The move is about location in the story, not just theological parallel.</td>
+      </tr>
+      <tr>
+        <td>intertextual_echo</td>
+        <td>A subtler connection than typology or fulfillment — shared language, imagery, or themes between two passages that suggest the later author was drawing on the earlier one. When Paul echoes Isaiah's servant language, or when Revelation draws on Exodus imagery. The resonance may be intentional or structural; the pastor surfaces it.</td>
+      </tr>
+      <tr>
+        <td>contrast</td>
+        <td>Two canonical moments placed side by side to show how they differ — Adam's disobedience vs. Christ's obedience, the old covenant's conditionality vs. the new covenant's unconditional grace, Moses' veiled face vs. the unveiled glory in Christ. The pastor uses the difference to illuminate the superiority or distinctiveness of one over the other.</td>
+      </tr>
+      <tr>
+        <td>thematic_thread</td>
+        <td>A recurring theme traced across multiple books or eras of Scripture — rest, exile, temple, kingdom, wilderness, Promised Land. The pastor shows that this theme appears here, and here, and here, building toward a climactic expression. Less about two specific texts and more about a through-line across the whole canon.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="term-grid" style="margin-top: 32px;">
+    <div class="term-card">
+      <div class="term-name">source_text</div>
+      <div class="term-category">BT Move Sub-Field</div>
+      <div class="term-def">The earlier canonical reference being drawn from — the "from" end of the connection. The Old Testament type, the original prophecy, the first appearance of the theme.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">target_text</div>
+      <div class="term-category">BT Move Sub-Field</div>
+      <div class="term-def">The later canonical reference where the fulfillment, echo, or development lands — the "to" end of the connection. The New Testament antitype, the fulfilled promise, the climactic expression of the theme.</div>
+    </div>
+    <div class="term-card full-width">
+      <div class="term-name">pastor_framing</div>
+      <div class="term-category">BT Move Sub-Field</div>
+      <div class="term-def">One sentence capturing how the pastor himself articulated the connection — in his specific language. This matters because different pastors frame the same typological move differently, and that framing reveals their hermeneutical instincts. Critical for voice replication and for MIRRORVOX's benchmark analysis.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PENDING ADDITIONS ═══════ -->
+<section id="pending">
+  <div class="pending-banner">
+    <div class="section-label">10 — Pending Spec Additions</div>
+    <h2 class="section-title" style="font-size: clamp(1.6rem, 3.5vw, 2.2rem);">Fields Not Yet in Production</h2>
+    <p class="section-intro">These fields have been identified across multiple product specs as needed additions to the decomposition spec. They are prioritized by how many products depend on them and whether their detection has been validated.</p>
+
+    <div class="pending-grid">
+      <div class="pending-card">
+        <div class="term-name">illustration_type</div>
+        <div class="term-category">Critical Priority — Add Now</div>
+        <div class="term-def">Classifies illustration units by source type: <strong>personal_story</strong> (the pastor's own experience), <strong>historical_example</strong> (real events or figures from history), <strong>analogy</strong> (A-is-like-B comparisons), <strong>hypothetical</strong> (imagined scenarios), or <strong>cultural_reference</strong> (books, films, current events). Without this, all illustrations are an undifferentiated bucket.</div>
+        <div class="products">
+          <span class="product-tag">PastoralRAG</span>
+          <span class="product-tag">MirrorVox</span>
+          <span class="product-tag">BookGuide</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">rhetorical_register</div>
+        <div class="term-category">High Priority — Test First</div>
+        <div class="term-def">Tags the persuasive mode of each unit: <strong>logos</strong> (logical argument), <strong>pathos</strong> (emotional appeal), <strong>ethos</strong> (credibility/authority), <strong>narrative</strong> (story immersion), or <strong>doxological</strong> (worship/praise). Multiple values allowed. Needs reliability testing before production.</div>
+        <div class="products">
+          <span class="product-tag">TrainingData</span>
+          <span class="product-tag">MirrorVox</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">anticipated_objection</div>
+        <div class="term-category">High Priority — Test Frequency</div>
+        <div class="term-def">Captures moments where the pastor surfaces and responds to an implicit counter-argument: the <strong>objection_text</strong> (what the objector would say) and <strong>response_strategy</strong> (direct_refutation, reframe, concede_and_pivot, or rhetorical_question). The single most valuable reasoning pattern for TRAININGDATA.</div>
+        <div class="products">
+          <span class="product-tag">TrainingData</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">serves_unit</div>
+        <div class="term-category">High Priority — Argument Graph</div>
+        <div class="term-def">Links units to the other units they serve — turning the flat JSON list into a directed argument graph. Each entry records the <strong>unit_index</strong> being served and the <strong>relationship</strong> (illustrates, supports, rebuts, qualifies, applies, anticipates). Potentially the highest-value addition for training data sales.</div>
+        <div class="products">
+          <span class="product-tag">TrainingData</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">application_specificity</div>
+        <div class="term-category">Medium Priority</div>
+        <div class="term-def">Tags application units by concreteness: <strong>abstract</strong> ("trust God more"), <strong>concrete</strong> ("here are three things to do this week"), or <strong>mixed</strong>. Enables MIRRORVOX to measure whether a pastor tends toward general exhortation or specific instruction.</div>
+        <div class="products">
+          <span class="product-tag">MirrorVox</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">hinge_statement</div>
+        <div class="term-category">Medium Priority — Needs Expert Input</div>
+        <div class="term-def">A boolean on transition units indicating whether the transition contains an explicit structural signal — a clear pivot between major sections. Distinguished from mere connective tissue. Requires clearer homiletical definition before implementation.</div>
+        <div class="products">
+          <span class="product-tag">MirrorVox</span>
+        </div>
+      </div>
+      <div class="pending-card">
+        <div class="term-name">is_fcf_moment</div>
+        <div class="term-category">Lower Priority</div>
+        <div class="term-def">Boolean + optional description flagging "Fallen Condition Focus" moments — where the pastor identifies the human problem or need the passage addresses. A standard move in Reformed homiletics (the FCF is the question the passage answers). Captures problem-framing before solution-delivery.</div>
+        <div class="products">
+          <span class="product-tag">TrainingData</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- end report-body -->
+
+<!-- ═══════ FOOTER ═══════ -->
+<div class="report-footer">
+  <div class="footer-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#c4a265" stroke-width="1.5">
+      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
+      <path d="M12 22V12"/>
+      <path d="M2 7l10 5 10-5"/>
+    </svg>
+  </div>
+  <div class="footer-brand">Shepherd's Guild</div>
+  <div class="footer-text">Decomposition Spec Wiki — v2 Reference</div>
+  <div class="footer-text" style="font-size: 0.68rem; opacity: 0.6; margin-top: 4px;">March 2026</div>
+</div>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('section').forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
