@@ -131,10 +131,12 @@ def active_customers() -> list[Customer]:
         # the proper fix is to add `preachers.primary_church_id`.
         # For the charter cohort, we hardcode the mapping below.
         pid_map = {
-            "c121e66b-777d-4568-89d3-9ceea258061b": (  # Providence
+            "c121e66b-777d-4568-89d3-9ceea258061b": (  # Providence Community Church
                 "9c6f8d69-de55-45db-ac60-0fe6d0cfff59", "Chris Oswald"
             ),
-            # Cross of Grace mapping TBD once Ricky's preacher row exists
+            "f1fc9898-fafd-4289-b6af-ce99dfde23d6": (  # Cross of Grace (El Paso, Nucleus)
+                "ccb9e59c-bd20-414a-bd6b-25b117b8144c", "Ricky Alcantar"
+            ),
         }
         if c["id"] not in pid_map:
             log.warning(f"no preacher mapping for church {c['id']} ({c['name']}); skipping")
@@ -169,9 +171,15 @@ def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
     dispatch = {
         "rss": ["sync_sermon_audio_from_rss.py", "--feed", customer.podcast_feed_url or ""],
         "yash_html": ["sync_sermons_from_yash.py", "--host", customer.audio_base_url or ""],
+        # Nucleus adapter TODO: model on download_crossofgrace.py but write audio_url
+        # to Supabase instead of downloading. Engine ID lives in ingest_config.
+        "nucleus": None,
     }
     if customer.ingest_source_type not in dispatch:
         log.warning(f"  no adapter for ingest_source_type={customer.ingest_source_type}; skipping")
+        return 0
+    if dispatch[customer.ingest_source_type] is None:
+        log.warning(f"  {customer.ingest_source_type} adapter not yet built; skipping {customer.church_name}")
         return 0
 
     cmd = ["python", str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
@@ -295,33 +303,102 @@ def run_weekly(catchup: bool, dry_run: bool) -> RunSummary:
         log.info("DRY RUN — stopping after discover stage")
         return summary
 
-    # Stages 2–5 — Decompose pending sermons (those with audio + no decomposition yet)
+    # Stages 2–3 — Decompose pending sermons (those with audio + no decomposition yet)
     pending: list[tuple[Customer, dict]] = []
     for c in customers:
         for s in pending_for_decomposition(c):
             if s.get("raw_transcript"):
                 pending.append((c, s))
             else:
-                log.info(f"  [skip] {c.church_name}: {s['title']!r} has no transcript yet (TODO: AssemblyAI)")
+                # TODO Stage 2: download from transcript_url if present, else AssemblyAI on audio_url
+                log.info(f"  [skip] {c.church_name}: {s['title']!r} has no raw_transcript (TODO: download/AssemblyAI)")
 
     if not pending:
         log.info("No sermons pending decomposition.")
         return summary
 
-    log.info(f"Submitting decomposition batch for {len(pending)} sermon(s) across {len({c.church_id for c, _ in pending})} customer(s)")
-    # TODO: invoke pipeline_batch.py submit programmatically. For v1 this is a stub;
-    # currently pipeline_batch.py expects a folder of pre-written sermonindex JSONs.
-    # The orchestration glue (writing transcripts to a temp dir, calling submit,
-    # capturing the batch_id) is the next ticket.
-    log.warning("  [pipeline_batch.py invocation STUB — see TODO in source]")
-    summary.decomposed_submitted = len(pending)
+    # Group by preacher — pipeline_batch.py submit takes one --preacher per run
+    by_preacher: dict[str, tuple[Customer, list[dict]]] = {}
+    for c, s in pending:
+        key = c.preacher_id
+        if key not in by_preacher:
+            by_preacher[key] = (c, [])
+        by_preacher[key][1].append(s)
 
-    # Stages 6–8 — Per newly-ingested sermon, generate artifacts + render + deploy
-    # (only fires once pipeline_batch.py process has run and ingested the batch results)
-    # For now, those steps are run separately. weekly_ingest.py orchestration of those
-    # stages is the next iteration.
+    log.info(f"Submitting decomposition: {len(pending)} sermon(s) across {len(by_preacher)} preacher(s)")
+    batch_ids: dict[str, str] = {}
+    for preacher_id, (c, sermons) in by_preacher.items():
+        bid = submit_decomposition_batch(c, sermons)
+        if bid:
+            batch_ids[c.preacher_name] = bid
+            summary.decomposed_submitted += len(sermons)
+    summary.batch_id = " · ".join(f"{k}={v}" for k, v in batch_ids.items()) if batch_ids else None
+
+    if batch_ids:
+        # Persist for the followup `process` command
+        state = QUEUE_DIR / "pending_batches.json"
+        state.write_text(json.dumps({
+            "submitted_at": datetime.now().isoformat(timespec="seconds"),
+            "batches": batch_ids,
+        }, indent=2))
+        log.info(f"Batch IDs persisted to {state}")
+        log.info("Stages 4–8 (poll → process → artifacts → render → deploy) will run when you invoke:")
+        for name, bid in batch_ids.items():
+            log.info(f"  python weekly_ingest.py process {bid}    # {name}")
 
     return summary
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 3 — Submit a decomposition batch for one preacher's pending sermons
+# ────────────────────────────────────────────────────────────────────────────
+
+def submit_decomposition_batch(customer: Customer, sermons: list[dict]) -> Optional[str]:
+    """Write each sermon's raw_transcript to weekly_queue/<preacher_slug>/<sermon_id>.txt
+    with a bracket header for LLM context, then call `pipeline_batch.py submit`.
+
+    Returns the Anthropic batch_id (parsed from pipeline_batch.py's stdout) or None.
+    """
+    import re
+    slug = re.sub(r"[^a-z0-9]+", "-", customer.preacher_name.lower()).strip("-")
+    queue = QUEUE_DIR / slug
+    queue.mkdir(parents=True, exist_ok=True)
+    # Clear stale files so we only submit what's currently pending
+    for f in queue.glob("*.txt"):
+        f.unlink()
+
+    for s in sermons:
+        header_lines = [
+            f"[Preached on {s['date']} by {customer.preacher_name} at {customer.church_name}]",
+            f"[Title: {s['title']}]",
+        ]
+        if s.get("primary_text"):
+            header_lines.append(f"[Primary text: {s['primary_text']}]")
+        header = "\n".join(header_lines) + "\n\n"
+        fn = queue / f"{s['id']}.txt"
+        fn.write_text(header + (s.get("raw_transcript") or ""))
+
+    log.info(f"  wrote {len(sermons)} transcript(s) to {queue}")
+
+    cmd = [
+        "python", str(REPO_ROOT / "pipeline_batch.py"), "submit",
+        str(queue),
+        "--preacher", customer.preacher_name,
+    ]
+    log.info(f"  → {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if result.returncode != 0:
+        log.error(f"  submit failed: {result.stderr[-500:]}")
+        return None
+
+    # Parse "Batch ID: msgbatch_XXX" from stdout
+    m = re.search(r"Batch ID:\s*(msgbatch_\w+)", result.stdout)
+    if not m:
+        log.error(f"  could not find batch ID in stdout. Last lines:\n{result.stdout[-500:]}")
+        return None
+    batch_id = m.group(1)
+    log.info(f"  batch submitted: {batch_id}")
+    return batch_id
 
 
 def write_summary(s: RunSummary) -> Path:
