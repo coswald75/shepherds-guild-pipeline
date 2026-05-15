@@ -1,0 +1,9 @@
+/*
+ * Default theme placeholder.
+ *
+ * V1 ships with all CSS inlined in templates/sermon_page.html.j2 — the
+ * `--accent` and `--link` CSS variables there fall back to a default green
+ * when `church.brand_color` is null. Per-church themes (overriding these
+ * variables) are a V2 concern; this file exists so the directory structure
+ * outlined in the architecture spec is in place.
+ */

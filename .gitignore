@@ -24,3 +24,5 @@ Thumbs.db
 # Scratch / temp
 *.tmp
 *.bak
+.pytest_cache/
+audio_cache/

@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>{{ sermon.title }} — Pastor {{ preacher.name }} · {{ church.name }}</title>
+<meta name="description" content="{{ (sermon.abstract or sermon.main_thesis or '')[:280] }}">
+<link rel="canonical" href="{{ canonical_url }}">
+
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ sermon.title }}{% if sermon.primary_text %} — A sermon on {{ sermon.primary_text }}{% endif %}">
+<meta property="og:description" content="{{ (sermon.main_thesis or sermon.abstract or '')[:280] }}">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:site_name" content="{{ church.name }}">
+{% if sermon.date_iso %}<meta property="article:published_time" content="{{ sermon.date_iso }}">{% endif %}
+<meta property="article:author" content="{{ preacher.name }}">
+{% if sermon.series_name %}<meta property="article:section" content="{{ sermon.series_name }}">{% endif %}
+
+<!-- Twitter card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ sermon.title }}{% if sermon.primary_text %} — {{ sermon.primary_text }}{% endif %}">
+<meta name="twitter:description" content="{{ (sermon.main_thesis or sermon.abstract or '')[:200] }}">
+
+<!-- Schema.org structured data -->
+<script type="application/ld+json">
+{{ jsonld_string | safe }}
+</script>
+
+<style>
+  :root {
+    --ink:        #1a1a2e;
+    --ink-soft:   #3d3d52;
+    --ink-faint:  #6f6f80;
+    --paper:      #faf7f0;
+    --paper-raised: #fffdf7;
+    --rule:       #e2dcce;
+    --rule-soft:  #ede7d8;
+    --accent:     {{ church.brand_color or '#2d5a4a' }};
+    --accent-soft:#5a8073;
+    --accent-deep:#1d3d31;
+    --gold:       #b8893a;
+    --gold-bg:    #fdf4d9;
+    --gold-deep:  #6e5018;
+    --link:       {{ church.brand_color or '#2d5a4a' }};
+    --highlight-bg: #fdf6e3;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif Pro", "Iowan Old Style", "Charter", Georgia, serif;
+    font-size: 18px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .ui {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  code, .mono { font-family: ui-monospace, "SF Mono", Monaco, monospace; font-size: 0.85em; }
+
+  a { color: var(--link); text-underline-offset: 2px; }
+
+  /* ────────── Site header ────────── */
+  .site-header {
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper-raised);
+    padding: 16px 24px;
+  }
+  .site-header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .site-brand {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .site-nav { display: flex; gap: 22px; }
+  .site-nav a {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-decoration: none;
+    letter-spacing: 0.01em;
+  }
+  .site-nav a:hover { color: var(--accent); }
+
+  /* ────────── Page chrome ────────── */
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 32px 120px;
+  }
+
+  /* ────────── Sermon hero ────────── */
+  .breadcrumb {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .breadcrumb a { color: var(--ink-faint); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--accent); }
+
+  h1.sermon-title {
+    font-size: 44px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .sermon-cite {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    color: var(--ink-faint);
+    letter-spacing: 0.01em;
+    margin-bottom: 28px;
+  }
+  .sermon-cite span + span::before {
+    content: "·";
+    margin: 0 8px;
+    color: var(--rule);
+  }
+  .sermon-cite strong { color: var(--ink); font-weight: 500; }
+
+  /* ────────── Audio player ────────── */
+  .audio-player {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+  .play-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .play-button.disabled { background: var(--rule); cursor: default; }
+  .play-button:not(.disabled):hover { background: var(--accent-deep); }
+  .audio-meta {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    flex: 1;
+  }
+  .audio-track {
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin-top: 6px;
+    position: relative;
+  }
+  .audio-duration {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* ────────── Thesis hero ────────── */
+  blockquote.thesis-hero {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 26px;
+    line-height: 1.4;
+    font-style: italic;
+    color: var(--ink);
+    border-left: 4px solid var(--accent);
+    padding: 8px 0 8px 24px;
+    margin: 0 0 36px;
+    letter-spacing: -0.005em;
+  }
+  blockquote.thesis-hero .thesis-label {
+    display: block;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-style: normal;
+    margin-bottom: 8px;
+  }
+
+  /* ────────── Facts strip ────────── */
+  .facts-strip {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 44px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .fact .fact-label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .fact .fact-value {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+  .fact .fact-value .chip {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    background: var(--rule-soft);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    margin: 1px 2px 1px 0;
+  }
+
+  /* ────────── Section heading ────────── */
+  section.page-section {
+    padding: 36px 0 28px;
+    border-top: 1px solid var(--rule);
+  }
+  section.page-section:first-of-type { border-top: 0; padding-top: 0; }
+
+  .section-eyebrow {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .section-title-h2 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 14px;
+    line-height: 1.2;
+  }
+  .section-lede {
+    color: var(--ink-soft);
+    font-size: 17px;
+    margin-bottom: 22px;
+  }
+
+  /* ────────── Outline / decomp blocks ────────── */
+  .outline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .outline-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 22px;
+  }
+  .outline-card.full { grid-column: 1 / -1; }
+  .outline-card-label {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .outline-card-label .count {
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  ol.decomp-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: decomp;
+  }
+  ol.decomp-list li {
+    counter-increment: decomp;
+    padding: 8px 0 8px 30px;
+    position: relative;
+    border-bottom: 1px solid var(--rule-soft);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  ol.decomp-list li:last-child { border-bottom: 0; }
+  ol.decomp-list li::before {
+    content: counter(decomp);
+    position: absolute;
+    left: 0;
+    top: 9px;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.decomp-list li strong { font-weight: 600; }
+  .ill-type {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-left: 4px;
+  }
+
+  .citation-chain {
+    font-family: ui-monospace, "SF Mono", Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.85;
+    color: var(--ink-soft);
+  }
+  .citation-chain .sep { color: var(--rule); margin: 0 3px; }
+
+  blockquote.quote-block {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink);
+    padding: 6px 0 6px 16px;
+    border-left: 3px solid var(--accent-soft);
+    margin: 10px 0;
+  }
+  blockquote.quote-block .quote-attr {
+    display: block;
+    font-style: normal;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .pastoral-correction {
+    background: var(--highlight-bg);
+    border: 1px solid #e6d5a8;
+    border-left: 4px solid var(--gold);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 22px 0;
+  }
+  .pastoral-correction .pc-label {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold-deep);
+    margin-bottom: 8px;
+  }
+  .pastoral-correction .pc-text {
+    font-style: italic;
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* ────────── Transcript ────────── */
+  .transcript-wrap { max-width: 720px; margin: 0 auto; }
+  .transcript-meta {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .transcript-meta strong { color: var(--ink-soft); }
+  .transcript-body p {
+    margin: 0 0 1.1em;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .transcript-body h4.unit-anchor {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin: 28px 0 10px;
+    scroll-margin-top: 80px;
+  }
+  .transcript-body h4.unit-anchor::before {
+    content: "§ ";
+    color: var(--ink-faint);
+  }
+  .transcript-collapse {
+    text-align: center;
+    margin: 24px 0;
+  }
+  .expand-btn {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .expand-btn:hover { background: var(--rule-soft); color: var(--ink); }
+
+  /* ────────── Arc visualization ────────── */
+  .arc-wrap { display: flex; flex-direction: column; gap: 16px; }
+  .arc-node {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 14px;
+    align-items: center;
+  }
+  .arc-node.current {
+    background: #eef5f1;
+    border-color: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+  }
+  .arc-node-date {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .arc-node.current .arc-node-date { color: var(--accent); }
+  .arc-node-title { font-weight: 600; font-size: 16px; }
+  .arc-node-title a { color: var(--ink); text-decoration: none; }
+  .arc-node-title a:hover { color: var(--accent); }
+  .arc-node-text {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    background: var(--rule-soft);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .arc-empty {
+    background: var(--rule-soft);
+    border: 1px dashed var(--rule);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+  }
+
+  .echo-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 18px;
+  }
+  .echo-label {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold-deep);
+    margin-bottom: 8px;
+  }
+
+  /* ────────── Related teaching ────────── */
+  ol.related-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: rank;
+  }
+  ol.related-list li {
+    counter-increment: rank;
+    padding: 16px 0 16px 40px;
+    position: relative;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  ol.related-list li:last-child { border-bottom: 0; }
+  ol.related-list li::before {
+    content: counter(rank);
+    position: absolute;
+    left: 0;
+    top: 17px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .related-preacher { font-weight: 600; }
+  .related-sermon-name { font-style: italic; }
+  .related-meta {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .related-summary {
+    color: var(--ink-soft);
+    margin-top: 5px;
+    font-size: 15px;
+  }
+  .outbound-note {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: 18px;
+    background: var(--rule-soft);
+    padding: 10px 14px;
+    border-radius: 6px;
+  }
+  .outbound-note strong { color: var(--ink-soft); }
+
+  /* ────────── Discuss / apply tiles ────────── */
+  .apply-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .apply-tile {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s ease;
+  }
+  .apply-tile:hover {
+    border-color: var(--accent-soft);
+    transform: translateY(-1px);
+  }
+  .apply-tile-label {
+    font-family: "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .apply-tile-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .apply-tile-desc {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+
+  /* ────────── Expanded artifact cards (prayer / discussion / etc.) ────────── */
+  .artifact-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 26px 32px 28px;
+    margin-top: 22px;
+    scroll-margin-top: 80px;
+  }
+  .artifact-eyebrow {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .artifact-title {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 16px;
+    letter-spacing: -0.005em;
+  }
+  .artifact-prayer p {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--ink);
+    margin: 0 0 1em;
+  }
+  .artifact-prayer p:last-child { margin-bottom: 0; }
+  .artifact-status {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold-deep);
+    background: var(--gold-bg);
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 16px;
+  }
+  /* small_group_questions + couples_guide shared list styling */
+  ol.artifact-questions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: art;
+  }
+  ol.artifact-questions li {
+    counter-increment: art;
+    padding: 14px 0 14px 44px;
+    position: relative;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  ol.artifact-questions li:last-child { border-bottom: 0; }
+  ol.artifact-questions li::before {
+    content: counter(art);
+    position: absolute;
+    left: 0;
+    top: 14px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .artifact-question-text {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .artifact-question-anchor {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+  .artifact-question-follow {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 15px;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-top: 6px;
+    padding-left: 0;
+  }
+
+  /* daily_readings */
+  .artifact-intro {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0 0 18px;
+    font-size: 16px;
+  }
+  .artifact-days {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .artifact-day {
+    border-left: 3px solid var(--accent-soft);
+    padding: 4px 0 4px 16px;
+  }
+  .artifact-day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .artifact-day-name {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+  .artifact-day-passage {
+    font-family: ui-monospace, "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .artifact-day-text {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  /* family_card */
+  .artifact-framing {
+    background: var(--rule-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .artifact-framing-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .artifact-framing p {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+  }
+  blockquote.artifact-family-prompt {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    border-left: 4px solid var(--gold);
+    padding: 6px 0 6px 20px;
+    margin: 16px 0 0;
+    font-style: italic;
+  }
+  .artifact-age-band {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-top: 12px;
+  }
+
+  /* memory_verse */
+  blockquote.artifact-verse {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink);
+    font-style: italic;
+    border-left: 4px solid var(--accent);
+    padding: 8px 0 8px 22px;
+    margin: 6px 0 16px;
+  }
+  .artifact-verse-why {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* ────────── About the church ────────── */
+  .church-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 28px 32px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .church-name {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .church-addr {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .visit-cta {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+  }
+  .visit-cta:hover { background: var(--accent-deep); }
+
+  /* ────────── Crawler-hygiene panel ────────── */
+  details.crawler-panel {
+    margin-top: 28px;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  details.crawler-panel summary {
+    cursor: pointer;
+    padding: 12px 18px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    user-select: none;
+  }
+  details.crawler-panel summary:hover { color: var(--accent); }
+  details.crawler-panel[open] summary { border-bottom: 1px solid var(--rule); }
+  .crawler-body { padding: 18px; }
+  .crawler-body pre {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    overflow-x: auto;
+    margin: 6px 0 14px;
+    white-space: pre-wrap;
+  }
+  .crawler-body h5 {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 14px 0 4px;
+  }
+  .crawler-body h5:first-child { margin-top: 0; }
+  .crawler-body p {
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
+
+  /* ────────── Footer ────────── */
+  footer.page-footer {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 32px 48px;
+    border-top: 1px solid var(--rule);
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.6;
+  }
+  footer.page-footer .attribution {
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  footer.page-footer code {
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  /* ────────── Responsive ────────── */
+  @media (max-width: 720px) {
+    main { padding: 28px 20px 40px; }
+    h1.sermon-title { font-size: 32px; }
+    blockquote.thesis-hero { font-size: 20px; padding-left: 18px; }
+    .facts-strip { grid-template-columns: repeat(2, 1fr); }
+    .outline-grid { grid-template-columns: 1fr; }
+    .apply-grid { grid-template-columns: 1fr; }
+    .arc-node { grid-template-columns: 80px 1fr; }
+    .arc-node-text { grid-column: 1 / -1; justify-self: start; }
+    .church-card { grid-template-columns: 1fr; text-align: left; }
+    .site-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+{%- set base = "/" ~ church.url_slug if church.url_slug else "" -%}
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="{{ base }}/" class="site-brand">{{ church.name }}</a>
+    <nav class="site-nav ui">
+      <a href="{{ base }}/sermons">Sermons</a>
+      <a href="{{ base }}/topics">Topics</a>
+      <a href="{{ base }}/about">About</a>
+      <a href="{{ base }}/visit">Visit</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <article class="sermon">
+
+    <!-- ═══════════ Sermon hero ═══════════ -->
+    <div class="breadcrumb ui">
+      <a href="{{ base }}/sermons">Sermons</a>
+      {%- if sermon.series_name -%}
+        · <a href="{{ base }}/sermons/series/{{ sermon.series_name | lower | replace(' ', '-') }}">{{ sermon.series_name }}</a>
+      {%- endif -%}
+    </div>
+
+    <h1 class="sermon-title">{{ sermon.title }}</h1>
+
+    <div class="sermon-cite">
+      {% if sermon.primary_text %}<span><strong>{{ sermon.primary_text }}</strong></span>{% endif %}
+      {% if sermon.date_long %}<span>{{ sermon.date_long }}</span>{% endif %}
+      <span>Pastor {{ preacher.name }}</span>
+    </div>
+
+    {% if sermon.audio_url and sermon.audio_is_media %}
+    <div class="audio-player" id="audio">
+      <button class="play-button" aria-label="Play sermon audio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <audio controls preload="none" src="{{ sermon.audio_url }}" class="audio-meta" style="width:100%;">
+        Your browser does not support the audio element.
+        <a href="{{ sermon.audio_url }}">Download the MP3.</a>
+      </audio>
+    </div>
+    {% elif sermon.audio_url %}
+    <div class="audio-player" id="audio">
+      <button class="play-button" aria-label="Listen to sermon audio">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="audio-meta">
+        <div>Listen to the sermon at <strong>{{ sermon.audio_host_label or 'the church website' }}</strong></div>
+        <div style="margin-top:6px;">
+          <a href="{{ sermon.audio_url }}" target="_blank" rel="noopener" class="ui" style="font-size:13px;">Open sermon page →</a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="audio-player" id="audio">
+      <button class="play-button disabled" aria-label="Audio not available" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="audio-meta">
+        <div>Audio coming soon</div>
+        <div class="audio-track"></div>
+      </div>
+      <span class="audio-duration ui">—</span>
+    </div>
+    {% endif %}
+
+    {% if sermon.main_thesis %}
+    <!-- ═══════════ Thesis ═══════════ -->
+    <blockquote class="thesis-hero">
+      <span class="thesis-label">Thesis</span>
+      {{ sermon.main_thesis }}
+    </blockquote>
+    {% endif %}
+
+    <!-- ═══════════ Facts strip ═══════════ -->
+    <div class="facts-strip">
+      <div class="fact">
+        <div class="fact-label ui">Series</div>
+        <div class="fact-value">{{ sermon.series_name or '—' }}</div>
+      </div>
+      <div class="fact">
+        <div class="fact-label ui">Type</div>
+        <div class="fact-value">{{ (sermon.sermon_type or '—') | capitalize }}</div>
+      </div>
+      <div class="fact">
+        <div class="fact-label ui">Tone</div>
+        <div class="fact-value">
+          {% for t in sermon.tone %}<span class="chip">{{ t }}</span>{% endfor %}
+          {% if not sermon.tone %}—{% endif %}
+        </div>
+      </div>
+      <div class="fact">
+        <div class="fact-label ui">Method</div>
+        <div class="fact-value">
+          {% for m in sermon.hermeneutical_method %}<span class="chip">{{ m | replace('_', '-') }}</span>{% endfor %}
+          {% if not sermon.hermeneutical_method %}—{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Sermon outline ═══════════ -->
+    <section class="page-section">
+      <div class="section-eyebrow ui">What's in this sermon</div>
+      <h2 class="section-title-h2">The shape of the argument</h2>
+      <p class="section-lede">{{ transcript_unit_count }} units across exposition, application, illustration, theological claim, and conclusion. The pastor's argument is built from these moving parts.</p>
+
+      {% if pastoral_correction %}
+      <div class="pastoral-correction">
+        <div class="pc-label ui">Pastoral correction · unit #{{ pastoral_correction.unit_index }}</div>
+        <div class="pc-text">"{{ pastoral_correction.text }}"</div>
+      </div>
+      {% endif %}
+
+      <div class="outline-grid">
+        {% if loci_counts %}
+        <div class="outline-card">
+          <div class="outline-card-label ui">Doctrinal loci<span class="count ui">· {{ loci_total }} surfaced</span></div>
+          <div style="font-family:'Inter',sans-serif; font-size:13px; line-height:1.8;">
+            {% for name, count in loci_counts %}
+              {% if loop.index <= 3 %}
+                <span class="chip" style="background:#e6efe9;color:var(--accent);">{{ name }} · {{ count }}</span>
+              {% else %}
+                <span class="chip">{{ name }} · {{ count }}</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if citations_chain %}
+        <div class="outline-card">
+          <div class="outline-card-label ui">Bible citations<span class="count ui">· {{ citations_total }}</span></div>
+          <div class="citation-chain">
+            {%- for ref in citations_chain -%}
+              {{ ref }}{% if not loop.last %} <span class="sep">|</span> {% endif %}
+            {%- endfor -%}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if illustrations %}
+        <div class="outline-card full">
+          <div class="outline-card-label ui">Illustrations<span class="count ui">· {{ illustrations | length }}</span></div>
+          <ol class="decomp-list">
+            {% for ill in illustrations %}
+            <li>
+              {% if ill.rewrite_title %}<strong>{{ ill.rewrite_title }}</strong>{% endif %}
+              <span class="ill-type">{{ (ill.illustration_type or '') | replace('_', ' ') }}{% if ill.unit_index is not none %} · unit #{{ ill.unit_index }}{% endif %}</span>
+              {% if ill.summary %} — {{ ill.summary }}{% endif %}
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% endif %}
+
+        {% if theological_claims %}
+        <div class="outline-card full">
+          <div class="outline-card-label ui">Theological claims<span class="count ui">· {{ theological_claims | length }}</span></div>
+          <ol class="decomp-list">
+            {% for c in theological_claims %}
+            <li>{{ c.key_claim }} <span class="ill-type">unit #{{ c.unit_index }}</span></li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% endif %}
+
+        {% if quotations %}
+        <div class="outline-card full">
+          <div class="outline-card-label ui">Quotations<span class="count ui">· {{ quotations | length }}</span></div>
+          {% for q in quotations %}
+          <blockquote class="quote-block">
+            "{{ q.text }}"
+            <span class="quote-attr">— {{ q.attribution or 'unattributed' }}{% if q.unit_index is not none %} (unit #{{ q.unit_index }}){% endif %}</span>
+          </blockquote>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ═══════════ Transcript ═══════════ -->
+    <section class="page-section" id="transcript">
+      <div class="section-eyebrow ui">Read it</div>
+      <h2 class="section-title-h2">Full transcript</h2>
+
+      <div class="transcript-wrap">
+        <div class="transcript-meta ui">
+          <span><strong>{{ "{:,}".format(transcript_chars) }}</strong> characters</span>
+          <span><strong>{{ transcript_unit_count }}</strong> units</span>
+          <span><strong>~{{ reading_minutes }} min</strong> reading time</span>
+          {% if sermon.audio_url %}<span><a href="#audio" class="ui">Listen instead →</a></span>{% endif %}
+        </div>
+
+        <div class="transcript-body">
+          {% for u in transcript_preview_units %}
+          <h4 class="unit-anchor ui" id="unit-{{ u.unit_index }}">{{ u.unit_index }}{% if u.summary %} · {{ u.summary.split('.')[0] }}{% endif %}</h4>
+          {% for para in (u.content or '').split('\n\n') if para.strip() %}
+          <p>{{ para }}</p>
+          {% endfor %}
+          {% endfor %}
+
+          {% if transcript_rest_units %}
+          <div class="transcript-collapse">
+            <button class="expand-btn ui" type="button" onclick="document.getElementById('tx-rest').style.display='block'; this.style.display='none';">Expand the remaining {{ transcript_rest_units | length }} units →</button>
+          </div>
+
+          <div class="tx-rest" id="tx-rest" style="display:none;">
+            {% for u in transcript_rest_units %}
+            <h4 class="unit-anchor ui" id="unit-{{ u.unit_index }}">{{ u.unit_index }}{% if u.summary %} · {{ u.summary.split('.')[0] }}{% endif %}</h4>
+            {% for para in (u.content or '').split('\n\n') if para.strip() %}
+            <p>{{ para }}</p>
+            {% endfor %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ Sermon arc ═══════════ -->
+    <section class="page-section">
+      <div class="section-eyebrow ui">Where this fits</div>
+      <h2 class="section-title-h2">Recent preaching context</h2>
+      <p class="section-lede">The three sermons immediately preceding this one in the preaching schedule.</p>
+
+      <div class="arc-wrap">
+        {% if arc %}
+          {% for s in arc %}
+          <div class="arc-node">
+            <div class="arc-node-date ui">{{ s.date_short }}</div>
+            <div>
+              <div class="arc-node-title"><a href="{{ s.url }}">{{ s.title }}</a></div>
+              {% if s.main_thesis %}<div style="color:var(--ink-soft); font-size:14px; margin-top:4px;">{{ s.main_thesis }}</div>{% endif %}
+            </div>
+            {% if s.primary_text %}<span class="arc-node-text ui">{{ s.primary_text }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="arc-node current">
+            <div class="arc-node-date ui">{{ sermon.date_long.split(',')[0] if sermon.date_long else '' }} · This sermon</div>
+            <div>
+              <div class="arc-node-title">{{ sermon.title }}</div>
+              {% if sermon.main_thesis %}<div style="color:var(--ink-soft); font-size:14px; margin-top:4px;">{{ sermon.main_thesis }}</div>{% endif %}
+            </div>
+            {% if sermon.primary_text %}<span class="arc-node-text ui">{{ sermon.primary_text }}</span>{% endif %}
+          </div>
+        {% else %}
+          <div class="arc-empty">Not enough data yet — this preacher has fewer than three prior sermons in the corpus.</div>
+        {% endif %}
+      </div>
+
+      {% if prior_ref %}
+      <div class="echo-card">
+        <div class="echo-label ui">Earlier in the corpus · {{ prior_ref.date_long }}</div>
+        <div style="font-weight:600; font-size:16px; margin-bottom:6px;">
+          <a href="{{ prior_ref.url }}" style="color:var(--ink); text-decoration:none;">A prior sermon on {{ prior_ref.primary_text }}</a>
+        </div>
+        <div style="color:var(--ink-soft); font-size:14px;">
+          You preached this same passage{% if prior_ref.citation_count %} — {{ prior_ref.citation_count }} {{ prior_ref.book_chapter_label }} citations in that earlier sermon{% endif %}. Worth re-reading before the next time this text comes around.
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- ═══════════ Related teaching ═══════════ -->
+    {% if canonical_neighbors %}
+    <section class="page-section">
+      <div class="section-eyebrow ui">Related teaching</div>
+      <h2 class="section-title-h2">Preachers who said it like this</h2>
+      <p class="section-lede">The five canonical sermons in our index whose theological move on this thesis is closest to this one. Distance is cosine distance on the thesis-unit embedding (lower = closer).</p>
+
+      <ol class="related-list">
+        {% for n in canonical_neighbors %}
+        <li>
+          <span class="related-preacher">{{ n.preacher_name }}</span> — <span class="related-sermon-name">{{ n.title }}</span> <span class="related-meta ui">{{ n.primary_text or '' }} · {{ "%.2f"|format(n.distance) }}</span>
+          {% if n.main_thesis %}<div class="related-summary">{{ n.main_thesis }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+
+      <div class="outbound-note ui">
+        <strong>Why we link out:</strong> These outbound links exist because the case for any single sermon is strengthened by its place in a broader theological conversation. Search engines reward sites that participate in conversations rather than monologues, and language-model crawlers reward content that cites and is citable.
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ═══════════ Discuss / apply ═══════════ -->
+    <section class="page-section">
+      <div class="section-eyebrow ui">Take it further</div>
+      <h2 class="section-title-h2">Discuss · apply · pray</h2>
+
+      <div class="apply-grid">
+        {% for tile in apply_tiles %}
+        <a href="{{ tile.anchor }}" class="apply-tile">
+          <div class="apply-tile-label ui">{{ tile.label }}</div>
+          <div class="apply-tile-title">{{ tile.title or 'Coming soon' }}</div>
+          <div class="apply-tile-desc">{{ tile.desc or 'This artifact will be available in a later release.' }}</div>
+        </a>
+        {% endfor %}
+      </div>
+
+      {% for section in artifact_sections %}
+
+      {% if section.type == 'prayer_prompt' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Pray together this week</div>
+        <h3 class="artifact-title">{{ section.body.title }}</h3>
+        <div class="artifact-prayer">
+          {% for para in section.body.prayer_text.split('\n\n') if para.strip() %}
+          <p>{{ para }}</p>
+          {% endfor %}
+        </div>
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+
+      {% elif section.type == 'small_group_questions' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Small-group discussion</div>
+        <h3 class="artifact-title">{{ section.body.questions | length }} questions for your group this week</h3>
+        <ol class="artifact-questions">
+          {% for q in section.body.questions %}
+          <li>
+            <div class="artifact-question-text">{{ q.question }}</div>
+            {% if q.scripture_anchor %}<div class="artifact-question-anchor ui">{{ q.scripture_anchor }}</div>{% endif %}
+            {% if q.follow_up %}<div class="artifact-question-follow">→ {{ q.follow_up }}</div>{% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+
+      {% elif section.type == 'daily_readings' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Daily readings · Monday–Friday</div>
+        <h3 class="artifact-title">{{ section.body.days | length }}-day reading plan</h3>
+        {% if section.body.intro %}<p class="artifact-intro">{{ section.body.intro }}</p>{% endif %}
+        <div class="artifact-days">
+          {% for day in section.body.days %}
+          <div class="artifact-day">
+            <div class="artifact-day-head">
+              <span class="artifact-day-name ui">{{ day.day }}</span>
+              <span class="artifact-day-passage ui">{{ day.passage }}</span>
+            </div>
+            <p class="artifact-day-text">{{ day.reflection }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+
+      {% elif section.type == 'family_card' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Sunday-evening family table</div>
+        <h3 class="artifact-title">{{ section.body.title }}</h3>
+        {% if section.body.framing_for_parents %}
+        <div class="artifact-framing">
+          <span class="ui artifact-framing-label">For the parent</span>
+          <p>{{ section.body.framing_for_parents }}</p>
+        </div>
+        {% endif %}
+        <blockquote class="artifact-family-prompt">
+          {{ section.body.prompt }}
+        </blockquote>
+        {% if section.body.age_band %}<div class="artifact-age-band ui">{{ section.body.age_band }}</div>{% endif %}
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+
+      {% elif section.type == 'couples_guide' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Couples · three questions over coffee</div>
+        <h3 class="artifact-title">{{ section.body.title }}</h3>
+        <ol class="artifact-questions">
+          {% for q in section.body.questions %}
+          <li><div class="artifact-question-text">{{ q }}</div></li>
+          {% endfor %}
+        </ol>
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+
+      {% elif section.type == 'memory_verse' %}
+      <div class="artifact-card" id="{{ section.anchor }}">
+        <div class="artifact-eyebrow ui">Memory verse this week</div>
+        <h3 class="artifact-title">{{ section.body.reference }}</h3>
+        <blockquote class="artifact-verse">{{ section.body.full_text }}</blockquote>
+        {% if section.body.why_this_verse %}
+        <p class="artifact-verse-why"><strong>Why this verse:</strong> {{ section.body.why_this_verse }}</p>
+        {% endif %}
+        {% if section.status == 'pending_review' %}<div class="artifact-status ui">Draft · pending review</div>{% endif %}
+      </div>
+      {% endif %}
+
+      {% endfor %}
+    </section>
+
+    <!-- ═══════════ About the church ═══════════ -->
+    <section class="page-section">
+      <div class="section-eyebrow ui">Where this was preached</div>
+      <h2 class="section-title-h2">About the church</h2>
+
+      <div class="church-card">
+        <div>
+          <div class="church-name">{{ church.name }}</div>
+          <div class="church-addr ui">
+            {% if church.address %}
+              {%- if church.address.locality %}{{ church.address.locality }}{% endif -%}
+              {%- if church.address.region %}, {{ church.address.region }}{% endif -%}
+              <br>
+            {% endif %}
+            {% if church.service_times %}{{ church.service_times }}<br>{% endif %}
+            <a href="{{ base }}/about" style="color:var(--accent);">About us</a> · <a href="{{ base }}/what-we-believe" style="color:var(--accent);">What we believe</a>
+          </div>
+        </div>
+        <a href="{{ base }}/visit" class="visit-cta ui">Plan a visit →</a>
+      </div>
+
+      <!-- Crawler hygiene -->
+      <details class="crawler-panel">
+        <summary class="ui">Crawler &amp; AI-search policy · view robots.txt and llms.txt</summary>
+        <div class="crawler-body">
+          <p>This sermon page is intentionally optimized for search engines and AI assistants. We've opted into being crawled by both. The crawler-config files at the domain root:</p>
+
+          <h5 class="ui">/robots.txt</h5>
+          <pre>{{ robots_txt }}</pre>
+
+          <h5 class="ui">/llms.txt</h5>
+          <pre>{{ llms_txt }}</pre>
+
+          <p>The page itself ships with Schema.org <code>Article</code> + <code>Church</code> markup{% if church.address and church.address.lat is not none %} (with real geo coordinates){% endif %}, Open Graph + Twitter cards for share previews, and a canonical URL. Transcripts are server-rendered HTML — no JS dependency for the readable body.</p>
+        </div>
+      </details>
+    </section>
+
+  </article>
+
+</main>
+
+<footer class="page-footer">
+  <div class="attribution">
+    This sermon was preached by <strong>Pastor {{ preacher.name }}</strong> at <strong>{{ church.name }}</strong>{% if church.address and church.address.locality %}, {{ church.address.locality }}{% if church.address.region %}, {{ church.address.region }}{% endif %}{% endif %}{% if sermon.date_long %}, on <strong>{{ sermon.date_long }}</strong>{% endif %}.{% if sermon.year %} © {{ sermon.year }} {{ church.name }}.{% endif %} Free to share with attribution.
+  </div>
+  <div>Canonical URL: <code>{{ canonical_url }}</code></div>
+  <div>Page generated by Sermon Steward · processed {{ generated_at_utc }}{% if decomposition_model %} · model: {{ decomposition_model }}{% endif %} · {{ transcript_unit_count }} units · {{ citations_total }} citations · {{ quotations | length }} quotations</div>
+</footer>
+
+</body>
+</html>

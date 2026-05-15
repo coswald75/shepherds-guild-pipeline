@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="format-detection" content="telephone=no">
+<title>{{ sermon.title }} — {{ church.name }}</title>
+<style>
+  body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table { border-collapse: collapse !important; }
+  img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  a { text-decoration: underline; }
+  @media only screen and (max-width: 620px) {
+    .email-container { width: 100% !important; }
+    .px-32 { padding-left: 20px !important; padding-right: 20px !important; }
+    h1.email-title { font-size: 26px !important; line-height: 1.2 !important; }
+    blockquote.email-thesis { font-size: 17px !important; }
+    .facts-cell { display: block !important; width: 100% !important; padding: 6px 0 !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background:#faf7f0; color:#1a1a2e; font-family:'Source Serif Pro','Iowan Old Style',Georgia,serif; font-size:16px; line-height:1.6;">
+
+<!-- Pre-header (hidden body, shows in inbox preview) -->
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+  {{ (sermon.main_thesis or '')[:120] }}
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="email-container" style="width:600px; max-width:600px; background:#fffdf7; border:1px solid #e2dcce; border-radius:8px;">
+
+      <!-- ───────── 1. Header ───────── -->
+      <tr><td class="px-32" style="padding:24px 32px 12px; border-bottom:1px solid #e2dcce;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+          <td style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; letter-spacing:-0.01em;">
+            {{ church.name }}
+          </td>
+          <td align="right" style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80;">
+            Sermon · {{ sermon.date_long }}
+          </td>
+        </tr></table>
+      </td></tr>
+
+      <!-- ───────── 2. Hero ───────── -->
+      <tr><td class="px-32" style="padding:36px 32px 8px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:10px;">
+          This Sunday at {{ church.name }}
+        </div>
+        <h1 class="email-title" style="font-family:'Source Serif Pro',Georgia,serif; font-size:32px; line-height:1.15; letter-spacing:-0.02em; font-weight:600; color:#1a1a2e; margin:0 0 14px;">
+          {{ sermon.title }}
+        </h1>
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#6f6f80; letter-spacing:0.01em;">
+          {% if sermon.primary_text %}<strong style="color:#3d3d52; font-weight:600;">{{ sermon.primary_text }}</strong>{% endif %}{% if sermon.primary_text and preacher.name %} · {% endif %}Pastor {{ preacher.name }}
+        </div>
+      </td></tr>
+
+      <!-- ───────── 3. Thesis ───────── -->
+      {% if sermon.main_thesis %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <blockquote class="email-thesis" style="margin:0; font-family:'Source Serif Pro',Georgia,serif; font-size:20px; line-height:1.45; font-style:italic; color:#1a1a2e; border-left:4px solid #2d5a4a; padding:6px 0 6px 20px;">
+          {{ sermon.main_thesis }}
+        </blockquote>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 4. Audio CTA ───────── -->
+      {% if sermon.audio_url %}
+      <tr><td class="px-32" style="padding:18px 32px 6px;" align="center">
+        <a href="{{ sermon.audio_url }}" style="display:inline-block; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; font-weight:600; background:#2d5a4a; color:#ffffff !important; padding:11px 22px; border-radius:6px; text-decoration:none; letter-spacing:0.01em;">
+          {% if sermon.audio_is_media %}Listen to the sermon →{% else %}Open sermon at {{ sermon.audio_host_label or 'the church website' }} →{% endif %}
+        </a>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 5. Facts strip ───────── -->
+      <tr><td class="px-32" style="padding:20px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr>
+            <td class="facts-cell" style="padding:14px 18px; vertical-align:top; border-right:1px solid #ede7d8; width:25%;">
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80; margin-bottom:5px;">Series</div>
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; color:#1a1a2e; line-height:1.35;">{{ sermon.series_name or '—' }}</div>
+            </td>
+            <td class="facts-cell" style="padding:14px 18px; vertical-align:top; border-right:1px solid #ede7d8; width:25%;">
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80; margin-bottom:5px;">Type</div>
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; color:#1a1a2e; line-height:1.35;">{{ (sermon.sermon_type or '—') | capitalize }}</div>
+            </td>
+            <td class="facts-cell" style="padding:14px 18px; vertical-align:top; border-right:1px solid #ede7d8; width:25%;">
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80; margin-bottom:5px;">Tone</div>
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; color:#3d3d52; line-height:1.55;">
+                {% for t in sermon.tone %}{{ t }}{% if not loop.last %} · {% endif %}{% endfor %}{% if not sermon.tone %}—{% endif %}
+              </div>
+            </td>
+            <td class="facts-cell" style="padding:14px 18px; vertical-align:top; width:25%;">
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80; margin-bottom:5px;">Method</div>
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; color:#3d3d52; line-height:1.55;">
+                {% for m in sermon.hermeneutical_method %}{{ m | replace('_', '-') }}{% if not loop.last %} · {% endif %}{% endfor %}{% if not sermon.hermeneutical_method %}—{% endif %}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- ───────── 6. Pastoral correction ───────── -->
+      {% if pastoral_correction %}
+      <tr><td class="px-32" style="padding:18px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fdf6e3; border:1px solid #e6d5a8; border-left:4px solid #b8893a; border-radius:8px;">
+          <tr><td style="padding:16px 20px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6e5018; margin-bottom:8px;">
+              Pastoral correction · unit #{{ pastoral_correction.unit_index }}
+            </div>
+            <div style="font-family:'Source Serif Pro',Georgia,serif; font-style:italic; color:#1a1a2e; font-size:15px; line-height:1.5;">
+              “{{ pastoral_correction.text }}”
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 7. The shape of the argument ───────── -->
+      <tr><td class="px-32" style="padding:30px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">What's in this sermon</div>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px; letter-spacing:-0.005em;">The shape of the argument</h2>
+        <p style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; line-height:1.55; color:#3d3d52; margin:0 0 16px;">
+          {{ transcript_unit_count }} units across exposition, application, illustration, theological claim, and conclusion.
+        </p>
+      </td></tr>
+
+      <!-- ───────── 7a. Doctrinal loci ───────── -->
+      {% if loci_counts %}
+      <tr><td class="px-32" style="padding:0 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">
+              Doctrinal loci<span style="color:#6f6f80; font-weight:400; margin-left:4px;">· {{ loci_total }} surfaced</span>
+            </div>
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; line-height:1.9; color:#3d3d52;">
+              {% for name, count in loci_counts %}{% if loop.index <= 3 %}<span style="display:inline-block; background:#e6efe9; color:#2d5a4a; padding:2px 8px; border-radius:999px; margin:1px 4px 1px 0; font-weight:500;">{{ name }} · {{ count }}</span>{% else %}<span style="display:inline-block; background:#ede7d8; color:#3d3d52; padding:2px 8px; border-radius:999px; margin:1px 4px 1px 0;">{{ name }} · {{ count }}</span>{% endif %}{% endfor %}
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 7b. Bible citations ───────── -->
+      {% if citations_chain %}
+      <tr><td class="px-32" style="padding:12px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">
+              Bible citations<span style="color:#6f6f80; font-weight:400; margin-left:4px;">· {{ citations_total }}</span>
+            </div>
+            <div style="font-family:ui-monospace,'SF Mono',Monaco,monospace; font-size:12px; line-height:1.9; color:#3d3d52;">
+              {%- for ref in citations_chain -%}{{ ref }}{% if not loop.last %} <span style="color:#ede7d8;">|</span> {% endif %}{%- endfor -%}
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 7c. Illustrations ───────── -->
+      {% if illustrations %}
+      <tr><td class="px-32" style="padding:12px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:8px;">
+              Illustrations<span style="color:#6f6f80; font-weight:400; margin-left:4px;">· {{ illustrations | length }}</span>
+            </div>
+            {% for ill in illustrations %}
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-bottom:1px solid #ede7d8;">
+              <tr><td style="padding:8px 0 8px 30px; position:relative; font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.5; color:#1a1a2e;">
+                <span style="display:inline-block; position:absolute; left:0; top:8px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; color:#2d5a4a; width:22px; height:22px; border:1px solid #5a8073; border-radius:50%; text-align:center; line-height:20px;">{{ loop.index }}</span>
+                {% if ill.rewrite_title %}<strong style="font-weight:600;">{{ ill.rewrite_title }}</strong> {% endif %}<span style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#6f6f80;">{{ (ill.illustration_type or '') | replace('_', ' ') }}{% if ill.unit_index is not none %} · unit #{{ ill.unit_index }}{% endif %}</span>{% if ill.summary %} — {{ ill.summary }}{% endif %}
+              </td></tr>
+            </table>
+            {% endfor %}
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 7d. Theological claims ───────── -->
+      {% if theological_claims %}
+      <tr><td class="px-32" style="padding:12px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:8px;">
+              Theological claims<span style="color:#6f6f80; font-weight:400; margin-left:4px;">· {{ theological_claims | length }}</span>
+            </div>
+            {% for c in theological_claims %}
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-bottom:1px solid #ede7d8;">
+              <tr><td style="padding:8px 0 8px 30px; position:relative; font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.5; color:#1a1a2e;">
+                <span style="display:inline-block; position:absolute; left:0; top:8px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; color:#2d5a4a; width:22px; height:22px; border:1px solid #5a8073; border-radius:50%; text-align:center; line-height:20px;">{{ loop.index }}</span>
+                {{ c.key_claim }} <span style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#6f6f80;">unit #{{ c.unit_index }}</span>
+              </td></tr>
+            </table>
+            {% endfor %}
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 7e. Quotations ───────── -->
+      {% if quotations %}
+      <tr><td class="px-32" style="padding:12px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:8px;">
+              Quotations<span style="color:#6f6f80; font-weight:400; margin-left:4px;">· {{ quotations | length }}</span>
+            </div>
+            {% for q in quotations %}
+            <blockquote style="margin:8px 0 10px; padding:4px 0 4px 14px; border-left:3px solid #5a8073; font-family:'Source Serif Pro',Georgia,serif; font-style:italic; font-size:15px; line-height:1.5; color:#1a1a2e;">
+              “{{ q.text }}”
+              <span style="display:block; margin-top:6px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-style:normal; font-size:12px; color:#6f6f80;">— {{ q.attribution or 'unattributed' }}{% if q.unit_index is not none %} (unit #{{ q.unit_index }}){% endif %}</span>
+            </blockquote>
+            {% endfor %}
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 8. Where this fits — arc + prior refs ───────── -->
+      {% if arc %}
+      <tr><td class="px-32" style="padding:36px 32px 6px; border-top:1px solid #e2dcce;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">Where this fits</div>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px; letter-spacing:-0.005em;">Recent preaching context</h2>
+        <p style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.55; color:#3d3d52; margin:0 0 16px;">The three sermons immediately preceding this one in the preaching schedule.</p>
+        {% for s in arc %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:8px; margin-bottom:10px;">
+          <tr>
+            <td valign="middle" style="padding:14px 16px; width:90px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#6f6f80;">{{ s.date_short }}</td>
+            <td valign="middle" style="padding:14px 4px 14px 0;">
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:16px; font-weight:600; color:#1a1a2e;"><a href="https://{{ church.domain or 'theshepherdsguild.com' }}{{ s.url }}" style="color:#1a1a2e; text-decoration:none;">{{ s.title }}</a></div>
+              {% if s.main_thesis %}<div style="font-family:'Source Serif Pro',Georgia,serif; font-size:13px; color:#3d3d52; margin-top:3px; line-height:1.4;">{{ s.main_thesis }}</div>{% endif %}
+            </td>
+            {% if s.primary_text %}
+            <td valign="middle" align="right" style="padding:14px 16px;">
+              <span style="display:inline-block; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; color:#6f6f80; background:#ede7d8; padding:3px 8px; border-radius:4px; white-space:nowrap;">{{ s.primary_text }}</span>
+            </td>
+            {% endif %}
+          </tr>
+        </table>
+        {% endfor %}
+        <!-- current marker -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#eef5f1; border:1px solid #5a8073; border-left:4px solid #2d5a4a; border-radius:8px; margin-bottom:10px;">
+          <tr>
+            <td valign="middle" style="padding:14px 16px; width:90px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#2d5a4a;">{{ sermon.date_long.split(',')[0] if sermon.date_long else '' }} · This week</td>
+            <td valign="middle" style="padding:14px 4px 14px 0;">
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:16px; font-weight:600; color:#1a1a2e;">{{ sermon.title }}</div>
+              {% if sermon.main_thesis %}<div style="font-family:'Source Serif Pro',Georgia,serif; font-size:13px; color:#3d3d52; margin-top:3px; line-height:1.4;">{{ sermon.main_thesis }}</div>{% endif %}
+            </td>
+            {% if sermon.primary_text %}
+            <td valign="middle" align="right" style="padding:14px 16px;">
+              <span style="display:inline-block; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; color:#2d5a4a; background:#ffffff; padding:3px 8px; border-radius:4px; white-space:nowrap; font-weight:600;">{{ sermon.primary_text }}</span>
+            </td>
+            {% endif %}
+          </tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      {% if prior_ref %}
+      <tr><td class="px-32" style="padding:6px 32px 6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fffdf7; border:1px solid #e2dcce; border-radius:8px;">
+          <tr><td style="padding:14px 18px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6e5018; margin-bottom:8px;">
+              Earlier in the corpus · {{ prior_ref.date_long }}
+            </div>
+            <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; font-weight:600; color:#1a1a2e; margin-bottom:5px;">
+              <a href="https://{{ church.domain or 'theshepherdsguild.com' }}{{ prior_ref.url }}" style="color:#1a1a2e; text-decoration:none;">A prior sermon on {{ prior_ref.primary_text }}</a>
+            </div>
+            <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.5; color:#3d3d52;">
+              You preached this same passage{% if prior_ref.citation_count %} — {{ prior_ref.citation_count }} {{ prior_ref.book_chapter_label }} citations in that earlier sermon{% endif %}. Worth re-reading before the next time this text comes around.
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── 9. Canonical neighbors ───────── -->
+      {% if canonical_neighbors %}
+      <tr><td class="px-32" style="padding:36px 32px 6px; border-top:1px solid #e2dcce;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">Related teaching</div>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px; letter-spacing:-0.005em;">Preachers who said it like this</h2>
+        <p style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.55; color:#3d3d52; margin:0 0 16px;">The five sermons in our index whose theological move on this thesis is closest to this one. Distance is cosine distance on the thesis-unit embedding (lower = closer).</p>
+        {% for n in canonical_neighbors %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-bottom:1px solid #ede7d8;">
+          <tr>
+            <td valign="top" style="padding:14px 0 14px 38px; position:relative;">
+              <span style="display:inline-block; position:absolute; left:0; top:14px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; color:#2d5a4a; width:26px; height:26px; border:1px solid #5a8073; border-radius:50%; text-align:center; line-height:24px;">{{ loop.index }}</span>
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; line-height:1.5; color:#1a1a2e;">
+                <strong style="font-weight:600;">{{ n.preacher_name }}</strong> — <em>{{ n.title }}</em>
+                <span style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; color:#6f6f80; text-transform:uppercase; letter-spacing:0.06em; margin-left:4px;">{{ n.primary_text or '' }} · {{ "%.2f"|format(n.distance) }}</span>
+              </div>
+              {% if n.main_thesis %}<div style="font-family:'Source Serif Pro',Georgia,serif; font-size:14px; line-height:1.5; color:#3d3d52; margin-top:4px;">{{ n.main_thesis }}</div>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── Read full transcript CTA ───────── -->
+      <tr><td class="px-32" style="padding:30px 32px 6px;" align="center">
+        <a href="{{ canonical_url }}#transcript" style="display:inline-block; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; font-weight:600; background:#ffffff; color:#2d5a4a !important; border:1px solid #5a8073; padding:11px 22px; border-radius:6px; text-decoration:none; letter-spacing:0.01em;">
+          Read the full transcript →
+        </a>
+      </td></tr>
+
+      <!-- ───────── 10. Take it further — section header ───────── -->
+      <tr><td class="px-32" style="padding:36px 32px 6px; border-top:1px solid #e2dcce;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">Take it further</div>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 6px; letter-spacing:-0.005em;">Discuss · apply · pray this week</h2>
+      </td></tr>
+
+      {% set art_by_type = artifacts %}
+
+      <!-- ───────── 11. Prayer ───────── -->
+      {% if art_by_type.prayer_prompt %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">Pray with us this week</div>
+        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:20px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px;">{{ art_by_type.prayer_prompt.body.title }}</h3>
+        {% for para in art_by_type.prayer_prompt.body.prayer_text.split('\n\n') if para.strip() %}
+        <p style="margin:0 0 14px; font-family:'Source Serif Pro',Georgia,serif; font-size:16px; line-height:1.65; color:#1a1a2e;">{{ para }}</p>
+        {% endfor %}
+      </td></tr>
+      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
+      {% endif %}
+
+      <!-- ───────── 12. Daily readings ───────── -->
+      {% if art_by_type.daily_readings %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">Read with us · Monday through Friday</div>
+        {% if art_by_type.daily_readings.body.intro %}
+        <p style="margin:0 0 18px; font-family:'Source Serif Pro',Georgia,serif; font-style:italic; font-size:15px; line-height:1.55; color:#3d3d52;">{{ art_by_type.daily_readings.body.intro }}</p>
+        {% endif %}
+        {% for day in art_by_type.daily_readings.body.days %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:14px;">
+          <tr><td style="border-left:3px solid #5a8073; padding:2px 0 2px 14px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:3px;">
+              {{ day.day }} · <span style="font-family:ui-monospace,'SF Mono',Monaco,monospace; font-size:11px; color:#6f6f80; font-weight:400; letter-spacing:0;">{{ day.passage }}</span>
+            </div>
+            <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; line-height:1.55; color:#1a1a2e;">{{ day.reflection }}</div>
+          </td></tr>
+        </table>
+        {% endfor %}
+      </td></tr>
+      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
+      {% endif %}
+
+      <!-- ───────── 13. Memory verse ───────── -->
+      {% if art_by_type.memory_verse %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">Memorize together</div>
+        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; margin:0 0 10px;">{{ art_by_type.memory_verse.body.reference }}</h3>
+        <blockquote style="margin:0 0 12px; font-family:'Source Serif Pro',Georgia,serif; font-size:17px; line-height:1.55; font-style:italic; color:#1a1a2e; border-left:4px solid #2d5a4a; padding:4px 0 4px 18px;">{{ art_by_type.memory_verse.body.full_text }}</blockquote>
+        {% if art_by_type.memory_verse.body.why_this_verse %}<p style="margin:0; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; line-height:1.55; color:#3d3d52;"><strong style="font-weight:600;">Why this verse:</strong> {{ art_by_type.memory_verse.body.why_this_verse }}</p>{% endif %}
+      </td></tr>
+      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
+      {% endif %}
+
+      <!-- ───────── 14. Family card ───────── -->
+      {% if art_by_type.family_card %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">At the family table · Sunday evening</div>
+        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; margin:0 0 12px;">{{ art_by_type.family_card.body.title }}</h3>
+        {% if art_by_type.family_card.body.framing_for_parents %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ede7d8; border-radius:6px; margin-bottom:14px;">
+          <tr><td style="padding:12px 14px;">
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#6f6f80; margin-bottom:4px;">For the parent</div>
+            <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; line-height:1.5; color:#3d3d52;">{{ art_by_type.family_card.body.framing_for_parents }}</div>
+          </td></tr>
+        </table>
+        {% endif %}
+        <blockquote style="margin:0; font-family:'Source Serif Pro',Georgia,serif; font-size:17px; line-height:1.55; font-style:italic; color:#1a1a2e; border-left:4px solid #b8893a; padding:4px 0 4px 18px;">{{ art_by_type.family_card.body.prompt }}</blockquote>
+        {% if art_by_type.family_card.body.age_band %}<div style="margin-top:10px; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#6f6f80;">{{ art_by_type.family_card.body.age_band }}</div>{% endif %}
+      </td></tr>
+      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
+      {% endif %}
+
+      <!-- ───────── 15. Couples ───────── -->
+      {% if art_by_type.couples_guide %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">For couples · over coffee this week</div>
+        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; margin:0 0 14px;">{{ art_by_type.couples_guide.body.title }}</h3>
+        {% for q in art_by_type.couples_guide.body.questions %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:10px;">
+          <tr>
+            <td valign="top" width="30" style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; font-weight:600; color:#2d5a4a; padding-top:2px;">{{ loop.index }}.</td>
+            <td valign="top" style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; line-height:1.5; color:#1a1a2e;">{{ q }}</td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td></tr>
+      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
+      {% endif %}
+
+      <!-- ───────── 16. Small group ───────── -->
+      {% if art_by_type.small_group_questions %}
+      <tr><td class="px-32" style="padding:24px 32px 6px;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">Small-group leaders · for your community group</div>
+        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; margin:0 0 14px;">{{ art_by_type.small_group_questions.body.questions | length }} questions for this week</h3>
+        {% for q in art_by_type.small_group_questions.body.questions %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:12px;">
+          <tr>
+            <td valign="top" width="30" style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; font-weight:600; color:#2d5a4a; padding-top:2px;">{{ loop.index }}.</td>
+            <td valign="top" style="font-family:'Source Serif Pro',Georgia,serif; font-size:15px; line-height:1.5; color:#1a1a2e;">
+              {{ q.question }}
+              {% if q.scripture_anchor %}<div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#6f6f80; margin-top:3px;">{{ q.scripture_anchor }}</div>{% endif %}
+              {% if q.follow_up %}<div style="font-family:'Source Serif Pro',Georgia,serif; font-style:italic; font-size:14px; color:#3d3d52; margin-top:5px;">→ {{ q.follow_up }}</div>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td></tr>
+      {% endif %}
+
+      <!-- ───────── Full page CTA ───────── -->
+      <tr><td class="px-32" style="padding:30px 32px;" align="center">
+        <a href="{{ canonical_url }}" style="display:inline-block; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:14px; font-weight:600; background:#1d3d31; color:#ffffff !important; padding:13px 24px; border-radius:6px; text-decoration:none; letter-spacing:0.01em;">
+          Read the full sermon page →
+        </a>
+        <p style="margin:12px 0 0; font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; line-height:1.5; color:#6f6f80;">
+          Full transcript with unit anchors, Schema.org markup, and a crawler-hygiene panel.
+        </p>
+      </td></tr>
+
+      <!-- ───────── About the church ───────── -->
+      <tr><td class="px-32" style="padding:24px 32px 6px; border-top:1px solid #e2dcce;">
+        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">Where this was preached</div>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px; letter-spacing:-0.005em;">About the church</h2>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#faf7f0; border:1px solid #e2dcce; border-radius:12px;">
+          <tr>
+            <td valign="middle" style="padding:20px 24px;">
+              <div style="font-family:'Source Serif Pro',Georgia,serif; font-size:18px; font-weight:600; color:#1a1a2e; margin-bottom:6px;">{{ church.name }}</div>
+              <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:13px; line-height:1.55; color:#3d3d52;">
+                {% if church.address %}
+                  {%- if church.address.street %}{{ church.address.street }}<br>{% endif -%}
+                  {%- if church.address.locality %}{{ church.address.locality }}{% if church.address.region %}, {{ church.address.region }}{% endif %}<br>{% endif -%}
+                {% endif %}
+                {% if church.service_times %}{{ church.service_times }}{% endif %}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- ───────── Footer ───────── -->
+      <tr><td class="px-32" style="padding:24px 32px 32px; background:#faf7f0; border-top:1px solid #e2dcce; border-radius:0 0 8px 8px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+          <td style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:12px; line-height:1.6; color:#6f6f80;">
+            This sermon was preached by <strong style="color:#3d3d52; font-weight:600;">Pastor {{ preacher.name }}</strong> at <strong style="color:#3d3d52; font-weight:600;">{{ church.name }}</strong>{% if sermon.date_long %} on <strong style="color:#3d3d52; font-weight:600;">{{ sermon.date_long }}</strong>{% endif %}.
+          </td>
+          <td align="right" valign="top" style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; line-height:1.6; color:#6f6f80; width:140px; padding-left:20px;">
+            Sent via <strong style="color:#3d3d52; font-weight:600;">Shepherd's Guild</strong><br>
+            <a href="https://theshepherdsguild.com" style="color:#2d5a4a;">theshepherdsguild.com</a>
+          </td>
+        </tr></table>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+
+</body>
+</html>
