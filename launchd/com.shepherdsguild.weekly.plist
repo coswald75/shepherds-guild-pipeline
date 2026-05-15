@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.weekly</string>
+
+    <!-- Sunday 7pm America/Chicago — primary submit pass.
+         Walks every active customer's source, discovers new sermons,
+         submits an Anthropic Batch for decomposition, then exits. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>     <!-- 0 = Sunday -->
+        <key>Hour</key>
+        <integer>19</integer>    <!-- 7pm -->
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/python3</string>
+        <string>/Users/dad/shepherds-guild/pipeline copy 2/weekly_ingest.py</string>
+        <string>weekly</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- If the iMac is asleep at the scheduled time, run when it wakes. -->
+    <key>StartOnMount</key>
+    <false/>
+</dict>
+</plist>

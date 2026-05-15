@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.catchup</string>
+
+    <!-- Monday 7am America/Chicago — catchup pass.
+         Runs weekly_ingest in --catchup mode to discover sermons that
+         customers uploaded after the Sunday-evening run, then
+         auto-processes any Anthropic batches submitted Sunday night
+         that should have completed by now. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Weekday</key>
+            <integer>1</integer>     <!-- 1 = Monday -->
+            <key>Hour</key>
+            <integer>7</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <!-- Second fire: 9am Monday. Belt-and-suspenders in case the
+                 7am batch was still processing. Cheap to re-run. -->
+            <key>Weekday</key>
+            <integer>1</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>cd "/Users/dad/shepherds-guild/pipeline copy 2" &amp;&amp; /usr/local/bin/python3 weekly_ingest.py weekly --catchup &amp;&amp; /usr/local/bin/python3 weekly_ingest.py auto-process</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-catchup.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-catchup.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
