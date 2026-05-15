@@ -298,7 +298,7 @@ TEMPLATE = """<!DOCTYPE html>
           <a href="https://www.crossofgrace.net" target="_blank" rel="noopener">crossofgrace.net</a>
         </div>
       </div>
-      <a href="https://www.crossofgrace.net/sermons/{slug_full}/" target="_blank" rel="noopener" class="visit-cta ui">Open on Cross of Grace →</a>
+      <a href="https://www.crossofgrace.net" target="_blank" rel="noopener" class="visit-cta ui">Visit Cross of Grace →</a>
     </div>
   </section>
 </main>

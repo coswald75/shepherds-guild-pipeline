@@ -37,6 +37,7 @@ PREACHERS: list[tuple[str, str, str, str]] = [
     ("John Stott",        "ed938948-97b1-4ec4-b39c-f67897e46c35", "preacher-stott",     "Long-time rector of All Souls Church, Langham Place in London; central figure in 20th-century global evangelicalism and author of <em>The Cross of Christ</em>."),
     ("Thomas Watson",     "a762752c-c392-483b-a767-47b6128656b8", "preacher-watson",    "17th-century English Puritan pastor of St Stephen's Walbrook; his <em>A Body of Divinity</em>, <em>The Beatitudes</em>, and <em>The Doctrine of Repentance</em> remain in print across Reformed publishing houses."),
     ("James Boice",       "43483f88-bfc5-40c3-8165-97a70c2c75c5", "preacher-boice",     "Long-time pastor of Tenth Presbyterian Church in Philadelphia; founder of the Alliance of Confessing Evangelicals and a tireless expositor of the Pauline epistles."),
+    ("C.J. Mahaney",      "0468d470-6f5f-40f3-9e1c-ff71cbc39289", "preacher-mahaney",   "Founder of Sovereign Grace Churches and pastor of Sovereign Grace Church of Louisville; long-time senior pastor of Covenant Life Church in Gaithersburg, MD; author of <em>Humility</em> and <em>The Cross-Centered Life</em>."),
 ]
 
 OUTPUT_DIR = Path("/Users/dad/shepherds-guild/sermon-steward")
