@@ -64,6 +64,14 @@ PROMPT_FILES = {
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 MAX_OUTPUT_TOKENS = 4000
 
+# Per-preacher voice profile mapping. Falls back to PROMPTS_DIR/_voice_sgm.md
+# when a preacher isn't listed here (so existing behavior is preserved for the
+# Guild Hall canonical preachers and anyone we haven't profiled yet).
+VOICE_PROFILES: dict[str, str] = {
+    "9c6f8d69-de55-45db-ac60-0fe6d0cfff59": "chris-voice-style-guide.md",  # Chris Oswald · Providence
+    "ccb9e59c-bd20-414a-bd6b-25b117b8144c": "ricky-voice-style-guide.md",  # Ricky Alcantar · Cross of Grace
+}
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -104,6 +112,7 @@ def _build_sermon_facts(sermon_id: str) -> tuple[dict, str]:
     """
     Pull a compact sermon-facts block: sermon-level metadata, top loci,
     anchor key_claims, citation list. Returns (raw_dict, formatted_text).
+    The dict includes `preacher_id` so the caller can route voice profile.
 
     We deliberately exclude full transcripts and per-unit content — keep input
     tokens low and let the voice prompt do the heavy lifting.
@@ -112,7 +121,7 @@ def _build_sermon_facts(sermon_id: str) -> tuple[dict, str]:
     sermon = (
         sb.table("sermons")
         .select(
-            "id, title, primary_text, date, series_name, main_thesis, "
+            "id, title, preacher_id, primary_text, date, series_name, main_thesis, "
             "abstract, sermon_type, tone, hermeneutical_method, "
             "preachers(name, churches(name))"
         )
@@ -170,6 +179,7 @@ def _build_sermon_facts(sermon_id: str) -> tuple[dict, str]:
 
     facts = {
         "title": sermon.get("title"),
+        "preacher_id": sermon.get("preacher_id"),
         "preacher": preacher.get("name"),
         "church": church.get("name"),
         "date": sermon.get("date"),
@@ -233,9 +243,19 @@ def _load(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _voice_prompt_text() -> tuple[str, str]:
-    """Returns (voice_text, version_hash) so we know which voice produced output."""
-    voice = _load(PROMPTS_DIR / "_voice_sgm.md")
+def _voice_prompt_text(preacher_id: Optional[str] = None) -> tuple[str, str]:
+    """Returns (voice_text, version_hash) so we know which voice produced output.
+    If preacher_id is provided and registered in VOICE_PROFILES, use that pastor's
+    style guide. Otherwise fall back to the generic _voice_sgm.md prompt.
+    """
+    if preacher_id and preacher_id in VOICE_PROFILES:
+        path = REPO_ROOT / VOICE_PROFILES[preacher_id]
+        if not path.exists():
+            log.warning(f"voice profile for {preacher_id} not found at {path}; falling back to default")
+            path = PROMPTS_DIR / "_voice_sgm.md"
+    else:
+        path = PROMPTS_DIR / "_voice_sgm.md"
+    voice = _load(path)
     version = hashlib.sha256(voice.encode("utf-8")).hexdigest()[:12]
     return voice, version
 
@@ -247,12 +267,13 @@ def _artifact_prompt(artifact_type: str) -> str:
     return _load(PROMPTS_DIR / fname)
 
 
-def _system_prompt(artifact_type: str, sermon_facts_text: str) -> tuple[list[dict], str]:
+def _system_prompt(artifact_type: str, sermon_facts_text: str, preacher_id: Optional[str] = None) -> tuple[list[dict], str]:
     """
     Returns the system prompt as a list of content blocks with cache_control
-    on the stable portions (voice + per-artifact instructions).
+    on the stable portions (voice + per-artifact instructions). Voice is
+    selected per-preacher via VOICE_PROFILES.
     """
-    voice, version = _voice_prompt_text()
+    voice, version = _voice_prompt_text(preacher_id)
     artifact = _artifact_prompt(artifact_type)
 
     blocks = [
@@ -347,7 +368,7 @@ def generate_one(sermon_id: str, artifact_type: str, *, model: str, write: bool)
         raise ValueError(f"unknown artifact_type: {artifact_type}")
 
     facts_dict, facts_text = _build_sermon_facts(sermon_id)
-    blocks, voice_version = _system_prompt(artifact_type, facts_text)
+    blocks, voice_version = _system_prompt(artifact_type, facts_text, facts_dict.get("preacher_id"))
 
     user_message = (
         f"Generate the {artifact_type.replace('_', ' ')} artifact for the sermon described "

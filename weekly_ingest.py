@@ -220,6 +220,41 @@ def pending_for_decomposition(customer: Customer) -> list[dict]:
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# Stages 4-5 — Wait for batch + process results
+# ────────────────────────────────────────────────────────────────────────────
+
+def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
+    """Wait for Anthropic batch to complete, then process results (parse → embed →
+    ingest to Supabase). Returns set of sermon_ids newly populated with decomposed_at.
+    """
+    sb = supabase()
+    pre = sb.table("sermons").select("id, preacher_id, decomposed_at").execute()
+    before_decomposed = {r["id"] for r in (pre.data or []) if r.get("decomposed_at")}
+
+    # Stage 4 — block until batch ends
+    log.info(f"  [stage 4] waiting for batch {batch_id} …")
+    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=BATCH_MAX_WAIT_HOURS * 3600)
+    if r.returncode != 0:
+        log.error(f"  status --wait failed: {r.stderr[-500:]}")
+        return set()
+
+    # Stage 5 — process results
+    log.info(f"  [stage 5] processing batch {batch_id} for preacher='{preacher_name}'")
+    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "process", batch_id, "--preacher", preacher_name]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        log.error(f"  process failed: {r.stderr[-500:]}")
+        # Continue anyway in case partial success
+    for line in r.stdout.splitlines()[-10:]:
+        log.info(f"    {line}")
+
+    post = sb.table("sermons").select("id, decomposed_at").execute()
+    after_decomposed = {r["id"] for r in (post.data or []) if r.get("decomposed_at")}
+    return after_decomposed - before_decomposed
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # Stage 6 — Artifacts (per-sermon, calls generate_artifacts.py)
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -234,6 +269,26 @@ def generate_artifacts_for(sermon_id: str) -> int:
         else:
             log.warning(f"  artifact {atype} failed for {sermon_id}: {r.stderr[-200:]}")
     return n
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stages 4-7 orchestrator for one completed batch
+# ────────────────────────────────────────────────────────────────────────────
+
+def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
+    """Wait → process → artifacts → render. Returns (sermons, artifacts, pages)."""
+    new_sermon_ids = wait_and_process_batch(batch_id, preacher_name)
+    log.info(f"  [stages 4-5] {len(new_sermon_ids)} sermon(s) newly ingested")
+
+    n_artifacts = 0
+    n_pages = 0
+    for sid in new_sermon_ids:
+        log.info(f"  [stage 6] generating artifacts for {sid}")
+        n_artifacts += generate_artifacts_for(sid)
+        log.info(f"  [stage 7] rendering page for {sid}")
+        if render_page(sid):
+            n_pages += 1
+    return len(new_sermon_ids), n_artifacts, n_pages
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -446,8 +501,10 @@ def main() -> int:
     p_discover = sub.add_parser("discover", help="Just run the discover stage")
     p_discover.add_argument("--dry-run", action="store_true")
 
-    p_process = sub.add_parser("process", help="Process a known batch_id")
+    p_process = sub.add_parser("process", help="Process a known batch_id (wait + ingest + artifacts + render)")
     p_process.add_argument("batch_id")
+
+    p_auto = sub.add_parser("auto-process", help="Process all batches listed in weekly_queue/pending_batches.json")
 
     args = ap.parse_args()
 
@@ -468,8 +525,67 @@ def main() -> int:
         print_summary(s)
         return 0
     elif args.mode == "process":
-        log.info(f"process mode is a stub — would invoke `pipeline_batch.py process {args.batch_id}`, "
-                 f"then for each new sermon_id call generate_artifacts.py + generate_sermon_pages.py")
+        # Look up preacher_name for this batch from pending_batches.json
+        state_path = QUEUE_DIR / "pending_batches.json"
+        preacher_name: Optional[str] = None
+        if state_path.exists():
+            state = json.loads(state_path.read_text())
+            for name, bid in (state.get("batches") or {}).items():
+                if bid == args.batch_id:
+                    preacher_name = name
+                    break
+        if not preacher_name:
+            # Fall back to scanning pipeline_batch's own manifest
+            manifest = REPO_ROOT / "batches" / f"{args.batch_id}_manifest.json"
+            if manifest.exists():
+                m = json.loads(manifest.read_text())
+                preacher_name = m.get("preacher")
+        if not preacher_name:
+            log.error(f"could not determine preacher for {args.batch_id}; pass --preacher")
+            return 2
+        log.info(f"processing batch {args.batch_id} for {preacher_name}")
+        n_sermons, n_artifacts, n_pages = finish_batch(args.batch_id, preacher_name)
+        log.info(f"DONE: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages")
+        # Mark this batch as processed
+        if state_path.exists():
+            state = json.loads(state_path.read_text())
+            state.setdefault("processed", []).append({
+                "batch_id": args.batch_id,
+                "preacher": preacher_name,
+                "sermons": n_sermons,
+                "artifacts": n_artifacts,
+                "pages": n_pages,
+                "processed_at": datetime.now().isoformat(timespec="seconds"),
+            })
+            # Remove from batches map
+            state["batches"] = {k: v for k, v in (state.get("batches") or {}).items() if v != args.batch_id}
+            state_path.write_text(json.dumps(state, indent=2))
+        return 0
+
+    elif args.mode == "auto-process":
+        state_path = QUEUE_DIR / "pending_batches.json"
+        if not state_path.exists():
+            log.info("no pending batches")
+            return 0
+        state = json.loads(state_path.read_text())
+        pending = state.get("batches") or {}
+        if not pending:
+            log.info("no pending batches")
+            return 0
+        log.info(f"auto-processing {len(pending)} pending batch(es)")
+        for preacher_name, batch_id in pending.items():
+            try:
+                n_sermons, n_artifacts, n_pages = finish_batch(batch_id, preacher_name)
+                log.info(f"  {preacher_name}: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages")
+                state.setdefault("processed", []).append({
+                    "batch_id": batch_id, "preacher": preacher_name,
+                    "sermons": n_sermons, "artifacts": n_artifacts, "pages": n_pages,
+                    "processed_at": datetime.now().isoformat(timespec="seconds"),
+                })
+            except Exception as e:
+                log.error(f"  {preacher_name} failed: {e}")
+        state["batches"] = {}
+        state_path.write_text(json.dumps(state, indent=2))
         return 0
 
     return 1
