@@ -1,0 +1,402 @@
+"""
+weekly_ingest.py — Sunday-evening cron orchestrator.
+─────────────────────────────────────────────────────────────────────────────
+For every customer with `churches.auto_publish = true`, walks the full
+Sunday-evening cadence:
+
+  1. DISCOVER   pull new sermons from each customer's host
+                (rss + yash_html implemented; others TODO)
+  2. TRANSCRIBE for sermons missing transcripts, queue for AssemblyAI
+                (currently stubbed — relies on RSS-provided transcripts)
+  3. DECOMPOSE  submit one Anthropic Batch with all customers' new sermons
+                using pipeline_batch.py submit
+  4. WAIT       poll until batch completes (max 24h, typical 1-2h)
+  5. PROCESS    parse batch results → embed → ingest to Supabase
+                using pipeline_batch.py process
+  6. ARTIFACTS  Haiku 4.5 — 6 calls per newly-ingested sermon
+                using generate_artifacts.py
+  7. RENDER     Jinja2 → HTML per sermon
+                using generate_sermon_pages.py
+  8. DEPLOY     push HTML to each customer's Cloudflare Worker
+                (currently stubbed — prints what would deploy)
+
+Each stage is idempotent: re-running picks up where it left off. The cron
+intentionally runs twice — Sunday 7pm primary + Monday 7am --catchup — to
+catch customers who upload late.
+
+Usage:
+    python weekly_ingest.py weekly                 # full cadence, blocking
+    python weekly_ingest.py weekly --catchup       # second-pass mode
+    python weekly_ingest.py discover --dry-run     # just print what's new
+    python weekly_ingest.py process <batch_id>     # process a known batch
+
+Environment (per CLAUDE.md):
+    ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_KEY, VOYAGE_API_KEY
+─────────────────────────────────────────────────────────────────────────────
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
+try:
+    from supabase import Client, create_client
+except ImportError:
+    print("pip install supabase", file=sys.stderr)
+    sys.exit(1)
+
+
+REPO_ROOT = Path(__file__).resolve().parent
+LOG_DIR = REPO_ROOT / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+QUEUE_DIR = REPO_ROOT / "weekly_queue"
+QUEUE_DIR.mkdir(exist_ok=True)
+
+ARTIFACT_TYPES = (
+    "small_group_questions", "daily_readings", "prayer_prompt",
+    "family_card", "couples_guide", "memory_verse",
+)
+
+BATCH_POLL_SECONDS = 60
+BATCH_MAX_WAIT_HOURS = 24
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("weekly_ingest")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Supabase
+# ────────────────────────────────────────────────────────────────────────────
+
+_sb: Optional[Client] = None
+
+
+def supabase() -> Client:
+    global _sb
+    if _sb is None:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise RuntimeError("SUPABASE_URL / SUPABASE_KEY missing in env")
+        _sb = create_client(url, key)
+    return _sb
+
+
+@dataclass
+class Customer:
+    church_id: str
+    church_name: str
+    church_slug: str
+    preacher_id: str
+    preacher_name: str
+    ingest_source_type: str
+    podcast_feed_url: Optional[str]
+    audio_base_url: Optional[str]
+    deploy_target: Optional[dict]
+
+
+def active_customers() -> list[Customer]:
+    """All churches flagged auto_publish=true, joined to their primary preacher."""
+    sb = supabase()
+    res = sb.table("churches").select(
+        "id, name, slug, audio_base_url, podcast_feed_url, ingest_source_type, deploy_target"
+    ).eq("auto_publish", True).execute()
+    customers: list[Customer] = []
+    for c in res.data or []:
+        # Find the church's primary preacher (the one with the most sermons)
+        pres = sb.rpc("primary_preacher_for_church", {"p_church_id": c["id"]}).execute() \
+            if False else None  # placeholder for a future RPC
+        # Fallback: pick any preacher row tied to this church via sermons
+        # (Supabase schema joins via sermons.preacher_id; preachers don't have church_id)
+        # For now, assume there's a 1:1 — find the preacher with the most sermons whose
+        # sermon rows reference this church's audio_base_url or similar. This is a hack;
+        # the proper fix is to add `preachers.primary_church_id`.
+        # For the charter cohort, we hardcode the mapping below.
+        pid_map = {
+            "c121e66b-777d-4568-89d3-9ceea258061b": (  # Providence
+                "9c6f8d69-de55-45db-ac60-0fe6d0cfff59", "Chris Oswald"
+            ),
+            # Cross of Grace mapping TBD once Ricky's preacher row exists
+        }
+        if c["id"] not in pid_map:
+            log.warning(f"no preacher mapping for church {c['id']} ({c['name']}); skipping")
+            continue
+        pid, pname = pid_map[c["id"]]
+        customers.append(Customer(
+            church_id=c["id"], church_name=c["name"], church_slug=c.get("slug") or "",
+            preacher_id=pid, preacher_name=pname,
+            ingest_source_type=c.get("ingest_source_type") or "",
+            podcast_feed_url=c.get("podcast_feed_url"),
+            audio_base_url=c.get("audio_base_url"),
+            deploy_target=c.get("deploy_target"),
+        ))
+    return customers
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 1 — Discover
+# ────────────────────────────────────────────────────────────────────────────
+
+def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
+    """Run the per-host adapter for this customer. Returns count of new audio_urls set."""
+    log.info(f"[discover] {customer.church_name} ({customer.ingest_source_type})")
+
+    # Snapshot current state so we can count what was newly populated
+    sb = supabase()
+    before = sb.table("sermons").select("id", count="exact") \
+        .eq("preacher_id", customer.preacher_id) \
+        .not_.is_("audio_url", "null").execute()
+    before_n = before.count or 0
+
+    dispatch = {
+        "rss": ["sync_sermon_audio_from_rss.py", "--feed", customer.podcast_feed_url or ""],
+        "yash_html": ["sync_sermons_from_yash.py", "--host", customer.audio_base_url or ""],
+    }
+    if customer.ingest_source_type not in dispatch:
+        log.warning(f"  no adapter for ingest_source_type={customer.ingest_source_type}; skipping")
+        return 0
+
+    cmd = ["python", str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
+           "--preacher", customer.preacher_id, *dispatch[customer.ingest_source_type][1:]]
+    if dry_run:
+        cmd.append("--dry-run")
+    log.info(f"  → {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if result.returncode != 0:
+        log.error(f"  adapter failed: {result.stderr[-500:]}")
+        return 0
+    # The script prints its own summary; log a trailing slice
+    for line in result.stdout.strip().splitlines()[-8:]:
+        log.info(f"    {line}")
+
+    after = sb.table("sermons").select("id", count="exact") \
+        .eq("preacher_id", customer.preacher_id) \
+        .not_.is_("audio_url", "null").execute()
+    after_n = after.count or 0
+    return after_n - before_n
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 2 — Pending sermons (those with audio_url but no units yet = un-decomposed)
+# ────────────────────────────────────────────────────────────────────────────
+
+def pending_for_decomposition(customer: Customer) -> list[dict]:
+    """Sermons with audio_url + no units rows = ready to decompose."""
+    sb = supabase()
+    # Get all this preacher's sermons with audio_url
+    res = sb.table("sermons").select("id, title, date, audio_url, raw_transcript") \
+        .eq("preacher_id", customer.preacher_id) \
+        .not_.is_("audio_url", "null") \
+        .is_("decomposed_at", "null") \
+        .order("date", desc=True).execute()
+    return res.data or []
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 6 — Artifacts (per-sermon, calls generate_artifacts.py)
+# ────────────────────────────────────────────────────────────────────────────
+
+def generate_artifacts_for(sermon_id: str) -> int:
+    n = 0
+    for atype in ARTIFACT_TYPES:
+        cmd = ["python", str(REPO_ROOT / "generate_artifacts.py"),
+               "generate", sermon_id, "--type", atype]
+        r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+        if r.returncode == 0:
+            n += 1
+        else:
+            log.warning(f"  artifact {atype} failed for {sermon_id}: {r.stderr[-200:]}")
+    return n
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 7 — Render pages
+# ────────────────────────────────────────────────────────────────────────────
+
+def render_page(sermon_id: str) -> bool:
+    cmd = ["python", str(REPO_ROOT / "generate_sermon_pages.py"), "render", sermon_id]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        log.warning(f"  render failed for {sermon_id}: {r.stderr[-200:]}")
+        return False
+    return True
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 8 — Deploy (STUBBED — print what would happen)
+# ────────────────────────────────────────────────────────────────────────────
+
+def deploy_for_customer(customer: Customer, sermon_count: int) -> None:
+    target = customer.deploy_target or {}
+    host = target.get("host", "unset")
+    project = target.get("project", "unset")
+    log.info(f"  [deploy STUB] {customer.church_name}: would push {sermon_count} pages to {host}:{project}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Main flow
+# ────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class RunSummary:
+    started_at: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
+    customers: int = 0
+    discovered: int = 0
+    decomposed_submitted: int = 0
+    batch_id: Optional[str] = None
+    decomposed_processed: int = 0
+    artifacts_generated: int = 0
+    pages_rendered: int = 0
+    customers_deployed: int = 0
+    errors: list[str] = field(default_factory=list)
+
+
+def run_weekly(catchup: bool, dry_run: bool) -> RunSummary:
+    summary = RunSummary()
+    log.info(f"=== weekly_ingest {'(catchup)' if catchup else ''} starting ===")
+
+    customers = active_customers()
+    summary.customers = len(customers)
+    log.info(f"Active customers: {len(customers)}")
+    if not customers:
+        log.warning("No active customers (churches.auto_publish=true). Nothing to do.")
+        return summary
+
+    # Stage 1 — Discover
+    for c in customers:
+        try:
+            n = discover_new_for_customer(c, dry_run=dry_run)
+            summary.discovered += n
+        except Exception as e:
+            msg = f"discover failed for {c.church_name}: {e}"
+            log.error(msg)
+            summary.errors.append(msg)
+
+    if dry_run:
+        log.info("DRY RUN — stopping after discover stage")
+        return summary
+
+    # Stages 2–5 — Decompose pending sermons (those with audio + no decomposition yet)
+    pending: list[tuple[Customer, dict]] = []
+    for c in customers:
+        for s in pending_for_decomposition(c):
+            if s.get("raw_transcript"):
+                pending.append((c, s))
+            else:
+                log.info(f"  [skip] {c.church_name}: {s['title']!r} has no transcript yet (TODO: AssemblyAI)")
+
+    if not pending:
+        log.info("No sermons pending decomposition.")
+        return summary
+
+    log.info(f"Submitting decomposition batch for {len(pending)} sermon(s) across {len({c.church_id for c, _ in pending})} customer(s)")
+    # TODO: invoke pipeline_batch.py submit programmatically. For v1 this is a stub;
+    # currently pipeline_batch.py expects a folder of pre-written sermonindex JSONs.
+    # The orchestration glue (writing transcripts to a temp dir, calling submit,
+    # capturing the batch_id) is the next ticket.
+    log.warning("  [pipeline_batch.py invocation STUB — see TODO in source]")
+    summary.decomposed_submitted = len(pending)
+
+    # Stages 6–8 — Per newly-ingested sermon, generate artifacts + render + deploy
+    # (only fires once pipeline_batch.py process has run and ingested the batch results)
+    # For now, those steps are run separately. weekly_ingest.py orchestration of those
+    # stages is the next iteration.
+
+    return summary
+
+
+def write_summary(s: RunSummary) -> Path:
+    fn = LOG_DIR / f"weekly-{s.started_at.replace(':', '')}.json"
+    fn.write_text(json.dumps(s.__dict__, indent=2, default=str))
+    return fn
+
+
+def print_summary(s: RunSummary) -> None:
+    print()
+    print("─" * 60)
+    print(f"Weekly ingest — {s.started_at}")
+    print("─" * 60)
+    print(f"Customers processed:       {s.customers}")
+    print(f"New audio URLs discovered: {s.discovered}")
+    print(f"Sermons sent to decompose: {s.decomposed_submitted}")
+    if s.batch_id:
+        print(f"Batch ID:                  {s.batch_id}")
+    print(f"Sermons processed:         {s.decomposed_processed}")
+    print(f"Artifacts generated:       {s.artifacts_generated}")
+    print(f"Pages rendered:            {s.pages_rendered}")
+    print(f"Customers deployed:        {s.customers_deployed}")
+    if s.errors:
+        print(f"\nErrors ({len(s.errors)}):")
+        for e in s.errors:
+            print(f"  - {e}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# CLI
+# ────────────────────────────────────────────────────────────────────────────
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    sub = ap.add_subparsers(dest="mode", required=True)
+
+    p_weekly = sub.add_parser("weekly", help="Run the full Sunday-evening cadence")
+    p_weekly.add_argument("--catchup", action="store_true",
+                          help="Mark this as the Monday-morning catchup pass")
+    p_weekly.add_argument("--dry-run", action="store_true",
+                          help="Stop after discover; print what would happen")
+
+    p_discover = sub.add_parser("discover", help="Just run the discover stage")
+    p_discover.add_argument("--dry-run", action="store_true")
+
+    p_process = sub.add_parser("process", help="Process a known batch_id")
+    p_process.add_argument("batch_id")
+
+    args = ap.parse_args()
+
+    if args.mode == "weekly":
+        s = run_weekly(catchup=args.catchup, dry_run=args.dry_run)
+        log_path = write_summary(s)
+        print_summary(s)
+        log.info(f"summary written to {log_path}")
+        return 0
+    elif args.mode == "discover":
+        s = RunSummary()
+        for c in active_customers():
+            try:
+                s.discovered += discover_new_for_customer(c, dry_run=args.dry_run)
+                s.customers += 1
+            except Exception as e:
+                s.errors.append(f"{c.church_name}: {e}")
+        print_summary(s)
+        return 0
+    elif args.mode == "process":
+        log.info(f"process mode is a stub — would invoke `pipeline_batch.py process {args.batch_id}`, "
+                 f"then for each new sermon_id call generate_artifacts.py + generate_sermon_pages.py")
+        return 0
+
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
