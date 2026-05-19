@@ -246,6 +246,24 @@ def parse_passage_ref(text: Optional[str]) -> Optional[tuple[str, int]]:
     return (m.group(1).strip(), int(m.group(2)))
 
 
+def get_matching_hymn(thesis_unit_id: Optional[str]) -> Optional[dict]:
+    """
+    Single best-matching public-domain hymn for this sermon, by cosine
+    distance to the thesis unit's embedding. Returns None when no thesis
+    unit is available or no hymn matches. Powers the
+    "When Put In Poetry..." card on the rendered sermon page.
+    """
+    if not thesis_unit_id:
+        return None
+    sb = get_supabase()
+    result = sb.rpc(
+        "renderer_match_hymn_from_unit",
+        {"source_unit_id": thesis_unit_id},
+    ).execute()
+    rows = result.data or []
+    return rows[0] if rows else None
+
+
 def get_prior_pastor_refs(sermon: dict, exclusion_days: int = 90) -> list[dict]:
     """
     Sermons by the same preacher on the same book+chapter as this sermon,

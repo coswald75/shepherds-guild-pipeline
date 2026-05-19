@@ -57,17 +57,14 @@ DEFAULT_OUTPUT_DIR = Path(__file__).parent / "output" / "sermon-pages"
 
 def _output_path(output_dir: Path, sermon: dict, slug: str) -> Path:
     """
-    output/sermon-pages/<church-slug>/<year>/<month>/<sermon-slug>.html
-    Falls back to a flat layout if the sermon has no date.
+    Mirrors the public URL path so the deploy adapter is a flat copy:
+
+      output/sermon-pages/<url_slug>/sermons/<sermon-slug-with-date>.html
+                          ^^^^^^^^^^                                 = the church
     """
     church = (sermon.get("preachers") or {}).get("churches") or {}
-    church_slug_value = church.get("slug") or "unknown-church"
-    date_str = sermon.get("date")
-    if date_str:
-        year = date_str[:4]
-        month = date_str[5:7]
-        return output_dir / church_slug_value / year / month / f"{slug}.html"
-    return output_dir / church_slug_value / "undated" / f"{slug}.html"
+    church_dir = church.get("url_slug") or church.get("slug") or "unknown-church"
+    return output_dir / church_dir / "sermons" / f"{slug}.html"
 
 
 # ---------------------------------------------------------------------------

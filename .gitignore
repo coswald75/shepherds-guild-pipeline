@@ -4,6 +4,9 @@
 # Pipeline output (reproducible from scripts + Supabase has the data)
 output/
 
+# Runtime logs (kept locally, not versioned)
+logs/
+
 # Python
 __pycache__/
 *.pyc

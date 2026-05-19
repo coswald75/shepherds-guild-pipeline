@@ -8,22 +8,44 @@ together in small groups during the week. It is **not** a closing benediction
 or pulpit prayer — it is a *response prayer* the congregation prays as a body
 under the sermon's preaching.
 
+## The structural conviction
+
+This prayer mirrors the homiletical pattern Paul follows in his epistles
+and that Bryan Chapell calls the imperative-indicative balance: every
+petition we make to God is **rooted in something true about God or
+something Christ has accomplished**. We do not earn grace by asking; we
+appeal to grace already given. So the prayer's shape is fixed:
+
+- **First half — indicative.** Address the Father with what is true:
+  who He is (*Father, you are…*), what He has done (*Father, we thank
+  you that…*). The gospel ground is stated openly before any petition.
+- **Hinge** (explicit). One short transitional clause — *Therefore*, *And
+  so*, *In light of this*, *Because of this* — that marks the move from
+  indicative ground to imperative request. The hinge must be visible.
+- **Second half — petition rooted in the imperatives the sermon
+  preached.** The asks of the prayer ("help us to…", "grant us…", "give
+  us grace to…") correspond to the sermon's actual imperatives. We do
+  not invent obedience requests the sermon did not call for.
+- **Closing.** Through Christ our Lord / in His name / Amen.
+
 ## Constraints
 
-- **Address**: pray *to* God the Father, through the Son, in the Spirit. The
-  prayer is a corporate utterance — use "we," "our," "us" throughout.
-- **Center on the sermon**: anchor the prayer in the sermon's `main_thesis`
-  and at least one of its theological claims. Quote or paraphrase a
-  specific phrase from the sermon when it serves the prayer's movement.
-- **Gospel-shaped arc**: confess our need → adore God's character →
-  appropriate the gospel → ask for grace to live in light of the truth
-  preached → close with doxology or commitment.
-- **Scripture references in parens** where the prayer draws on or alludes
-  to a passage from the sermon's primary text or cross-references.
-- **No bullet points, no headings inside the prayer text.** Continuous
-  prose, broken into 2–4 short paragraphs.
-- **No exhortation to the reader.** This is a prayer *to God*, not a sermon
-  about prayer.
+- **Corporate voice.** "We," "our," "us" throughout. Never "I."
+- **Address the Father, through the Son, in the Spirit.** Standard
+  Trinitarian framing.
+- **Anchor in this sermon's content.** Draw indicatives from the
+  sermon's `main_thesis` and theological claims. Draw petitions from
+  the sermon's application claims. The prayer should be unmistakably
+  THIS sermon's response, not a generic prayer the congregation could
+  offer any week.
+- **Scripture references in parens** when the prayer draws on a
+  passage from the sermon's primary text or cross-references.
+- **Continuous prose**, broken into 2–4 short paragraphs. No bullets,
+  no headings inside the prayer text.
+- **The hinge is visible.** A reader should be able to point at one
+  word or short phrase and say "that's where the indicative becomes
+  imperative."
+- **8–14 sentences total.** Roughly half indicative, half petition.
 
 ## Output JSON schema
 
@@ -37,27 +59,44 @@ under the sermon's preaching.
 Output ONLY a single JSON object conforming to the schema above. No markdown
 fences. No commentary.
 
-## Movement / structure to aim for
+## Structural movement to aim for
 
-1. **Opening adoration** (1–2 sentences) — name something about God's
-   character that the sermon emphasized.
-2. **Confession** (2–3 sentences) — name the specific dimension of our
-   weakness the sermon surfaced. Acknowledge it with pastoral tenderness,
-   not flagellation.
-3. **Gospel appropriation** (2–3 sentences) — re-state what Christ has
-   accomplished that addresses the confession.
-4. **Petition** (3–4 sentences) — ask God for the grace to live in light
-   of the truth preached. Tie petitions to specific applications surfaced
-   in the sermon.
-5. **Closing commitment or doxology** (1–2 sentences) — corporate
-   commitment, or a brief ascription of glory.
+1. **Address + adoration** (1–2 sentences) — *Father, you are…* /
+   *Father of mercies…* — naming who God is in the dimension the sermon
+   emphasized.
+2. **Thanksgiving / gospel appropriation** (2–4 sentences) — *We thank
+   you that…* / *We praise you that in Christ…* — re-stating the
+   sermon's gospel announcement as adoration. The Christ-event in
+   particular: cross, empty tomb, ongoing reign, indwelling Spirit.
+3. **Hinge** (1 short clause) — *Therefore*, *And so*, *In light of
+   this* — explicit transition from indicative ground to imperative
+   request.
+4. **Petition** (3–5 sentences) — *Help us to…*, *Grant us…*, *Give us
+   grace to…*, *Make us a people who…* — tied to the sermon's actual
+   application claims. Each petition should be answerable in the
+   ordinary life of the congregation this week.
+5. **Closing** (1–2 sentences) — corporate commitment, ascription of
+   glory, or simply *through Christ our Lord. Amen.*
 
 ## What to avoid
 
-- Generic prayer language unmoored from the sermon ("Lord, help us today…")
-- Long sentences that lose the corporate "we" thread
-- Theologically thin appeals — every petition should connect to what the
-  gospel makes possible
-- Quoting more than a sentence verbatim from the sermon transcript
-- The phrase "Just" before verbs ("we just pray…") — avoid Christianese
-  filler. Use direct petition.
+- **Generic prayer language unmoored from the sermon.** "Lord, bless us
+  today…" with no specific gospel content from the preaching. If a
+  pastor reading this can't tell which sermon it was prayed under, the
+  artifact failed.
+- **Petitions without gospel ground.** Every *Help us…* must answer
+  back to a *You are…* or *You have…* earlier in the prayer. If the
+  hinge cannot be drawn, the petition floats and reads as moralism.
+- **Confession that drifts into self-flagellation.** Acknowledgment of
+  weakness is welcome but brief — the prayer's center is the gospel,
+  not the confession. If confession is included, frame it as further
+  indicative ("you have shown us…") that lands back on grace.
+- **Christianese filler.** Avoid *Just* before verbs (*we just pray…*),
+  *Lord, we ask that you would…* tautologies, *Father God* doublings.
+  Direct petition language.
+- **Quoting more than one sentence verbatim from the transcript.**
+  Paraphrase. The prayer is a *response* to the sermon, not a
+  transcription of it.
+- **Exhortation to the reader.** This is a prayer to God, not a
+  sermon about prayer. No "let us remember to…" or "may we always…"
+  embedded in the body.

@@ -28,9 +28,16 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from datetime import date as _date
+from datetime import date as _date, timedelta
+from difflib import SequenceMatcher
 from email.utils import parsedate_to_datetime
 from typing import Iterable
+
+# Minimum title-similarity ratio (0.0–1.0) for a fuzzy ±7-day match to count.
+# 0.6 catches "The Mystery of Godliness" ↔ "the mystery of godliness sermon"
+# but excludes coincidental neighbors with unrelated titles.
+FUZZY_THRESHOLD = 0.6
+DATE_WINDOW_DAYS = 7
 
 from dotenv import load_dotenv
 
@@ -158,19 +165,67 @@ def find_match(sb, preacher_id: str, item: FeedItem) -> dict | None:
     res = sb.table("sermons").select("id, title, date, podcast_guid").eq("podcast_guid", item.guid).limit(1).execute()
     if res.data:
         return res.data[0]
-    # 2. Try by (preacher_id, date, normalized_title). Pull the date's sermons and compare.
     if not item.pub_date:
         return None
-    res = sb.table("sermons").select("id, title, date").eq("preacher_id", preacher_id).eq("date", item.pub_date.isoformat()).execute()
-    n = normalize_title(item.title)
-    for row in res.data or []:
-        if normalize_title(row["title"]) == n:
+
+    # 2. Pull the preacher's sermons in a ±7-day window around the feed pub_date —
+    # YASH bulk-uploads drift the podcast pub_date off the actual preaching date.
+    start = (item.pub_date - timedelta(days=DATE_WINDOW_DAYS)).isoformat()
+    end = (item.pub_date + timedelta(days=DATE_WINDOW_DAYS)).isoformat()
+    res = (
+        sb.table("sermons")
+        .select("id, title, date, primary_text")
+        .eq("preacher_id", preacher_id)
+        .gte("date", start)
+        .lte("date", end)
+        .execute()
+    )
+    rows = res.data or []
+    if not rows:
+        return None
+
+    feed_norm = normalize_title(item.title)
+    same_date_iso = item.pub_date.isoformat()
+
+    # 2a. Exact normalized title on same date — strongest signal.
+    for row in rows:
+        if row["date"] == same_date_iso and normalize_title(row["title"]) == feed_norm:
             return row
-    # Loose: same date, fuzzy contains either way
-    for row in res.data or []:
-        a, b = normalize_title(row["title"]), n
-        if a and b and (a in b or b in a):
+
+    # 2b. Substring containment on same date (title or primary_text either way).
+    for row in rows:
+        if row["date"] != same_date_iso:
+            continue
+        db_title = normalize_title(row["title"])
+        db_text = normalize_title(row.get("primary_text") or "")
+        if db_title and feed_norm and (db_title in feed_norm or feed_norm in db_title):
             return row
+        if db_text and feed_norm and (db_text in feed_norm or feed_norm in db_text):
+            return row
+
+    # 2c. SequenceMatcher across the window — compare feed title to BOTH the
+    # sermon title and its primary_text, since some YASH entries use the
+    # passage reference as their title instead of the topical name.
+    best_row = None
+    best_score = 0.0
+    for row in rows:
+        db_title = normalize_title(row["title"])
+        db_text = normalize_title(row.get("primary_text") or "")
+        if not feed_norm:
+            continue
+        score = 0.0
+        if db_title:
+            score = max(score, SequenceMatcher(None, db_title, feed_norm).ratio())
+        if db_text:
+            score = max(score, SequenceMatcher(None, db_text, feed_norm).ratio())
+        if row["date"] == same_date_iso:
+            score += 0.1
+        if score > best_score:
+            best_score = score
+            best_row = row
+
+    if best_row and best_score >= FUZZY_THRESHOLD:
+        return best_row
     return None
 
 

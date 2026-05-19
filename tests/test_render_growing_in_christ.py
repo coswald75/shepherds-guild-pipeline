@@ -32,7 +32,7 @@ EXPECTED_PRIMARY_TEXT = "Ephesians 4:11-16"
 EXPECTED_PREACHER = "Chris Oswald"
 EXPECTED_CHURCH = "Providence Community Church"
 EXPECTED_CANONICAL = (
-    "https://providencecommunitychurch.example/sermons/2026/02/growing-in-christ"
+    "https://sermonsteward.com/ProvidenceLenexa/sermons/growing-in-christ-2026-02-22"
 )
 
 LIVE_DB = bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_KEY"))

@@ -9,12 +9,12 @@ CLI and integration test need to call.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import date as date_type, datetime, timezone
 from typing import Optional
 
 from . import queries as q
 from . import schema_org
-from .slug import slug_to_url_segment
 
 log = logging.getLogger("sermon_page_renderer.composer")
 
@@ -84,35 +84,33 @@ def _format_short_date(d: Optional[date_type | str]) -> str:
 
 
 def _sermon_url_path(
-    sermon_date: Optional[date_type],
     slug: str,
     church_url_slug: Optional[str] = None,
 ) -> str:
     """
-    Public URL path on theshepherdsguild.com.
+    Public URL path on sermonsteward.com.
 
     With church_url_slug (the standard case):
-      /PCC/sermons/2026/03/marriage-the-mission-of-god
+      /CoGElPaso/sermons/rescuing-manhood-2026-04-12
     Without (legacy / single-tenant):
-      /sermons/2026/03/marriage-the-mission-of-god
+      /sermons/rescuing-manhood-2026-04-12
 
-    The DB slug's trailing ISO date suffix is dropped — year/month already
-    appear in the path.
+    The date suffix lives in the DB slug itself; the URL is flat so the
+    `/<url_slug>/` namespace is free for the church home page, topic
+    pages, etc.
     """
-    seg = slug_to_url_segment(slug or "")
     prefix = f"/{church_url_slug}" if church_url_slug else ""
-    if sermon_date:
-        return f"{prefix}/sermons/{sermon_date.year}/{sermon_date.month:02d}/{seg}"
-    return f"{prefix}/sermons/{seg}"
+    if slug:
+        return f"{prefix}/sermons/{slug}"
+    return f"{prefix}/sermons"
 
 
 def _canonical_url(
     domain: str,
-    sermon_date: Optional[date_type],
     slug: str,
     church_url_slug: Optional[str] = None,
 ) -> str:
-    return f"https://{domain}{_sermon_url_path(sermon_date, slug, church_url_slug)}"
+    return f"https://{domain}{_sermon_url_path(slug, church_url_slug)}"
 
 
 def _llms_txt(church: dict, sermon: dict, sermon_date: Optional[date_type],
@@ -139,7 +137,7 @@ def _llms_txt(church: dict, sermon: dict, sermon_date: Optional[date_type],
     church_url_slug = church.get("url_slug")
     for s in sermons_for_index:
         d = _coerce_date(s.get("date"))
-        url = _sermon_url_path(d, s.get("slug") or "", church_url_slug)
+        url = _sermon_url_path(s.get("slug") or "", church_url_slug)
         bits = []
         if s.get("primary_text"):
             bits.append(s["primary_text"])
@@ -190,6 +188,9 @@ def compose(sermon_id: str) -> dict:
     neighbors = q.get_canonical_neighbors(
         sermon_id, thesis_unit["id"] if thesis_unit else None
     )
+    matching_hymn = q.get_matching_hymn(
+        thesis_unit["id"] if thesis_unit else None
+    )
     arc = q.get_three_sermon_arc(sermon)
     prior_refs = q.get_prior_pastor_refs(sermon)
 
@@ -197,7 +198,7 @@ def compose(sermon_id: str) -> dict:
     domain = church.get("domain") or "example.com"
     church_url_slug = church.get("url_slug")
     canonical_url = _canonical_url(
-        domain, sermon_date, sermon.get("slug") or "", church_url_slug
+        domain, sermon.get("slug") or "", church_url_slug
     )
 
     # Prior-ref callout: take the most recent prior, count its book+chapter citations.
@@ -217,7 +218,7 @@ def compose(sermon_id: str) -> dict:
             "primary_text": top.get("primary_text"),
             "date": top.get("date"),
             "date_long": _format_long_date(prior_date),
-            "url": _sermon_url_path(prior_date, top.get("slug") or "", church_url_slug),
+            "url": _sermon_url_path(top.get("slug") or "", church_url_slug),
             "citation_count": cite_count,
             "book_chapter_label": f"{parsed[0]} {parsed[1]}" if parsed else None,
         }
@@ -229,7 +230,7 @@ def compose(sermon_id: str) -> dict:
         arc_decorated.append({
             **s,
             "date_short": _format_short_date(d),
-            "url": _sermon_url_path(d, s.get("slug") or "", church_url_slug),
+            "url": _sermon_url_path(s.get("slug") or "", church_url_slug),
         })
 
     # Transcript meta
@@ -332,15 +333,39 @@ def compose(sermon_id: str) -> dict:
                 t["title"] = body.get("title") or "Three questions over coffee"
                 t["desc"] = qs[0][:140].rstrip() + "…" if qs else t["desc"]
 
-    # Expanded artifact sections (rendered below the tiles when present)
+    # Expanded artifact sections (rendered below the tiles when present).
+    # imperatives_indicatives is rendered separately above the tiles, so
+    # exclude it from this loop.
     artifact_sections = []
     for artifact_type, row in artifacts.items():
+        if artifact_type not in artifact_anchor:
+            continue
         artifact_sections.append({
             "type": artifact_type,
             "anchor": artifact_anchor[artifact_type].lstrip("#"),
             "status": row.get("status"),
             "body": row.get("body") or {},
         })
+
+    # Imperatives-and-indicatives is its own analytical card — pull body
+    # directly so the template can render it as a distinct section.
+    imperatives_indicatives = None
+    ii_row = artifacts.get("imperatives_indicatives")
+    if ii_row and ii_row.get("body"):
+        body = ii_row["body"]
+        imperatives_indicatives = {
+            "intro": body.get("intro"),
+            "indicatives": body.get("indicatives") or [],
+            "imperatives": body.get("imperatives") or [],
+            "balance_note": body.get("balance_note"),
+            "status": ii_row.get("status"),
+        }
+
+    # Sermon Scraps — separate companion page. If the artifact exists, expose
+    # the URL so the main page can link to it; otherwise the link is hidden.
+    scraps_url = None
+    if artifacts.get("sermon_scraps") and sermon.get("slug") and church_url_slug:
+        scraps_url = f"/{church_url_slug}/sermons/{sermon['slug']}/scraps"
 
     # Schema.org JSON-LD
     top_loci = [name for name, _ in loci[:3]]
@@ -366,10 +391,44 @@ def compose(sermon_id: str) -> dict:
         loci=top_loci,
     )
 
+    # Decorate the matching hymn — extract first stanza (typically the first
+    # 4 lines for common-meter hymns), strip stray marginal annotations,
+    # produce a clean attribution string.
+    hymn_card = None
+    if matching_hymn:
+        body = matching_hymn.get("full_text") or ""
+        lines = [ln for ln in body.split("\n") if ln.strip()]
+        # Drop inline marginal annotations (bare numbers, scripture refs that
+        # look like footnote pointers, e.g. "How much did GOD bestow? 2").
+        cleaned: list[str] = []
+        for ln in lines:
+            # Trim trailing single-digit annotations sometimes pulled inline
+            cleaned.append(re.sub(r"\s+\d{1,3}$", "", ln).rstrip())
+        excerpt_lines = cleaned[:4]
+        attribution_bits = []
+        if matching_hymn.get("author"):
+            attribution_bits.append(matching_hymn["author"])
+        if matching_hymn.get("scripture_anchor"):
+            attribution_bits.append(matching_hymn["scripture_anchor"])
+        elif matching_hymn.get("theme"):
+            attribution_bits.append(matching_hymn["theme"].rstrip("."))
+        hymn_card = {
+            "title": matching_hymn.get("title"),
+            "book": matching_hymn.get("book"),
+            "number": matching_hymn.get("number"),
+            "author": matching_hymn.get("author"),
+            "meter": matching_hymn.get("meter"),
+            "theme": matching_hymn.get("theme"),
+            "scripture_anchor": matching_hymn.get("scripture_anchor"),
+            "excerpt_lines": excerpt_lines,
+            "attribution": " · ".join(attribution_bits),
+            "source_label": "Olney Hymns, 1779",
+        }
+
     return {
         # Page-level
         "canonical_url": canonical_url,
-        "url_path": _sermon_url_path(sermon_date, sermon.get("slug") or "", church_url_slug),
+        "url_path": _sermon_url_path(sermon.get("slug") or "", church_url_slug),
         "domain": domain,
 
         # Sermon facts
@@ -406,6 +465,17 @@ def compose(sermon_id: str) -> dict:
             "brand_color": church.get("brand_color"),
             "about_short": church.get("about_short"),
         },
+
+        # Matched hymn — public-domain hymnody adjacent to this sermon's
+        # theological move. Powers the "When Put In Poetry..." card.
+        "hymn_card": hymn_card,
+
+        # Indicatives + Imperatives — structural analysis of the sermon's
+        # gospel-and-response shape. Pastor / small-group-leader facing.
+        "imperatives_indicatives": imperatives_indicatives,
+
+        # Sermon Scraps URL — null when no scraps artifact exists.
+        "scraps_url": scraps_url,
 
         # Pastoral correction
         "pastoral_correction": (

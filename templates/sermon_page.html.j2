@@ -180,12 +180,25 @@
     border-radius: 2px;
     margin-top: 6px;
     position: relative;
+    cursor: pointer;
+  }
+  .audio-progress {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.1s linear;
   }
   .audio-duration {
     font-family: "Inter", sans-serif;
     font-size: 12px;
     color: var(--ink-faint);
+    white-space: nowrap;
   }
+  .play-button .pause-icon { display: none; }
+  .play-button.playing .play-icon { display: none; }
+  .play-button.playing .pause-icon { display: inline; }
 
   /* ────────── Thesis hero ────────── */
   blockquote.thesis-hero {
@@ -513,6 +526,169 @@
     letter-spacing: 0.1em;
     color: var(--gold-deep);
     margin-bottom: 8px;
+  }
+
+  /* ────────── Indicatives & Imperatives ────────── */
+  .ii-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 24px 28px 28px;
+  }
+  .ii-intro {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ii-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 22px;
+  }
+  .ii-col h3 {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  .ii-col.indicatives h3 { color: var(--accent-deep); }
+  .ii-col.imperatives h3 { color: var(--accent); }
+  .ii-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ii-list li {
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .ii-list li:last-child { border-bottom: 0; }
+  .ii-statement { display: block; }
+  .ii-meta {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: "Inter", sans-serif;
+  }
+  .ii-meta .ii-scripture {
+    color: var(--accent-deep);
+    font-weight: 500;
+  }
+  .ii-balance {
+    margin: 0;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .ii-balance strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  @media (max-width: 740px) {
+    .ii-grid { grid-template-columns: 1fr; gap: 8px; }
+  }
+
+  /* ────────── Sermon Scraps CTA ────────── */
+  .scraps-cta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--gold-deep);
+    border-radius: 10px;
+    padding: 22px 28px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .scraps-cta:hover {
+    background: #fdf9eb;
+    border-left-color: var(--accent);
+    color: inherit;
+  }
+  .scraps-cta-text {
+    flex: 1;
+  }
+  .scraps-cta-label {
+    font-family: "Inter", sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold-deep); margin: 0 0 4px;
+  }
+  .scraps-cta-title {
+    font-family: "Inter", sans-serif;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink); margin: 0 0 4px;
+  }
+  .scraps-cta-desc {
+    font-size: 14px; color: var(--ink-soft);
+    margin: 0;
+  }
+  .scraps-cta-arrow {
+    font-size: 22px; color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ────────── When Put In Poetry... (hymn card) ────────── */
+  .hymn-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin: 0;
+    position: relative;
+  }
+  .hymn-card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 24px; bottom: 24px;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+  }
+  .hymn-card .hymn-excerpt {
+    font-family: "Source Serif Pro", Georgia, serif;
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 18px;
+    padding-left: 22px;
+  }
+  .hymn-card .hymn-excerpt .line {
+    display: block;
+  }
+  .hymn-card .hymn-meta {
+    padding-left: 22px;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .hymn-card .hymn-meta strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .hymn-card .hymn-meta .hymn-source {
+    color: var(--ink-faint);
+    margin-left: 6px;
   }
 
   /* ────────── Related teaching ────────── */
@@ -976,10 +1152,16 @@
 
     {% if sermon.audio_url and sermon.audio_is_media %}
     <div class="audio-player" id="audio">
-      <button class="play-button" aria-label="Play sermon audio">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <button class="play-button" id="sermonPlayBtn" aria-label="Play sermon audio">
+        <svg class="play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="pause-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
       </button>
-      <audio controls preload="none" src="{{ sermon.audio_url }}" class="audio-meta" style="width:100%;">
+      <div class="audio-meta">
+        <div>Sermon audio</div>
+        <div class="audio-track" id="sermonAudioTrack"><div class="audio-progress" id="sermonAudioProgress"></div></div>
+      </div>
+      <span class="audio-duration ui" id="sermonAudioDuration">—</span>
+      <audio id="sermonAudio" preload="metadata" src="{{ sermon.audio_url }}" style="display:none;">
         Your browser does not support the audio element.
         <a href="{{ sermon.audio_url }}">Download the MP3.</a>
       </audio>
@@ -1228,6 +1410,86 @@
     </section>
     {% endif %}
 
+    <!-- ═══════════ Indicatives & Imperatives ═══════════ -->
+    {% if imperatives_indicatives and (imperatives_indicatives.indicatives or imperatives_indicatives.imperatives) %}
+    <section class="page-section">
+      <div class="section-eyebrow ui">The structure of the gospel call</div>
+      <h2 class="section-title-h2">Indicatives &amp; Imperatives</h2>
+
+      <div class="ii-card">
+        {% if imperatives_indicatives.intro %}
+        <p class="ii-intro">{{ imperatives_indicatives.intro }}</p>
+        {% endif %}
+
+        <div class="ii-grid">
+          <div class="ii-col indicatives">
+            <h3>What is true · Indicatives</h3>
+            <ul class="ii-list">
+              {% for ind in imperatives_indicatives.indicatives %}
+              <li>
+                <span class="ii-statement">{{ ind.statement }}</span>
+                {% if ind.scripture %}<span class="ii-meta"><span class="ii-scripture">{{ ind.scripture }}</span></span>{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="ii-col imperatives">
+            <h3>What is called for · Imperatives</h3>
+            <ul class="ii-list">
+              {% for imp in imperatives_indicatives.imperatives %}
+              <li>
+                <span class="ii-statement">{{ imp.statement }}</span>
+                {% if imp.scripture or imp.grounded_in %}
+                <span class="ii-meta">
+                  {% if imp.scripture %}<span class="ii-scripture">{{ imp.scripture }}</span>{% endif %}
+                  {% if imp.grounded_in %}{% if imp.scripture %} · {% endif %}<em>grounded in:</em> {{ imp.grounded_in }}{% endif %}
+                </span>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        {% if imperatives_indicatives.balance_note %}
+        <p class="ii-balance"><strong>Balance.</strong> {{ imperatives_indicatives.balance_note }}</p>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ═══════════ When Put In Poetry... (hymn card) ═══════════ -->
+    {% if hymn_card and hymn_card.excerpt_lines %}
+    <section class="page-section">
+      <div class="section-eyebrow ui">When Put In Poetry…</div>
+      <h2 class="section-title-h2">{{ hymn_card.title }}</h2>
+      <div class="hymn-card">
+        <p class="hymn-excerpt">
+          {% for line in hymn_card.excerpt_lines -%}
+          <span class="line">{{ line }}</span>
+          {%- endfor %}
+        </p>
+        <div class="hymn-meta">
+          <strong>{{ hymn_card.author }}</strong>{% if hymn_card.scripture_anchor %} · {{ hymn_card.scripture_anchor }}{% elif hymn_card.theme %} · {{ hymn_card.theme }}{% endif %}<span class="hymn-source">— {{ hymn_card.source_label }}, Book {{ hymn_card.book }}, Hymn {{ hymn_card.number }}</span>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ═══════════ Sermon Scraps CTA ═══════════ -->
+    {% if scraps_url %}
+    <section class="page-section">
+      <a class="scraps-cta" href="{{ scraps_url }}">
+        <div class="scraps-cta-text">
+          <p class="scraps-cta-label">Sermon Scraps</p>
+          <p class="scraps-cta-title">A scholar's companion to this sermon</p>
+          <p class="scraps-cta-desc">Historical &amp; literary context, cross-references, voices from the Christian tradition, the great conversation, extended applications, and illustrations.</p>
+        </div>
+        <span class="scraps-cta-arrow">→</span>
+      </a>
+    </section>
+    {% endif %}
+
     <!-- ═══════════ Discuss / apply ═══════════ -->
     <section class="page-section">
       <div class="section-eyebrow ui">Take it further</div>
@@ -1385,6 +1647,52 @@
   <div>Canonical URL: <code>{{ canonical_url }}</code></div>
   <div>Page generated by Sermon Steward · processed {{ generated_at_utc }}{% if decomposition_model %} · model: {{ decomposition_model }}{% endif %} · {{ transcript_unit_count }} units · {{ citations_total }} citations · {{ quotations | length }} quotations</div>
 </footer>
+
+{% if sermon.audio_url and sermon.audio_is_media %}
+<script>
+(function () {
+  var audio = document.getElementById('sermonAudio');
+  var btn = document.getElementById('sermonPlayBtn');
+  var track = document.getElementById('sermonAudioTrack');
+  var progress = document.getElementById('sermonAudioProgress');
+  var duration = document.getElementById('sermonAudioDuration');
+  if (!audio || !btn) return;
+
+  function fmt(s) {
+    if (!isFinite(s) || s < 0) return '—';
+    var m = Math.floor(s / 60);
+    var r = Math.floor(s % 60);
+    return m + ':' + (r < 10 ? '0' + r : r);
+  }
+  function setDur(playing) {
+    if (!audio.duration || !isFinite(audio.duration)) { duration.textContent = '—'; return; }
+    duration.textContent = playing
+      ? fmt(audio.currentTime) + ' / ' + fmt(audio.duration)
+      : fmt(audio.duration);
+  }
+
+  audio.addEventListener('loadedmetadata', function () { setDur(false); });
+  audio.addEventListener('timeupdate', function () {
+    if (audio.duration) {
+      progress.style.width = (audio.currentTime / audio.duration * 100) + '%';
+      setDur(true);
+    }
+  });
+  audio.addEventListener('play',  function () { btn.classList.add('playing');    btn.setAttribute('aria-label', 'Pause sermon audio'); });
+  audio.addEventListener('pause', function () { btn.classList.remove('playing'); btn.setAttribute('aria-label', 'Play sermon audio');  });
+  audio.addEventListener('ended', function () { btn.classList.remove('playing'); progress.style.width = '0%'; setDur(false); });
+
+  btn.addEventListener('click', function () {
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  track.addEventListener('click', function (e) {
+    if (!audio.duration) return;
+    var rect = track.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+  });
+})();
+</script>
+{% endif %}
 
 </body>
 </html>

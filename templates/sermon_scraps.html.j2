@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sermon Scraps — {{ sermon.title }} · {{ church.name }}</title>
+<meta name="description" content="Supplementary material for the sermon &quot;{{ sermon.title }}&quot;: historical context, cross-references, voices from the Christian tradition, classical philosophical connections, extended applications, and illustrations.">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sermon Scraps — {{ sermon.title }}">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:site_name" content="Sermon Steward">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbf8f1;
+    --paper-raised: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #828282;
+    --rule: #e6e1d3;
+    --accent: #c4452f;
+    --accent-deep: #9a3624;
+    --gold-deep: #a0742a;
+    --sans: 'Inter', system-ui, sans-serif;
+    --serif: 'Source Serif Pro', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-deep); }
+
+  .site-header { padding: 24px 32px; border-bottom: 1px solid var(--rule); }
+  .wordmark { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; color: var(--ink); }
+  .wordmark .dot { color: var(--accent); }
+
+  main { max-width: 800px; margin: 0 auto; padding: 48px 32px 96px; }
+
+  .breadcrumb { font-size: 13px; color: var(--ink-faint); margin-bottom: 18px; }
+  .breadcrumb a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; }
+
+  .page-eyebrow {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 800; letter-spacing: -0.03em; line-height: 1.04;
+    margin: 0 0 18px;
+  }
+  .lede {
+    font-family: var(--serif);
+    font-size: 19px; line-height: 1.55; color: var(--ink-soft);
+    font-style: italic;
+    margin: 0 0 12px; padding-left: 18px;
+    border-left: 3px solid var(--accent);
+  }
+  .source-back {
+    font-size: 13px; color: var(--ink-faint);
+    margin: 24px 0 56px;
+  }
+  .source-back a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Section chrome */
+  section.scrap {
+    margin: 0 0 56px;
+  }
+  section.scrap .section-eyebrow {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold-deep); margin: 0 0 8px;
+  }
+  section.scrap h2 {
+    font-family: var(--sans);
+    font-size: 26px; font-weight: 700;
+    letter-spacing: -0.02em; line-height: 1.1;
+    margin: 0 0 22px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  section.scrap p {
+    font-family: var(--serif);
+    font-size: 17px; line-height: 1.65;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+
+  /* Historical context */
+  .key-terms {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 18px 0 0;
+  }
+  .key-terms-label {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 10px;
+  }
+  .key-terms ul { list-style: none; margin: 0; padding: 0; }
+  .key-terms li {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-family: var(--serif); font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .key-terms li:last-child { border-bottom: 0; }
+  .key-terms .term {
+    font-family: var(--sans);
+    font-weight: 600; color: var(--ink);
+    margin-right: 8px;
+  }
+
+  /* Item lists: shared shape for cross-refs, voices, great conv, applications, illustrations */
+  .scrap-item {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin: 0 0 18px;
+  }
+  .scrap-item .item-label {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent-deep); margin: 0 0 4px;
+  }
+  .scrap-item .item-title {
+    font-family: var(--sans);
+    font-size: 19px; font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink); margin: 0 0 4px;
+  }
+  .scrap-item .item-meta {
+    font-family: var(--sans);
+    font-size: 13px; color: var(--ink-faint);
+    margin: 0 0 12px;
+  }
+  .scrap-item .item-body {
+    font-family: var(--serif);
+    font-size: 16px; line-height: 1.6;
+    color: var(--ink); margin: 0 0 10px;
+  }
+  .scrap-item .item-body:last-child { margin-bottom: 0; }
+  .scrap-item .paraphrase {
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .scrap-item .connection {
+    color: var(--ink);
+  }
+  .scrap-item .connection-label {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 16px 0 4px;
+  }
+
+  /* Bibliography */
+  .bibliography-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .bibliography-list li {
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .bibliography-list li:last-child { border-bottom: 0; }
+  .biblio-author {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .biblio-title {
+    font-style: italic;
+  }
+  .biblio-title a {
+    color: var(--accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .biblio-title a:hover {
+    color: var(--accent);
+  }
+  .biblio-year {
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+  .biblio-publisher,
+  .biblio-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  /* Footer */
+  footer {
+    padding: 24px 32px; font-size: 13px; color: var(--ink-faint);
+    text-align: center; border-top: 1px solid var(--rule);
+  }
+  footer a { color: var(--ink-soft); }
+
+  @media (max-width: 640px) {
+    main { padding: 32px 20px 64px; }
+    section.scrap { margin-bottom: 40px; }
+    .scrap-item { padding: 18px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/">Sermon Steward<span class="dot">.</span></a>
+</header>
+
+<main>
+  <div class="breadcrumb">
+    <a href="/">Sermon Steward</a> ·
+    <a href="/{{ church.url_slug }}/">{{ church.name }}</a> ·
+    <a href="/{{ church.url_slug }}/sermons/">Sermons</a> ·
+    <a href="{{ sermon_url }}">{{ sermon.title }}</a> ·
+    Scraps
+  </div>
+
+  <div class="page-eyebrow">Sermon Scraps</div>
+  <h1>{{ sermon.title }}</h1>
+  {% if scraps.intro %}
+  <p class="lede">{{ scraps.intro }}</p>
+  {% endif %}
+  <p class="source-back">
+    A scholar's companion to the sermon preached by <strong>{{ preacher.name }}</strong>{% if sermon.primary_text %} on <strong>{{ sermon.primary_text }}</strong>{% endif %}{% if sermon.date_long %}, <strong>{{ sermon.date_long }}</strong>{% endif %}.
+    ← <a href="{{ sermon_url }}">Return to the sermon</a>
+  </p>
+
+  {# 1. Historical & Literary Context #}
+  {% if scraps.historical_context and scraps.historical_context.background %}
+  <section class="scrap">
+    <div class="section-eyebrow">When &amp; Where</div>
+    <h2>Historical &amp; Literary Context</h2>
+    <p>{{ scraps.historical_context.background }}</p>
+    {% if scraps.historical_context.key_terms %}
+    <div class="key-terms">
+      <p class="key-terms-label">Key terms</p>
+      <ul>
+        {% for kt in scraps.historical_context.key_terms %}
+        <li><span class="term">{{ kt.term }}</span> — {{ kt.gloss }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {# 2. Cross-References #}
+  {% if scraps.cross_references %}
+  <section class="scrap">
+    <div class="section-eyebrow">Across the canon</div>
+    <h2>Cross-References</h2>
+    {% for c in scraps.cross_references %}
+    <div class="scrap-item">
+      <div class="item-title">{{ c.reference }}</div>
+      <p class="item-body paraphrase">{{ c.paraphrase }}</p>
+      <p class="connection-label">Connection</p>
+      <p class="item-body connection">{{ c.connection }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# 3. Voices from the Tradition #}
+  {% if scraps.voices_from_tradition %}
+  <section class="scrap">
+    <div class="section-eyebrow">Twenty centuries of witness</div>
+    <h2>Voices from the Tradition</h2>
+    {% for v in scraps.voices_from_tradition %}
+    <div class="scrap-item">
+      <div class="item-title">{{ v.figure }}{% if v.era %} <span class="item-meta">· {{ v.era }}</span>{% endif %}</div>
+      {% if v.source_work %}<p class="item-meta">{{ v.source_work }}</p>{% endif %}
+      <p class="item-body paraphrase">{{ v.paraphrase }}</p>
+      <p class="connection-label">Connection</p>
+      <p class="item-body connection">{{ v.connection }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# 4. The Great Conversation #}
+  {% if scraps.great_conversation %}
+  <section class="scrap">
+    <div class="section-eyebrow">Outside the immediate tradition</div>
+    <h2>The Great Conversation</h2>
+    {% for g in scraps.great_conversation %}
+    <div class="scrap-item">
+      <div class="item-title">{{ g.thinker_or_work }}</div>
+      <p class="item-body connection">{{ g.connection }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# 5. Extended Applications #}
+  {% if scraps.extended_applications %}
+  <section class="scrap">
+    <div class="section-eyebrow">Translated into life</div>
+    <h2>Extended Applications</h2>
+    {% for a in scraps.extended_applications %}
+    <div class="scrap-item">
+      <div class="item-label">{{ a.sphere }}</div>
+      <p class="item-body">{{ a.application }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# 6. Illustrations & Resonances #}
+  {% if scraps.illustrations %}
+  <section class="scrap">
+    <div class="section-eyebrow">Pictures that resonate</div>
+    <h2>Illustrations &amp; Resonances</h2>
+    {% for i in scraps.illustrations %}
+    <div class="scrap-item">
+      <div class="item-title">{{ i.title }}</div>
+      {% if i.kind %}<p class="item-meta">{{ i.kind }}</p>{% endif %}
+      <p class="item-body">{{ i.telling }}</p>
+      <p class="connection-label">Connection</p>
+      <p class="item-body connection">{{ i.connection }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# 7. Bibliography & Sources #}
+  {% if scraps.bibliography %}
+  <section class="scrap">
+    <div class="section-eyebrow">Where these voices come from</div>
+    <h2>Bibliography &amp; Sources</h2>
+    <ul class="bibliography-list">
+      {% for b in scraps.bibliography %}
+      <li>
+        <span class="biblio-author">{{ b.author }}</span>.
+        <span class="biblio-title">
+          {% if b.link %}<a href="{{ b.link }}" target="_blank" rel="noopener">{{ b.title }}</a>{% else %}{{ b.title }}{% endif %}
+        </span>{% if b.year %} <span class="biblio-year">({{ b.year }})</span>{% endif %}.
+        {% if b.publisher_note and not b.link %}<span class="biblio-publisher">{{ b.publisher_note }}</span>{% endif %}
+        {% if b.note %}<span class="biblio-note">{{ b.note }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <p class="source-back">
+    ← <a href="{{ sermon_url }}">Return to the sermon</a>
+  </p>
+</main>
+
+<footer>
+  Sermon Scraps is supplementary material generated to accompany the preaching of <a href="/{{ church.url_slug }}/">{{ church.name }}</a>. Historic-figure paraphrases are interpretive; readers are encouraged to consult primary sources directly.
+</footer>
+
+</body>
+</html>

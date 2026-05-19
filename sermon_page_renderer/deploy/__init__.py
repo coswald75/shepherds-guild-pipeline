@@ -1,5 +1,6 @@
-"""Deploy adapters for the sermon page renderer (V1 = stubs)."""
+"""Deploy adapters for the sermon page renderer."""
 
 from .base import DeployAdapter, DeployResult
+from .cloudflare_pages import CloudflarePagesAdapter
 
-__all__ = ["DeployAdapter", "DeployResult"]
+__all__ = ["DeployAdapter", "DeployResult", "CloudflarePagesAdapter"]

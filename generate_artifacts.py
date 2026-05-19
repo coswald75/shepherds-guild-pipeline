@@ -47,6 +47,10 @@ ARTIFACT_TYPES = (
     "family_card",
     "couples_guide",
     "memory_verse",
+    "imperatives_indicatives",
+    # Sermon scraps — separate page; scholar's companion; forward-only
+    # (not backfilled across the corpus).
+    "sermon_scraps",
 )
 
 # Maps artifact_type → per-artifact prompt file.
@@ -57,12 +61,32 @@ PROMPT_FILES = {
     "family_card": "family.md",
     "couples_guide": "couples.md",
     "memory_verse": "memory.md",
+    "imperatives_indicatives": "imperatives_indicatives.md",
+    "sermon_scraps": "sermon_scraps.md",
 }
 
+# Per-artifact model override. Most artifacts run on Haiku for cost/speed;
+# sermon_scraps needs Sonnet for the Lewis/Calvin/Augustine voice paraphrases
+# and Great Books connections — substantive general knowledge work that
+# Haiku gets shallow on.
+MODEL_FOR_ARTIFACT = {
+    "sermon_scraps": "claude-sonnet-4-5-20250929",
+}
+
+# Per-artifact voice override. Most artifacts use the per-preacher voice
+# profile as the style governor. sermon_scraps is a scholar's companion,
+# not pastoral writing — it gets no voice prefix; the artifact prompt
+# defines its own register.
+SKIP_VOICE_FOR = {"sermon_scraps"}
+
 # Default to Haiku 4.5 for cost/speed — voice prompt + small outputs make
-# Sonnet overkill. Override via --model if needed.
+# Sonnet overkill. Override via --model or per-artifact MODEL_FOR_ARTIFACT.
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 MAX_OUTPUT_TOKENS = 4000
+MAX_OUTPUT_TOKENS_BY_ARTIFACT = {
+    # Scraps is multi-section, longer prose — give it room.
+    "sermon_scraps": 8000,
+}
 
 # Per-preacher voice profile mapping. Falls back to PROMPTS_DIR/_voice_sgm.md
 # when a preacher isn't listed here (so existing behavior is preserved for the
@@ -271,27 +295,40 @@ def _system_prompt(artifact_type: str, sermon_facts_text: str, preacher_id: Opti
     """
     Returns the system prompt as a list of content blocks with cache_control
     on the stable portions (voice + per-artifact instructions). Voice is
-    selected per-preacher via VOICE_PROFILES.
+    selected per-preacher via VOICE_PROFILES, or skipped entirely for
+    artifacts in SKIP_VOICE_FOR (where the artifact prompt defines its own
+    register).
     """
-    voice, version = _voice_prompt_text(preacher_id)
     artifact = _artifact_prompt(artifact_type)
+    blocks: list[dict] = []
 
-    blocks = [
-        {
+    if artifact_type in SKIP_VOICE_FOR:
+        # No voice prefix — artifact prompt is self-contained.
+        version = f"no-voice/{artifact_type}"
+        blocks.append({
             "type": "text",
-            "text": voice,
+            "text": artifact,
             "cache_control": {"type": "ephemeral"},
-        },
-        {
-            "type": "text",
-            "text": "\n\n---\n\n" + artifact,
-            "cache_control": {"type": "ephemeral"},
-        },
-        {
-            "type": "text",
-            "text": "\n\n---\n\n# Sermon facts\n\n" + sermon_facts_text,
-        },
-    ]
+        })
+    else:
+        voice, version = _voice_prompt_text(preacher_id)
+        blocks.extend([
+            {
+                "type": "text",
+                "text": voice,
+                "cache_control": {"type": "ephemeral"},
+            },
+            {
+                "type": "text",
+                "text": "\n\n---\n\n" + artifact,
+                "cache_control": {"type": "ephemeral"},
+            },
+        ])
+
+    blocks.append({
+        "type": "text",
+        "text": "\n\n---\n\n# Sermon facts\n\n" + sermon_facts_text,
+    })
     return blocks, version
 
 
@@ -376,12 +413,17 @@ def generate_one(sermon_id: str, artifact_type: str, *, model: str, write: bool)
         f"specification. No markdown fences. No commentary."
     )
 
+    # Per-artifact overrides: certain artifacts (e.g. sermon_scraps) need
+    # a stronger model and bigger output budget than the Haiku default.
+    effective_model = MODEL_FOR_ARTIFACT.get(artifact_type, model)
+    max_tokens = MAX_OUTPUT_TOKENS_BY_ARTIFACT.get(artifact_type, MAX_OUTPUT_TOKENS)
+
     client = get_anthropic()
-    log.info(f"calling {model} for sermon={sermon_id} type={artifact_type}")
+    log.info(f"calling {effective_model} for sermon={sermon_id} type={artifact_type} (max_tokens={max_tokens})")
     start = time.time()
     response = client.messages.create(
-        model=model,
-        max_tokens=MAX_OUTPUT_TOKENS,
+        model=effective_model,
+        max_tokens=max_tokens,
         system=blocks,
         messages=[{"role": "user", "content": user_message}],
     )
@@ -415,7 +457,7 @@ def generate_one(sermon_id: str, artifact_type: str, *, model: str, write: bool)
                 "body": body,
                 "body_text": body_text,
                 "status": "pending_review",
-                "generation_model": model,
+                "generation_model": effective_model,
                 "voice_prompt_version": voice_version,
                 "input_tokens": in_tokens,
                 "output_tokens": out_tokens,

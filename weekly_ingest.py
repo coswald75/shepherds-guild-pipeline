@@ -67,8 +67,15 @@ QUEUE_DIR = REPO_ROOT / "weekly_queue"
 QUEUE_DIR.mkdir(exist_ok=True)
 
 ARTIFACT_TYPES = (
+    # The original 6 — member-facing pastoral cards rendered on the main page.
     "small_group_questions", "daily_readings", "prayer_prompt",
     "family_card", "couples_guide", "memory_verse",
+    # Imperatives + indicatives — structural analysis rendered as a card on
+    # the main page. Haiku, voice-prompted like the other 6.
+    "imperatives_indicatives",
+    # Sermon scraps — separate companion page (/<slug>/scraps). Sonnet 4.6,
+    # no voice prompt. ~$0.14 per call. See sermon_artifacts/prompts/sermon_scraps.md.
+    "sermon_scraps",
 )
 
 BATCH_POLL_SECONDS = 60
@@ -182,7 +189,7 @@ def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
         log.warning(f"  {customer.ingest_source_type} adapter not yet built; skipping {customer.church_name}")
         return 0
 
-    cmd = ["python", str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
+    cmd = [sys.executable, str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
            "--preacher", customer.preacher_id, *dispatch[customer.ingest_source_type][1:]]
     if dry_run:
         cmd.append("--dry-run")
@@ -233,7 +240,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 
     # Stage 4 — block until batch ends
     log.info(f"  [stage 4] waiting for batch {batch_id} …")
-    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
+    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=BATCH_MAX_WAIT_HOURS * 3600)
     if r.returncode != 0:
         log.error(f"  status --wait failed: {r.stderr[-500:]}")
@@ -241,7 +248,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 
     # Stage 5 — process results
     log.info(f"  [stage 5] processing batch {batch_id} for preacher='{preacher_name}'")
-    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "process", batch_id, "--preacher", preacher_name]
+    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "process", batch_id, "--preacher", preacher_name]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.error(f"  process failed: {r.stderr[-500:]}")
@@ -261,7 +268,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 def generate_artifacts_for(sermon_id: str) -> int:
     n = 0
     for atype in ARTIFACT_TYPES:
-        cmd = ["python", str(REPO_ROOT / "generate_artifacts.py"),
+        cmd = [sys.executable, str(REPO_ROOT / "generate_artifacts.py"),
                "generate", sermon_id, "--type", atype]
         r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
         if r.returncode == 0:
@@ -275,20 +282,30 @@ def generate_artifacts_for(sermon_id: str) -> int:
 # Stages 4-7 orchestrator for one completed batch
 # ────────────────────────────────────────────────────────────────────────────
 
-def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
-    """Wait → process → artifacts → render. Returns (sermons, artifacts, pages)."""
+def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int, int]:
+    """Wait → process → artifacts → render → deploy.
+
+    Returns (sermons, artifacts, pages, deployed).
+    """
     new_sermon_ids = wait_and_process_batch(batch_id, preacher_name)
     log.info(f"  [stages 4-5] {len(new_sermon_ids)} sermon(s) newly ingested")
 
     n_artifacts = 0
-    n_pages = 0
+    rendered_ids: list[str] = []
     for sid in new_sermon_ids:
         log.info(f"  [stage 6] generating artifacts for {sid}")
         n_artifacts += generate_artifacts_for(sid)
-        log.info(f"  [stage 7] rendering page for {sid}")
+        log.info(f"  [stage 7] rendering main sermon page for {sid}")
         if render_page(sid):
-            n_pages += 1
-    return len(new_sermon_ids), n_artifacts, n_pages
+            rendered_ids.append(sid)
+            # Stage 7b — render the companion Sermon Scraps page. Tolerant
+            # of failure: if scraps render fails, the main page still ships.
+            log.info(f"  [stage 7b] rendering scraps page for {sid}")
+            if not render_scraps_page(sid):
+                log.warning(f"    scraps render failed for {sid}; main page will deploy without scraps")
+
+    n_deployed = deploy_rendered(rendered_ids)
+    return len(new_sermon_ids), n_artifacts, len(rendered_ids), n_deployed
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -296,7 +313,7 @@ def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
 # ────────────────────────────────────────────────────────────────────────────
 
 def render_page(sermon_id: str) -> bool:
-    cmd = ["python", str(REPO_ROOT / "generate_sermon_pages.py"), "render", sermon_id]
+    cmd = [sys.executable, str(REPO_ROOT / "generate_sermon_pages.py"), "render", sermon_id]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.warning(f"  render failed for {sermon_id}: {r.stderr[-200:]}")
@@ -304,15 +321,110 @@ def render_page(sermon_id: str) -> bool:
     return True
 
 
-# ────────────────────────────────────────────────────────────────────────────
-# Stage 8 — Deploy (STUBBED — print what would happen)
-# ────────────────────────────────────────────────────────────────────────────
+def render_scraps_page(sermon_id: str) -> bool:
+    """Render the Sermon Scraps companion page to disk.
 
-def deploy_for_customer(customer: Customer, sermon_count: int) -> None:
-    target = customer.deploy_target or {}
-    host = target.get("host", "unset")
-    project = target.get("project", "unset")
-    log.info(f"  [deploy STUB] {customer.church_name}: would push {sermon_count} pages to {host}:{project}")
+    Tolerant: returns False on any subprocess failure, but does not raise —
+    the main sermon page can still deploy without the scraps companion.
+    """
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "generate_sermon_scraps_page.py"), sermon_id]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        log.warning(f"  scraps render failed for {sermon_id}: {r.stderr[-200:]}")
+        return False
+    return True
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 8 — Deploy
+# ────────────────────────────────────────────────────────────────────────────
+# One git push per brand. Each church's `brand` column picks the deploy repo;
+# all sermons for a brand land in one commit so Cloudflare auto-deploys once
+# per weekly run.
+
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "output" / "sermon-pages"
+
+BRAND_REPOS: dict[str, Path] = {
+    "sermon_steward": Path("/Users/dad/shepherds-guild/sermon-steward"),
+    # "shepherds_guild": Path(...)  # reserved for future bailey-side surfaces
+}
+
+
+def deploy_rendered(sermon_ids: list[str]) -> int:
+    """Stage every rendered page in its brand's repo and push one commit per brand.
+
+    Returns the count of pages successfully pushed across all brands.
+    """
+    if not sermon_ids:
+        return 0
+
+    sb = supabase()
+    rows = (
+        sb.table("sermons")
+        .select("id, slug, preachers(churches(url_slug, brand, name))")
+        .in_("id", sermon_ids)
+        .execute()
+        .data
+        or []
+    )
+
+    from sermon_page_renderer.deploy import CloudflarePagesAdapter
+
+    # Group staged files by brand so each brand pushes once.
+    # Each tuple: (file_path, url_path, church_name). For each sermon we
+    # add both the main page and (when present) the scraps companion page.
+    by_brand: dict[str, list[tuple[Path, str, str]]] = {}
+    for r in rows:
+        church = (r.get("preachers") or {}).get("churches") or {}
+        brand = church.get("brand")
+        url_slug = church.get("url_slug")
+        sermon_slug = r.get("slug")
+        if not (brand and url_slug and sermon_slug):
+            log.warning(f"  [stage 8] skip {r.get('id')}: missing brand/url_slug/slug")
+            continue
+
+        church_name = church.get("name") or "?"
+        main_file = DEFAULT_OUTPUT_DIR / url_slug / "sermons" / f"{sermon_slug}.html"
+        if not main_file.exists():
+            log.warning(f"  [stage 8] skip {r.get('id')}: main page missing at {main_file}")
+            continue
+        by_brand.setdefault(brand, []).append(
+            (main_file, f"/{url_slug}/sermons/{sermon_slug}", church_name)
+        )
+
+        # Scraps page — optional companion. Stage if rendered, skip silently
+        # if not (e.g., scraps generation failed earlier; the main page still
+        # ships, just without the /scraps companion).
+        scraps_file = DEFAULT_OUTPUT_DIR / url_slug / "sermons" / sermon_slug / "scraps.html"
+        if scraps_file.exists():
+            by_brand[brand].append(
+                (scraps_file, f"/{url_slug}/sermons/{sermon_slug}/scraps", church_name)
+            )
+
+    deployed_main_pages = 0
+    for brand, items in by_brand.items():
+        repo = BRAND_REPOS.get(brand)
+        if not repo:
+            log.warning(f"  [stage 8] no deploy repo configured for brand={brand!r}; skipping {len(items)} files")
+            continue
+        adapter = CloudflarePagesAdapter(repo)
+        for file_path, url_path, _ in items:
+            adapter.stage(file_path, url_path)
+        # Count distinct sermons (each sermon may stage 1 or 2 files —
+        # the main page + the optional scraps.html companion).
+        n_sermons = sum(1 for fp, _, _ in items if fp.name != "scraps.html")
+        churches = ", ".join(sorted({name for _, _, name in items}))
+        message = f"weekly_ingest: deploy {n_sermons} sermon(s) + scraps ({churches})"
+        result = adapter.commit_and_push(message)
+        if result.status == "success" and result.error not in ("nothing staged", "no diff"):
+            log.info(f"  [stage 8] {brand}: pushed {len(items)} file(s) ({n_sermons} sermons) to {repo.name}")
+            deployed_main_pages += n_sermons
+        elif result.error == "no diff":
+            log.info(f"  [stage 8] {brand}: no changes to push ({len(items)} files already up to date)")
+        else:
+            log.error(f"  [stage 8] {brand}: push failed — {result.error}")
+
+    return deployed_main_pages
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -329,7 +441,7 @@ class RunSummary:
     decomposed_processed: int = 0
     artifacts_generated: int = 0
     pages_rendered: int = 0
-    customers_deployed: int = 0
+    pages_deployed: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -436,7 +548,7 @@ def submit_decomposition_batch(customer: Customer, sermons: list[dict]) -> Optio
     log.info(f"  wrote {len(sermons)} transcript(s) to {queue}")
 
     cmd = [
-        "python", str(REPO_ROOT / "pipeline_batch.py"), "submit",
+        sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "submit",
         str(queue),
         "--preacher", customer.preacher_name,
     ]
@@ -475,7 +587,7 @@ def print_summary(s: RunSummary) -> None:
     print(f"Sermons processed:         {s.decomposed_processed}")
     print(f"Artifacts generated:       {s.artifacts_generated}")
     print(f"Pages rendered:            {s.pages_rendered}")
-    print(f"Customers deployed:        {s.customers_deployed}")
+    print(f"Pages deployed:            {s.pages_deployed}")
     if s.errors:
         print(f"\nErrors ({len(s.errors)}):")
         for e in s.errors:
@@ -544,8 +656,8 @@ def main() -> int:
             log.error(f"could not determine preacher for {args.batch_id}; pass --preacher")
             return 2
         log.info(f"processing batch {args.batch_id} for {preacher_name}")
-        n_sermons, n_artifacts, n_pages = finish_batch(args.batch_id, preacher_name)
-        log.info(f"DONE: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages")
+        n_sermons, n_artifacts, n_pages, n_deployed = finish_batch(args.batch_id, preacher_name)
+        log.info(f"DONE: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages, {n_deployed} deployed")
         # Mark this batch as processed
         if state_path.exists():
             state = json.loads(state_path.read_text())
@@ -555,6 +667,7 @@ def main() -> int:
                 "sermons": n_sermons,
                 "artifacts": n_artifacts,
                 "pages": n_pages,
+                "deployed": n_deployed,
                 "processed_at": datetime.now().isoformat(timespec="seconds"),
             })
             # Remove from batches map
@@ -575,11 +688,11 @@ def main() -> int:
         log.info(f"auto-processing {len(pending)} pending batch(es)")
         for preacher_name, batch_id in pending.items():
             try:
-                n_sermons, n_artifacts, n_pages = finish_batch(batch_id, preacher_name)
-                log.info(f"  {preacher_name}: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages")
+                n_sermons, n_artifacts, n_pages, n_deployed = finish_batch(batch_id, preacher_name)
+                log.info(f"  {preacher_name}: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages, {n_deployed} deployed")
                 state.setdefault("processed", []).append({
                     "batch_id": batch_id, "preacher": preacher_name,
-                    "sermons": n_sermons, "artifacts": n_artifacts, "pages": n_pages,
+                    "sermons": n_sermons, "artifacts": n_artifacts, "pages": n_pages, "deployed": n_deployed,
                     "processed_at": datetime.now().isoformat(timespec="seconds"),
                 })
             except Exception as e:
