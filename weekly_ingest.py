@@ -331,6 +331,14 @@ def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int, int]
             if not render_scraps_page(sid):
                 log.warning(f"    scraps render failed for {sid}; main page will deploy without scraps")
 
+    # Stage 7c — rebuild per-church sermon-index pages so the newly-rendered
+    # sermons appear in the index. Tolerant: deploy still ships individual
+    # sermon pages even if the index rebuild fails.
+    if rendered_ids:
+        log.info(f"  [stage 7c] rebuilding church sermon-index pages")
+        if not rebuild_church_indexes():
+            log.warning("    church-index rebuild failed; indexes may lag")
+
     n_deployed = deploy_rendered(rendered_ids)
 
     # Stage 9 — refresh the pastor's preacher_analysis row so the SG
@@ -373,6 +381,25 @@ def render_scraps_page(sermon_id: str) -> bool:
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.warning(f"  scraps render failed for {sermon_id}: {r.stderr[-200:]}")
+        return False
+    return True
+
+
+def rebuild_church_indexes() -> bool:
+    """Regenerate per-church sermon-index pages.
+
+    Called after stage 7/7b so freshly-rendered sermons appear in the
+    /<url_slug>/sermons/ index. Writes index.html directly into the
+    sermon-steward deploy repo (the builder script targets it by
+    absolute path). Stage 8's git add -A picks the index up.
+
+    Tolerant: returns False on subprocess failure; deploy still ships
+    the individual sermon pages even if the index didn't rebuild.
+    """
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "build_church_indexes.py")]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        log.warning(f"  church-index rebuild failed: {r.stderr[-200:]}")
         return False
     return True
 
@@ -484,11 +511,31 @@ def deploy_rendered(sermon_ids: list[str]) -> int:
         adapter = CloudflarePagesAdapter(repo)
         for file_path, url_path, _ in items:
             adapter.stage(file_path, url_path)
+        # Stage per-church index.html pages. They were rewritten by
+        # stage 7c (rebuild_church_indexes) and live directly in the
+        # repo at <repo>/<url_slug>/sermons/index.html. Use stage_in_place
+        # so the adapter picks them up in the same commit.
+        affected_url_slugs = {
+            fp.relative_to(repo).parts[0]
+            for fp, _, _ in items
+            if fp.is_relative_to(repo)
+        } if items else set()
+        # items file_paths are still in the OUTPUT dir (not the repo) at
+        # this point — they were copied INTO the repo by adapter.stage().
+        # Re-derive affected url_slugs from the url_paths instead.
+        affected_url_slugs = {url_path.lstrip("/").split("/")[0] for _, url_path, _ in items}
+        for url_slug in affected_url_slugs:
+            try:
+                adapter.stage_in_place(f"{url_slug}/sermons/index.html")
+            except FileNotFoundError:
+                log.warning(f"  [stage 8] {url_slug}/sermons/index.html missing; index won't update")
+
         # Count distinct sermons (each sermon may stage 1 or 2 files —
-        # the main page + the optional scraps.html companion).
+        # the main page + the optional scraps.html companion). Index
+        # pages are also staged but not counted as sermons.
         n_sermons = sum(1 for fp, _, _ in items if fp.name != "scraps.html")
         churches = ", ".join(sorted({name for _, _, name in items}))
-        message = f"weekly_ingest: deploy {n_sermons} sermon(s) + scraps ({churches})"
+        message = f"weekly_ingest: deploy {n_sermons} sermon(s) + scraps + index ({churches})"
         result = adapter.commit_and_push(message)
         if result.status == "success" and result.error not in ("nothing staged", "no diff"):
             log.info(f"  [stage 8] {brand}: pushed {len(items)} file(s) ({n_sermons} sermons) to {repo.name}")

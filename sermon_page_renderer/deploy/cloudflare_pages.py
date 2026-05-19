@@ -48,6 +48,23 @@ class CloudflarePagesAdapter:
         self._staged.append(dest)
         return dest
 
+    def stage_in_place(self, repo_relative_path: str) -> Path:
+        """Mark a file that already lives inside the deploy repo as staged.
+
+        Used for files written directly into the repo by other builders
+        (e.g. `build_church_indexes.py` writes index.html into the repo
+        directly). No copy — just adds the path to the staging set so
+        commit_and_push picks it up.
+
+        Raises FileNotFoundError if the file isn't in the repo.
+        """
+        rel = repo_relative_path.lstrip("/")
+        path = self.repo_path / rel
+        if not path.exists():
+            raise FileNotFoundError(f"in-place file missing: {path}")
+        self._staged.append(path)
+        return path
+
     def commit_and_push(
         self,
         message: str,
