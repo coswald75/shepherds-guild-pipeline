@@ -27,57 +27,27 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-# Hard-coded sermon list — these are the 7 the user picked from the dashboard
-# screenshot (Chris Oswald, 2026-03-15 → 2026-04-19, Dov's 4/26 excluded).
+# Hard-coded sermon list — current "next batch" of Chris Oswald's sermons
+# to scrape and ingest. Update this list with each weekly run, or with
+# whatever batch you want to bring in. (Dov's sermons live at the same
+# host but on a different preacher_id and are excluded from this list.)
+#
+# Previously-ingested batches preserved in git history (May 13 batch:
+# 2026-03-15 through 2026-04-19, seven sermons).
 SERMONS = [
     {
-        "url": "https://sermons.sovgracekc.org/sermons/91455/ephesians-522-33-marriage-the-mission-of-god/",
-        "date": "2026-03-15",
-        "title": "Marriage & The Mission of God",
-        "primary_text": "Ephesians 5:22-33",
-        "slug": "marriage-mission-of-god-2026-03-15",
+        "url": "https://sermons.sovgracekc.org/sermons/93869/",
+        "date": "2026-05-10",
+        "title": "Imperishable Beauty",
+        "primary_text": "1 Peter 3:1-6",
+        "slug": "imperishable-beauty-2026-05-10",
     },
     {
-        "url": "https://sermons.sovgracekc.org/sermons/92108/our-gods-on-display/",
-        "date": "2026-03-22",
-        "title": "Our Gods On Display",
-        "primary_text": None,  # not shown in the listing — let the LLM infer
-        "slug": "our-gods-on-display-2026-03-22",
-    },
-    {
-        "url": "https://sermons.sovgracekc.org/sermons/92455/put-on-christ-the-armor-of-god/",
-        "date": "2026-03-29",
-        "title": "Put on Christ, the Armor of God",
-        "primary_text": "Ephesians 6:10",
-        "slug": "put-on-christ-armor-of-god-2026-03-29",
-    },
-    {
-        "url": "https://sermons.sovgracekc.org/sermons/92660/suffering-for-joy/",
-        "date": "2026-04-03",
-        "title": "Suffering for Joy",
-        "primary_text": "Hebrews 12:1-2",
-        "slug": "suffering-for-joy-2026-04-03",
-    },
-    {
-        "url": "https://sermons.sovgracekc.org/sermons/92583/a-living-hope/",
-        "date": "2026-04-05",
-        "title": "A Living Hope",
-        "primary_text": "1 Peter 1:1-9",
-        "slug": "a-living-hope-2026-04-05",
-    },
-    {
-        "url": "https://sermons.sovgracekc.org/sermons/92886/the-life-of-christ-fuels-christian-endurance-1-peter-113-19/",
-        "date": "2026-04-12",
-        "title": "The Life of Christ Fuels Christian Endurance",
-        "primary_text": "1 Peter 1:13-19",
-        "slug": "life-of-christ-fuels-endurance-2026-04-12",
-    },
-    {
-        "url": "https://sermons.sovgracekc.org/sermons/93095/new-birth-brotherly-love-1-peter-113-23/",
-        "date": "2026-04-19",
-        "title": "New Birth & Brotherly Love",
-        "primary_text": "1 Peter 1:13-2:3",
-        "slug": "new-birth-brotherly-love-2026-04-19",
+        "url": "https://sermons.sovgracekc.org/sermons/93896/",
+        "date": "2026-05-15",
+        "title": "Don't Waste Your Crisis: How to Recover from a Self-Inflicted Wound",
+        "primary_text": "Psalm 51",
+        "slug": "dont-waste-your-crisis-2026-05-15",
     },
 ]
 

@@ -5,34 +5,35 @@
     <key>Label</key>
     <string>com.shepherdsguild.weekly</string>
 
-    <!-- Sunday 7pm America/Chicago — primary submit pass.
-         Walks every active customer's source, discovers new sermons,
-         submits an Anthropic Batch for decomposition, then exits. -->
+    <!-- Tuesday 8am America/Chicago — single weekly tick that drives the
+         full 9-stage pipeline for every active customer end-to-end:
+         discover → scrape → submit → wait → process → artifacts → render
+         → deploy → preacher_analysis refresh. -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
-        <integer>0</integer>     <!-- 0 = Sunday -->
+        <integer>2</integer>     <!-- 2 = Tuesday -->
         <key>Hour</key>
-        <integer>19</integer>    <!-- 7pm -->
+        <integer>8</integer>     <!-- 8am -->
         <key>Minute</key>
         <integer>0</integer>
     </dict>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/python3</string>
-        <string>/Users/dad/shepherds-guild/pipeline copy 2/weekly_ingest.py</string>
-        <string>weekly</string>
+        <string>/bin/bash</string>
+        <string>/Users/dad/shepherds-guild/pipeline copy 2/launchd/run_weekly_tuesday.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
     <string>/Users/dad/shepherds-guild/pipeline copy 2</string>
 
+    <!-- Wrapper writes its own timestamped log under logs/ —
+         launchd's stdout/err only capture wrapper-level errors. -->
     <key>StandardOutPath</key>
-    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly.out</string>
-
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly-wrapper.out</string>
     <key>StandardErrorPath</key>
-    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly.err</string>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-weekly-wrapper.err</string>
 
     <key>EnvironmentVariables</key>
     <dict>

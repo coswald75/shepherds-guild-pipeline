@@ -739,9 +739,28 @@ def ingest_sermon(
             f"unit count ({len(units)})"
         )
 
+    # Generate slug at insert time. The renderer + index builder + deploy
+    # all key off slug being non-null; leaving it NULL forces a separate
+    # backfill_slugs.py run and breaks finish_batch's downstream stages.
+    title = decomposition.get("title") or ""
+    date_str = decomposition.get("date")
+    parsed_date = None
+    if date_str:
+        try:
+            from datetime import date as _date_cls
+            parsed_date = _date_cls.fromisoformat(date_str)
+        except (TypeError, ValueError):
+            parsed_date = None
+    try:
+        from sermon_page_renderer.slug import sermon_slug
+        slug_val = sermon_slug(title, parsed_date) if title else None
+    except ImportError:
+        slug_val = None  # graceful: backfill_slugs.py will fix later
+
     sermon_data = {
         "preacher_id": preacher_id,
         "title": decomposition.get("title"),
+        "slug": slug_val,
         "date": decomposition.get("date"),
         "primary_text": decomposition.get("primary_text"),
         "sermon_type": sanitize_enum(

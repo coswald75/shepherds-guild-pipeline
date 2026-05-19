@@ -7,6 +7,9 @@ output/
 # Runtime logs (kept locally, not versioned)
 logs/
 
+# Scraped transcripts (reproducible from scrape_*.py; not versioned)
+new_sermons*/
+
 # Python
 __pycache__/
 *.pyc

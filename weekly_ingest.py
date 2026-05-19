@@ -230,13 +230,41 @@ def pending_for_decomposition(customer: Customer) -> list[dict]:
 # Stages 4-5 — Wait for batch + process results
 # ────────────────────────────────────────────────────────────────────────────
 
+def _all_decomposed_ids(sb) -> set[str]:
+    """Return every sermon_id with decomposed_at set, paginated.
+
+    Supabase REST caps single-page results at 1000 rows. The corpus
+    grew past that on 2026-05-13; without pagination the pre/post diff
+    silently returns empty when newly-ingested rows fall on later pages.
+    """
+    ids: set[str] = set()
+    offset = 0
+    page = 1000
+    while True:
+        rows = (
+            sb.table("sermons")
+            .select("id")
+            .not_.is_("decomposed_at", "null")
+            .range(offset, offset + page - 1)
+            .execute()
+            .data
+            or []
+        )
+        if not rows:
+            break
+        ids.update(r["id"] for r in rows)
+        if len(rows) < page:
+            break
+        offset += page
+    return ids
+
+
 def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
     """Wait for Anthropic batch to complete, then process results (parse → embed →
     ingest to Supabase). Returns set of sermon_ids newly populated with decomposed_at.
     """
     sb = supabase()
-    pre = sb.table("sermons").select("id, preacher_id, decomposed_at").execute()
-    before_decomposed = {r["id"] for r in (pre.data or []) if r.get("decomposed_at")}
+    before_decomposed = _all_decomposed_ids(sb)
 
     # Stage 4 — block until batch ends
     log.info(f"  [stage 4] waiting for batch {batch_id} …")
@@ -256,8 +284,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
     for line in r.stdout.splitlines()[-10:]:
         log.info(f"    {line}")
 
-    post = sb.table("sermons").select("id, decomposed_at").execute()
-    after_decomposed = {r["id"] for r in (post.data or []) if r.get("decomposed_at")}
+    after_decomposed = _all_decomposed_ids(sb)
     return after_decomposed - before_decomposed
 
 
