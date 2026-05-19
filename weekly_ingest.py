@@ -283,7 +283,7 @@ def generate_artifacts_for(sermon_id: str) -> int:
 # ────────────────────────────────────────────────────────────────────────────
 
 def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int, int]:
-    """Wait → process → artifacts → render → deploy.
+    """Wait → process → artifacts → render → deploy → refresh analysis.
 
     Returns (sermons, artifacts, pages, deployed).
     """
@@ -305,6 +305,21 @@ def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int, int]
                 log.warning(f"    scraps render failed for {sid}; main page will deploy without scraps")
 
     n_deployed = deploy_rendered(rendered_ids)
+
+    # Stage 9 — refresh the pastor's preacher_analysis row so the SG
+    # dashboard at theshepherdsguild.com/showcasev4 reflects the new
+    # corpus. Per-preacher (not per-sermon), so it runs once at the end.
+    # Tolerant of failure: a stale dashboard is not worth rolling back
+    # a successful deploy.
+    if new_sermon_ids:
+        preacher_id = _preacher_id_for_sermon(new_sermon_ids[0])
+        if preacher_id:
+            log.info(f"  [stage 9] refreshing preacher_analysis for {preacher_name}")
+            if not refresh_preacher_analysis(preacher_id):
+                log.warning(f"    preacher_analysis refresh failed for {preacher_name}; SG dashboard will lag")
+        else:
+            log.warning(f"  [stage 9] could not resolve preacher_id for {preacher_name}; skipping analysis refresh")
+
     return len(new_sermon_ids), n_artifacts, len(rendered_ids), n_deployed
 
 
@@ -331,6 +346,38 @@ def render_scraps_page(sermon_id: str) -> bool:
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.warning(f"  scraps render failed for {sermon_id}: {r.stderr[-200:]}")
+        return False
+    return True
+
+
+def _preacher_id_for_sermon(sermon_id: str) -> Optional[str]:
+    """Look up a sermon's preacher_id from Supabase."""
+    try:
+        sb = supabase()
+        row = (
+            sb.table("sermons")
+            .select("preacher_id")
+            .eq("id", sermon_id)
+            .single()
+            .execute()
+            .data
+        )
+        return (row or {}).get("preacher_id")
+    except Exception as exc:
+        log.warning(f"  preacher_id lookup failed for {sermon_id}: {exc}")
+        return None
+
+
+def refresh_preacher_analysis(preacher_id: str) -> bool:
+    """Re-run generate_analysis.py for one pastor. Updates the SG dashboard.
+
+    Tolerant: returns False on subprocess failure.
+    """
+    cmd = [sys.executable, str(REPO_ROOT / "generate_analysis.py"),
+           "--preacher-id", preacher_id]
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        log.warning(f"  preacher_analysis refresh failed: {r.stderr[-200:]}")
         return False
     return True
 
