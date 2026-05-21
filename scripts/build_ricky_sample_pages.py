@@ -18,9 +18,10 @@ Pages include:
     VOICE_PROFILES routing in generate_artifacts.py)
   - about-the-church card linking back to crossofgrace.net
 
-Audio URLs from Nucleus expire ~6 months out (signed S3). Pages will
-need re-rendering periodically. Long-term fix: stable URL pattern via
-the Nucleus public site rather than direct S3.
+Audio URLs are mirrored to Cloudflare R2 (sermons-cdn.sermonsteward.com)
+by the ingest adapters; the renderer prefers sermons.hosted_audio_url
+over the original-host signed URL when present, so pages stay playable
+indefinitely without re-rendering.
 """
 from __future__ import annotations
 import os

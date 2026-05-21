@@ -246,10 +246,10 @@ def compose(sermon_id: str) -> dict:
     if pastoral_unit:
         pastoral_text = pastoral_unit.get("summary") or pastoral_unit.get("key_claim")
 
-    # Audio: distinguish a direct media file (embeddable in <audio>) from a
-    # page URL (Cross of Grace doesn't expose stable MP3 links — store the
-    # sermon page URL and render as an outbound listen-link instead).
-    audio_url = sermon.get("audio_url")
+    # Audio: prefer our R2-hosted mirror (stable, never expires) when present,
+    # else the original-host URL. The template still branches on audio_is_media
+    # to render <audio> for direct MP3s vs. outbound link for sermon-page URLs.
+    audio_url = sermon.get("hosted_audio_url") or sermon.get("audio_url")
     audio_is_media = bool(
         audio_url and audio_url.lower().split("?")[0].endswith(
             (".mp3", ".m4a", ".wav", ".ogg", ".aac")
@@ -259,7 +259,6 @@ def compose(sermon_id: str) -> dict:
     if audio_url and not audio_is_media:
         import urllib.parse as _urlparse
         host = _urlparse.urlsplit(audio_url).netloc.lower()
-        # Strip leading "www." for display
         audio_host_label = host[4:] if host.startswith("www.") else host
 
     # Memory verse — first Tier-1 citation reference if any
