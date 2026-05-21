@@ -155,13 +155,13 @@ def parse_feed(feed_url: str) -> list[FeedItem]:
 
 def find_match(sb, preacher_id: str, item: FeedItem) -> dict | None:
     # 1. Try by podcast_guid (idempotent re-runs)
-    res = sb.table("sermons").select("id, title, date, podcast_guid").eq("podcast_guid", item.guid).limit(1).execute()
+    res = sb.table("sermons").select("id, title, date, slug, podcast_guid, hosted_audio_url").eq("podcast_guid", item.guid).limit(1).execute()
     if res.data:
         return res.data[0]
     # 2. Try by (preacher_id, date, normalized_title). Pull the date's sermons and compare.
     if not item.pub_date:
         return None
-    res = sb.table("sermons").select("id, title, date").eq("preacher_id", preacher_id).eq("date", item.pub_date.isoformat()).execute()
+    res = sb.table("sermons").select("id, title, date, slug, hosted_audio_url").eq("preacher_id", preacher_id).eq("date", item.pub_date.isoformat()).execute()
     n = normalize_title(item.title)
     for row in res.data or []:
         if normalize_title(row["title"]) == n:
@@ -188,6 +188,22 @@ def main() -> int:
         return 2
     sb = create_client(url, key)
 
+    # Resolve church_slug for R2 mirror keys.
+    pre = sb.table("preachers").select("church_id").eq("id", args.preacher).limit(1).execute()
+    church_slug = None
+    if pre.data and pre.data[0].get("church_id"):
+        ch = sb.table("churches").select("slug").eq("id", pre.data[0]["church_id"]).limit(1).execute()
+        church_slug = ch.data[0].get("slug") if ch.data else None
+    if not church_slug:
+        print("  [warn] no church_slug for this preacher; R2 mirror will be skipped")
+
+    try:
+        sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
+        import sermon_audio_host  # noqa: E402
+    except Exception as e:
+        print(f"  [warn] sermon_audio_host import failed: {e}; R2 mirror disabled")
+        sermon_audio_host = None  # type: ignore
+
     print(f"Fetching feed: {args.feed}")
     items = parse_feed(args.feed)
     print(f"  found {len(items)} items in feed")
@@ -195,6 +211,9 @@ def main() -> int:
     matched = 0
     updated = 0
     no_audio = 0
+    mirrored = 0
+    mirror_skipped = 0
+    mirror_failed = 0
     unmatched: list[FeedItem] = []
 
     for it in items:
@@ -217,6 +236,33 @@ def main() -> int:
         if it.audio_size:
             patch["audio_size_bytes"] = it.audio_size
 
+        # Mirror to R2 if we can.
+        sermon_slug = row.get("slug")
+        if (
+            sermon_audio_host
+            and sermon_audio_host.is_configured()
+            and church_slug
+            and sermon_slug
+            and not row.get("hosted_audio_url")
+            and not args.dry_run
+        ):
+            try:
+                hosted = sermon_audio_host.mirror_sermon(
+                    source_url=it.audio_url,
+                    church_slug=church_slug,
+                    sermon_slug=sermon_slug,
+                )
+            except Exception as e:
+                print(f"  mirror error: {e}")
+                hosted = None
+            if hosted:
+                patch["hosted_audio_url"] = hosted
+                mirrored += 1
+            else:
+                mirror_failed += 1
+        elif row.get("hosted_audio_url"):
+            mirror_skipped += 1
+
         if args.dry_run:
             print(f"  WOULD UPDATE {row['id']} ({row.get('date')}) {row['title'][:60]}")
             continue
@@ -229,6 +275,9 @@ def main() -> int:
     print(f"  Items with audio URL:  {len(items) - no_audio}")
     print(f"  Matched in Supabase:   {matched}")
     print(f"  Updated:               {updated}{' (dry-run)' if args.dry_run else ''}")
+    print(f"  Mirrored to R2:        {mirrored}")
+    print(f"  Mirror skipped:        {mirror_skipped}")
+    print(f"  Mirror failed:         {mirror_failed}")
     print(f"  Unmatched (logged):    {len(unmatched)}")
 
     if unmatched:

@@ -1,0 +1,26 @@
+name = "sermon-steward-upload"
+main = "src/index.js"
+compatibility_date = "2026-05-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Keep the workers.dev fallback URL available alongside the custom domain.
+workers_dev = true
+
+# Custom-domain route — must be at the top level (before any [[ tables ]])
+# so TOML doesn't attach it to the preceding section.
+routes = [
+  { pattern = "upload.sermonsteward.com", custom_domain = true },
+]
+
+# Public R2 base — served via the custom domain bound to sermon-steward-audio.
+[vars]
+R2_PUBLIC_BASE = "https://sermons-cdn.sermonsteward.com"
+SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
+
+# R2 bucket binding — no S3 creds needed when called from the Worker itself.
+[[r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "sermon-steward-audio"
+
+# Secrets (set via `wrangler secret put`):
+#   SUPABASE_SERVICE_KEY — service-role key for sermons/preachers/churches writes

@@ -199,7 +199,7 @@ def title_sim(a: str, b: str) -> float:
 
 def find_match(sb, preacher_id: str, item: Item) -> tuple[Optional[dict], str]:
     guid = f"nucleus:{item.slug}"
-    res = sb.table("sermons").select("id, title, date") \
+    res = sb.table("sermons").select("id, title, date, slug, hosted_audio_url") \
         .eq("podcast_guid", guid).limit(1).execute()
     if res.data:
         return res.data[0], "guid"
@@ -207,7 +207,7 @@ def find_match(sb, preacher_id: str, item: Item) -> tuple[Optional[dict], str]:
     if not item.date:
         return None, "no_date"
 
-    res = sb.table("sermons").select("id, title, date") \
+    res = sb.table("sermons").select("id, title, date, slug, hosted_audio_url") \
         .eq("preacher_id", preacher_id) \
         .eq("date", item.date.isoformat()).execute()
     target = normalize_title(item.title)
@@ -225,7 +225,7 @@ def find_match(sb, preacher_id: str, item: Item) -> tuple[Optional[dict], str]:
 
     start = (item.date - timedelta(days=7)).isoformat()
     end = (item.date + timedelta(days=7)).isoformat()
-    res = sb.table("sermons").select("id, title, date") \
+    res = sb.table("sermons").select("id, title, date, slug, hosted_audio_url") \
         .eq("preacher_id", preacher_id) \
         .gte("date", start).lte("date", end).execute()
     best, best_ratio = None, 0.0
@@ -257,6 +257,23 @@ def main() -> int:
         return 2
     sb = create_client(url, key)
 
+    # Resolve church_slug once for R2 mirror keys.
+    pre = sb.table("preachers").select("church_id").eq("id", args.preacher).limit(1).execute()
+    church_slug: Optional[str] = None
+    if pre.data and pre.data[0].get("church_id"):
+        ch = sb.table("churches").select("slug").eq("id", pre.data[0]["church_id"]).limit(1).execute()
+        church_slug = (ch.data[0].get("slug") if ch.data else None)
+    if not church_slug:
+        print("  [warn] no church_slug for this preacher; R2 mirror will be skipped")
+
+    # Lazy-import so the script still works when boto3 isn't installed.
+    try:
+        sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
+        import sermon_audio_host  # noqa: E402
+    except Exception as e:
+        print(f"  [warn] sermon_audio_host import failed: {e}; R2 mirror disabled")
+        sermon_audio_host = None  # type: ignore
+
     host = args.host.rstrip("/")
     print(f"Walking Nucleus listing for {host} (engine={args.engine_id}) …")
     sermons = walk_listing(host, args.engine_id)
@@ -266,7 +283,8 @@ def main() -> int:
         sermons = sermons[: args.limit]
         print(f"  limited to {len(sermons)}")
 
-    counts = {"updated": 0, "no_match": 0, "no_audio": 0, "fetch_error": 0}
+    counts = {"updated": 0, "no_match": 0, "no_audio": 0, "fetch_error": 0,
+              "mirrored": 0, "mirror_skipped": 0, "mirror_failed": 0}
     by_method: dict[str, int] = {}
     unmatched: list[Item] = []
 
@@ -299,6 +317,34 @@ def main() -> int:
         if item.audio_size:
             patch["audio_size_bytes"] = item.audio_size
 
+        # Mirror to R2 if we can. Even when audio_url itself is unchanged,
+        # row.hosted_audio_url may be NULL — mirror covers that case too.
+        hosted = None
+        sermon_slug = row.get("slug")
+        if (
+            sermon_audio_host
+            and sermon_audio_host.is_configured()
+            and church_slug
+            and sermon_slug
+            and not row.get("hosted_audio_url")
+            and not args.dry_run
+        ):
+            try:
+                hosted = sermon_audio_host.mirror_sermon(
+                    source_url=item.audio_url,
+                    church_slug=church_slug,
+                    sermon_slug=sermon_slug,
+                )
+            except Exception as e:
+                print(f"  [{i}/{len(sermons)}] mirror error: {e}")
+            if hosted:
+                patch["hosted_audio_url"] = hosted
+                counts["mirrored"] += 1
+            else:
+                counts["mirror_failed"] += 1
+        elif row.get("hosted_audio_url"):
+            counts["mirror_skipped"] += 1
+
         if args.dry_run:
             print(f"  [{i}/{len(sermons)}] WOULD UPDATE ({method:18s}) {item.date}  {item.title[:55]}")
             counts["updated"] += 1
@@ -306,13 +352,16 @@ def main() -> int:
         sb.table("sermons").update(patch).eq("id", row["id"]).execute()
         counts["updated"] += 1
         if i % 25 == 0:
-            print(f"  [{i}/{len(sermons)}] {counts['updated']} updated so far …")
+            print(f"  [{i}/{len(sermons)}] {counts['updated']} updated, {counts['mirrored']} mirrored …")
 
     print()
     print("Summary:")
     print(f"  Sermons in Nucleus listing: {len(sermons)}")
     print(f"  With audio URL:             {len(sermons) - counts['no_audio']}")
     print(f"  {'Would update' if args.dry_run else 'Updated'}:                  {counts['updated']}")
+    print(f"  Mirrored to R2:             {counts['mirrored']}")
+    print(f"  Mirror skipped (had URL):   {counts['mirror_skipped']}")
+    print(f"  Mirror failed:              {counts['mirror_failed']}")
     print(f"  Unmatched:                  {counts['no_match']}")
     print(f"  No audio source:            {counts['no_audio']}")
     print(f"  Fetch errors:               {counts['fetch_error']}")
