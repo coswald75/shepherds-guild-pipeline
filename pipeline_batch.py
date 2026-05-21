@@ -60,7 +60,7 @@ except ImportError as e:
     print("Install with: pip install anthropic voyageai supabase python-dotenv")
     sys.exit(1)
 
-load_dotenv()
+load_dotenv(override=True)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -600,7 +600,11 @@ def process_batch_results(
 
                 sermon_id = ingest_sermon(
                     decomposition, preacher_id, embeddings,
-                    raw_transcript=raw_transcript
+                    raw_transcript=raw_transcript,
+                    # weekly_ingest names files <uuid>.txt → triggers UPDATE
+                    # of the existing sermon row. Sermonindex/slug names pass
+                    # through to INSERT (since UUID regex won't match).
+                    existing_sermon_id=custom_id,
                 )
                 log.info(f"Ingested: {filename} → {sermon_id}")
                 results.append({
@@ -723,11 +727,22 @@ def ensure_preacher(preacher_name: str, is_canonical: bool = False) -> str:
     return preacher_id
 
 
+# UUID matcher for sniffing whether the batch custom_id maps to an existing
+# sermon row. weekly_ingest names submission files <sermon_id>.txt where
+# sermon_id is the row's UUID — for those, we should UPDATE the existing
+# row, not INSERT a duplicate. Sermonindex/canonical submissions use slug
+# filenames and continue to take the INSERT path.
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I
+)
+
+
 def ingest_sermon(
     decomposition: dict,
     preacher_id: str,
     embeddings: list[list[float]],
-    raw_transcript: Optional[str] = None
+    raw_transcript: Optional[str] = None,
+    existing_sermon_id: Optional[str] = None,
 ) -> str:
     sb = get_supabase()
     pipeline_meta = decomposition.get("_pipeline", {})
@@ -770,9 +785,25 @@ def ingest_sermon(
         "processing_cost_usd": pipeline_meta.get("processing_cost_usd"),
     }
 
-    result = sb.table("sermons").insert(sermon_data).execute()
-    sermon_id = result.data[0]["id"]
-    log.info(f"Inserted sermon: {decomposition.get('title')} ({sermon_id})")
+    # UPSERT: if the caller knows an existing sermon row to update (because
+    # the batch was launched against existing audio-having rows), UPDATE that
+    # row in place. Otherwise INSERT a new row (sermonindex/canonical path).
+    if existing_sermon_id and _UUID_RE.match(existing_sermon_id):
+        # Clear out any prior decomp children so we don't collide on the
+        # unit_index unique constraint when inserting fresh units below.
+        sb.table("units").delete().eq("sermon_id", existing_sermon_id).execute()
+        sb.table("sermon_artifacts").delete().eq("sermon_id", existing_sermon_id).execute()
+        # Don't overwrite audio_url/slug/hosted_audio_url — those are upstream
+        # fields that came from the ingest adapter, not from decomposition.
+        update_fields = {k: v for k, v in sermon_data.items()
+                         if k not in ("preacher_id",)}  # also keep preacher stable
+        sb.table("sermons").update(update_fields).eq("id", existing_sermon_id).execute()
+        sermon_id = existing_sermon_id
+        log.info(f"Updated existing sermon: {decomposition.get('title')} ({sermon_id})")
+    else:
+        result = sb.table("sermons").insert(sermon_data).execute()
+        sermon_id = result.data[0]["id"]
+        log.info(f"Inserted sermon: {decomposition.get('title')} ({sermon_id})")
 
     for i, unit in enumerate(units):
         ctx = f"Unit {unit.get('unit_index', i)}: "
