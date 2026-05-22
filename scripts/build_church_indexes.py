@@ -5,14 +5,17 @@ Surfaces emitted per church:
   - /<url_slug>/sermons/                       all-sermons listing, paginated 25/page
   - /<url_slug>/sermons/scripture/             66-book grid with counts
   - /<url_slug>/sermons/scripture/<book>/      per-book sermon listing, paginated
-
-Doctrine and series surfaces are planned but not yet emitted here.
+  - /<url_slug>/sermons/doctrine/              16 doctrinal-loci cards
+  - /<url_slug>/sermons/doctrine/<locus>/      per-locus listing with editorial blurb
+  - /<url_slug>/sermons/series/                preaching-series cards, most-recent first
+  - /<url_slug>/sermons/series/<series>/       per-series listing in preaching order
 """
 
 from __future__ import annotations
 
 import html
 import math
+import re
 import shutil
 import sys
 from collections import defaultdict
@@ -183,6 +186,25 @@ CSS_BASE = """\
     font-size: 16px; line-height: 1.6; color: var(--ink-soft);
   }
   .locus-blurb em { color: var(--ink); font-style: italic; }
+  .series-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px; margin: 0;
+  }
+  .series-card {
+    display: block; padding: 16px 18px;
+    border: 1px solid var(--rule); border-radius: 10px;
+    background: var(--bg-card); color: var(--ink);
+  }
+  .series-card:hover { border-color: var(--accent); }
+  .series-card .name {
+    display: block; font-size: 17px; font-weight: 700;
+    letter-spacing: -0.01em; margin-bottom: 6px;
+  }
+  .series-card:hover .name { color: var(--accent); }
+  .series-card .meta {
+    font-size: 13px; color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
 """
 
 
@@ -249,6 +271,7 @@ def _browse_by_nav(url_slug: str, here: str) -> str:
         ("all",       f"/{url_slug}/sermons/",           "All sermons"),
         ("scripture", f"/{url_slug}/sermons/scripture/", "Scripture"),
         ("doctrine",  f"/{url_slug}/sermons/doctrine/",  "Doctrine"),
+        ("series",    f"/{url_slug}/sermons/series/",    "Series"),
     ]
     parts = ['<div class="browse-by"><span class="label">Browse:</span>']
     for key, href, label in items:
@@ -364,6 +387,100 @@ LOCUS_CARD = """\
       <div class="head"><span class="name">{name}</span><span class="n">{count} sermon{count_plural}</span></div>
       <p class="blurb">{blurb_short}</p>
     </a>"""
+
+
+SERIES_INDEX_PAGE = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browse by Series — {church_name} · Sermon Steward</title>
+<meta name="description" content="Sermons from {church_name}{loc_phrase} grouped by preaching series.">
+<link rel="canonical" href="https://sermonsteward.com/{url_slug}/sermons/series">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Browse by Series — {church_name}">
+<meta property="og:url" content="https://sermonsteward.com/{url_slug}/sermons/series">
+<meta property="og:site_name" content="Sermon Steward">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+{css}</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/">Sermon Steward<span class="dot">.</span></a>
+</header>
+
+<main>
+  <div class="breadcrumb"><a href="/">Sermon Steward</a> · {crumb_church} · <a href="/{url_slug}/sermons/">Sermons</a> · Series</div>
+  <h1>Browse by Series</h1>
+  <p class="location">{total_count} sermons across {series_count} preaching series</p>
+  {browse_by}<div class="series-grid">
+{cards}
+  </div>
+</main>
+
+<footer>
+  Built by pastors, for pastors. · <a href="/">Sermon Steward</a>
+</footer>
+
+</body>
+</html>
+"""
+
+
+SERIES_CARD = """\
+    <a class="series-card" href="/{url_slug}/sermons/series/{series_slug}/">
+      <span class="name">{name}</span>
+      <span class="meta">{count} sermon{count_plural}{date_range_block}</span>
+    </a>"""
+
+
+SERIES_DETAIL_PAGE = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{series}{title_page_suffix} — Sermons from {church_name} · Sermon Steward</title>
+<meta name="description" content="Sermons from the {series} series at {church_name}.">
+<link rel="canonical" href="https://sermonsteward.com{canonical_path}">
+{rel_prev_next}<meta property="og:type" content="website">
+<meta property="og:title" content="{series} — Sermons from {church_name}">
+<meta property="og:url" content="https://sermonsteward.com{canonical_path}">
+<meta property="og:site_name" content="Sermon Steward">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+{css}</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/">Sermon Steward<span class="dot">.</span></a>
+</header>
+
+<main>
+  <div class="breadcrumb"><a href="/">Sermon Steward</a> · {crumb_church} · <a href="/{url_slug}/sermons/">Sermons</a> · <a href="/{url_slug}/sermons/series/">Series</a> · {series}</div>
+  <h1>{series}</h1>
+  <p class="location">{count} sermon{count_plural} from {church_name}{page_of_suffix}</p>
+  <h2>Sermons<span class="count">(in preaching order)</span></h2>
+  <ul class="sermons">
+{rows}
+  </ul>
+{pagination_nav}</main>
+
+<footer>
+  Built by pastors, for pastors. · <a href="/">Sermon Steward</a>
+</footer>
+
+</body>
+</html>
+"""
 
 
 DOCTRINE_LOCUS_PAGE = """\
@@ -791,6 +908,199 @@ def _render_scripture_surface(
     return pages_written
 
 
+def _series_slug(name: str) -> str:
+    """'Kingdom Come' → 'kingdom-come', "Paul's First Missionary Journey" → 'pauls-first-missionary-journey'."""
+    s = name.lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-") or "series"
+
+
+def _format_date_short(d: str) -> str:
+    """'2026-02-22' → 'Feb 2026' (for series-card date ranges)."""
+    y, m, _ = d.split("-")
+    return f"{_MONTHS[int(m) - 1]} {y}"
+
+
+def _gather_series_for_church(
+    sb, preacher_ids: list[str], url_slug: str
+) -> dict[str, list[dict]]:
+    """Map series_name → [sermon dicts] for sermons with a rendered HTML page
+    and a non-NULL series_name.
+
+    Within each series, sermons are sorted by date ASCENDING (oldest first,
+    so Part 1 precedes Part 2). Sermons with NULL date sort to the end of
+    their series.
+    """
+    sermons_dir = SERMON_STEWARD_REPO / url_slug / "sermons"
+    sermons = (
+        sb.table("sermons")
+        .select("id, title, date, slug, primary_text, series_name")
+        .in_("preacher_id", preacher_ids)
+        .not_.is_("slug", "null")
+        .not_.is_("series_name", "null")
+        .execute().data or []
+    )
+    sermons = [s for s in sermons if (sermons_dir / f"{s['slug']}.html").exists()]
+
+    series_to_sermons: dict[str, list[dict]] = defaultdict(list)
+    for s in sermons:
+        series_to_sermons[s["series_name"]].append(s)
+
+    def _sort_key_asc(s):
+        d = s.get("date") or ""
+        # Sermons with no date sort to the end (date-asc); use a big sentinel.
+        return (d == "", int(d.replace("-", "")) if d else 99999999, (s.get("title") or "").lower())
+
+    for name in series_to_sermons:
+        series_to_sermons[name].sort(key=_sort_key_asc)
+
+    return dict(series_to_sermons)
+
+
+def _render_series_surface(
+    c: dict,
+    series_to_sermons: dict[str, list[dict]],
+    crumb_church: str,
+    loc_phrase: str,
+) -> int:
+    """Emit /<url_slug>/sermons/series/ index + per-series pages."""
+    url_slug = c["url_slug"]
+    series_root = SERMON_STEWARD_REPO / url_slug / "sermons" / "series"
+    series_root.mkdir(parents=True, exist_ok=True)
+
+    all_sermons_in_series = sum(len(s) for s in series_to_sermons.values())
+
+    # Order index cards by most-recent sermon in each series, desc.
+    def _series_recency(name_sermons):
+        _, sermons = name_sermons
+        dates = [s["date"] for s in sermons if s.get("date")]
+        return max(dates) if dates else "0000-00-00"
+
+    ordered_series = sorted(
+        series_to_sermons.items(),
+        key=_series_recency,
+        reverse=True,
+    )
+
+    # --- series index ---
+    cards = []
+    for name, sermons in ordered_series:
+        count = len(sermons)
+        dates = sorted(s["date"] for s in sermons if s.get("date"))
+        if dates and dates[0] != dates[-1]:
+            date_range = f" · {_format_date_short(dates[0])} – {_format_date_short(dates[-1])}"
+        elif dates:
+            date_range = f" · {_format_date_short(dates[0])}"
+        else:
+            date_range = ""
+        cards.append(SERIES_CARD.format(
+            url_slug=url_slug,
+            series_slug=_series_slug(name),
+            name=html.escape(name),
+            count=count,
+            count_plural="" if count == 1 else "s",
+            date_range_block=date_range,
+        ))
+
+    index_html = SERIES_INDEX_PAGE.format(
+        css=CSS_BASE,
+        church_name=html.escape(c["name"] or ""),
+        crumb_church=crumb_church,
+        url_slug=url_slug,
+        total_count=all_sermons_in_series,
+        series_count=len(series_to_sermons),
+        loc_phrase=html.escape(loc_phrase),
+        browse_by=_browse_by_nav(url_slug, here="series"),
+        cards="\n".join(cards),
+    )
+    (series_root / "index.html").write_text(index_html, encoding="utf-8")
+    pages_written = 1
+
+    keep_series_dirs = set()
+
+    # --- per-series listings ---
+    for name, sermons in series_to_sermons.items():
+        sslug = _series_slug(name)
+        keep_series_dirs.add(sslug)
+        series_dir = series_root / sslug
+        series_dir.mkdir(parents=True, exist_ok=True)
+
+        total = len(sermons)
+        total_pages = max(1, math.ceil(total / PAGE_SIZE))
+        base_path = f"/{url_slug}/sermons/series/{sslug}"
+
+        page_root = series_dir / "page"
+        if page_root.exists():
+            for child in page_root.iterdir():
+                if child.is_dir() and child.name.isdigit():
+                    n = int(child.name)
+                    if n < 2 or n > total_pages:
+                        shutil.rmtree(child)
+            if total_pages == 1 and not any(page_root.iterdir()):
+                page_root.rmdir()
+
+        for page_num in range(1, total_pages + 1):
+            start = (page_num - 1) * PAGE_SIZE
+            chunk = sermons[start:start + PAGE_SIZE]
+
+            rows_html = []
+            for s in chunk:
+                pt = s.get("primary_text") or ""
+                pt_block = (
+                    f'<span class="dot-sep">·</span>{html.escape(pt)}' if pt else ""
+                )
+                # Inside a series page, don't repeat the series name on every row.
+                series_block = ""
+                date_h = _format_date(s["date"]) if s.get("date") else "Date unknown"
+                rows_html.append(ROW.format(
+                    url_slug=url_slug,
+                    slug=s["slug"],
+                    title=html.escape(s["title"] or "(untitled)"),
+                    date_human=date_h,
+                    primary_text_block=pt_block,
+                    series_block=series_block,
+                    primary_book_badge="",
+                ))
+
+            canonical_path = _page_url(base_path, page_num)
+            title_page_suffix = f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
+            page_of_suffix = f" · page {page_num} of {total_pages}" if total_pages > 1 else ""
+
+            html_doc = SERIES_DETAIL_PAGE.format(
+                css=CSS_BASE,
+                series=html.escape(name),
+                church_name=html.escape(c["name"] or ""),
+                crumb_church=crumb_church,
+                url_slug=url_slug,
+                canonical_path=canonical_path,
+                rel_prev_next=_build_rel_prev_next(base_path, page_num, total_pages),
+                loc_phrase=html.escape(loc_phrase),
+                title_page_suffix=title_page_suffix,
+                page_of_suffix=page_of_suffix,
+                count=total,
+                count_plural="" if total == 1 else "s",
+                rows="\n".join(rows_html),
+                pagination_nav=_build_pagination_nav(base_path, page_num, total_pages),
+            )
+
+            if page_num == 1:
+                out_path = series_dir / "index.html"
+            else:
+                out_path = series_dir / "page" / str(page_num) / "index.html"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(html_doc, encoding="utf-8")
+            pages_written += 1
+
+    # Prune stale series directories
+    for child in series_root.iterdir():
+        if child.is_dir() and child.name not in keep_series_dirs:
+            shutil.rmtree(child)
+
+    return pages_written
+
+
 def _gather_loci_for_church(
     sb, preacher_ids: list[str], url_slug: str
 ) -> dict[str, list[dict]]:
@@ -1201,6 +1511,20 @@ def main() -> int:
             f"wrote {SERMON_STEWARD_REPO / c['url_slug'] / 'sermons' / 'doctrine'}/  "
             f"({total_engaged} sermons across {loci_touched} loci, "
             f"{doctrine_pages} pages)"
+        )
+
+        # --- series surface ---
+        series_to_sermons = _gather_series_for_church(sb, preacher_ids, c["url_slug"])
+        series_pages = _render_series_surface(
+            c, series_to_sermons,
+            crumb_church=crumb_church,
+            loc_phrase=loc_phrase,
+        )
+        total_in_series = sum(len(s) for s in series_to_sermons.values())
+        print(
+            f"wrote {SERMON_STEWARD_REPO / c['url_slug'] / 'sermons' / 'series'}/  "
+            f"({total_in_series} sermons across {len(series_to_sermons)} series, "
+            f"{series_pages} pages)"
         )
 
     return 0
