@@ -30,6 +30,9 @@ from sermon_page_renderer import queries as q  # noqa: E402
 from bible_books import (  # noqa: E402
     BOOKS, OT_BOOKS, NT_BOOKS, BOOK_ORDER, canonical_book, book_slug,
 )
+from doctrinal_loci import (  # noqa: E402
+    LOCUS_NAMES, LOCUS_SET, LOCUS_BLURB, locus_slug,
+)
 
 SERMON_STEWARD_REPO = Path("/Users/dad/shepherds-guild/sermon-steward")
 
@@ -150,6 +153,36 @@ CSS_BASE = """\
   .book-grid a:hover .n { color: var(--accent); }
   .book-grid span.empty { color: var(--ink-faint); background: transparent; border-style: dashed; cursor: default; }
   .book-grid span.empty .n { font-weight: 400; }
+  .locus-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px; margin: 0;
+  }
+  .locus-card {
+    display: block; padding: 18px 20px;
+    border: 1px solid var(--rule); border-radius: 10px;
+    background: var(--bg-card); color: var(--ink);
+  }
+  .locus-card:hover { border-color: var(--accent); }
+  .locus-card .head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; margin-bottom: 8px;
+  }
+  .locus-card .name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .locus-card:hover .name { color: var(--accent); }
+  .locus-card .n {
+    color: var(--ink-faint); font-size: 13px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .locus-card .blurb {
+    font-size: 14px; line-height: 1.5; color: var(--ink-soft);
+    margin: 0;
+  }
+  .locus-blurb {
+    background: #fff; border: 1px solid var(--rule); border-radius: 10px;
+    padding: 18px 22px; margin: 0 0 32px;
+    font-size: 16px; line-height: 1.6; color: var(--ink-soft);
+  }
+  .locus-blurb em { color: var(--ink); font-style: italic; }
 """
 
 
@@ -215,6 +248,7 @@ def _browse_by_nav(url_slug: str, here: str) -> str:
     items = [
         ("all",       f"/{url_slug}/sermons/",           "All sermons"),
         ("scripture", f"/{url_slug}/sermons/scripture/", "Scripture"),
+        ("doctrine",  f"/{url_slug}/sermons/doctrine/",  "Doctrine"),
     ]
     parts = ['<div class="browse-by"><span class="label">Browse:</span>']
     for key, href, label in items:
@@ -280,6 +314,100 @@ BOOK_TILE_EMPTY = (
     '    <span class="empty"><span class="name">{book}</span>'
     '<span class="n">0</span></span>'
 )
+
+
+DOCTRINE_INDEX_PAGE = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browse by Doctrine — {church_name} · Sermon Steward</title>
+<meta name="description" content="Sermons from {church_name}{loc_phrase} grouped by 16 doctrinal loci — Christology, Soteriology, Sanctification, and more.">
+<link rel="canonical" href="https://sermonsteward.com/{url_slug}/sermons/doctrine">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Browse by Doctrine — {church_name}">
+<meta property="og:url" content="https://sermonsteward.com/{url_slug}/sermons/doctrine">
+<meta property="og:site_name" content="Sermon Steward">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+{css}</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/">Sermon Steward<span class="dot">.</span></a>
+</header>
+
+<main>
+  <div class="breadcrumb"><a href="/">Sermon Steward</a> · {crumb_church} · <a href="/{url_slug}/sermons/">Sermons</a> · Doctrine</div>
+  <h1>Browse by Doctrine</h1>
+  <p class="location">{total_count} sermons across 16 doctrinal loci</p>
+  {browse_by}<div class="locus-grid">
+{cards}
+  </div>
+</main>
+
+<footer>
+  Built by pastors, for pastors. · <a href="/">Sermon Steward</a>
+</footer>
+
+</body>
+</html>
+"""
+
+
+LOCUS_CARD = """\
+    <a class="locus-card" href="/{url_slug}/sermons/doctrine/{locus_slug}/">
+      <div class="head"><span class="name">{name}</span><span class="n">{count} sermon{count_plural}</span></div>
+      <p class="blurb">{blurb_short}</p>
+    </a>"""
+
+
+DOCTRINE_LOCUS_PAGE = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{locus}{title_page_suffix} — Sermons from {church_name} · Sermon Steward</title>
+<meta name="description" content="Sermons from {church_name}{loc_phrase} engaging the doctrine of {locus}.">
+<link rel="canonical" href="https://sermonsteward.com{canonical_path}">
+{rel_prev_next}<meta property="og:type" content="website">
+<meta property="og:title" content="{locus} — Sermons from {church_name}">
+<meta property="og:url" content="https://sermonsteward.com{canonical_path}">
+<meta property="og:site_name" content="Sermon Steward">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+{css}</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="wordmark" href="/">Sermon Steward<span class="dot">.</span></a>
+</header>
+
+<main>
+  <div class="breadcrumb"><a href="/">Sermon Steward</a> · {crumb_church} · <a href="/{url_slug}/sermons/">Sermons</a> · <a href="/{url_slug}/sermons/doctrine/">Doctrine</a> · {locus}</div>
+  <h1>{locus}</h1>
+  <p class="location">{count} sermon{count_plural} from {church_name}{page_of_suffix}</p>
+  {blurb_block}<h2>Sermons</h2>
+  <ul class="sermons">
+{rows}
+  </ul>
+{pagination_nav}</main>
+
+<footer>
+  Built by pastors, for pastors. · <a href="/">Sermon Steward</a>
+</footer>
+
+</body>
+</html>
+"""
 
 
 SCRIPTURE_BOOK_PAGE = """\
@@ -663,6 +791,211 @@ def _render_scripture_surface(
     return pages_written
 
 
+def _gather_loci_for_church(
+    sb, preacher_ids: list[str], url_slug: str
+) -> dict[str, list[dict]]:
+    """Map canonical-locus → [sermon dicts] for sermons with a rendered HTML page
+    whose units' doctrinal_loci arrays mention that locus.
+
+    Loci come from the Sonnet decomposition's per-unit `doctrinal_loci text[]`.
+    Only the 16 canonical loci (matching VALID_LOCI in pipeline_batch.py) are
+    counted; unknown values are silently dropped.
+    """
+    sermons_dir = SERMON_STEWARD_REPO / url_slug / "sermons"
+
+    sermons = (
+        sb.table("sermons")
+        .select("id, title, date, slug, primary_text, series_name")
+        .in_("preacher_id", preacher_ids)
+        .not_.is_("slug", "null")
+        .execute().data or []
+    )
+    sermons = [s for s in sermons if (sermons_dir / f"{s['slug']}.html").exists()]
+    sermon_by_id = {s["id"]: s for s in sermons}
+    sermon_ids = list(sermon_by_id)
+
+    # Pull units with doctrinal_loci, chunked AND paginated within each chunk.
+    CHUNK = 100
+    sermon_loci: dict[str, set[str]] = defaultdict(set)
+    for i in range(0, len(sermon_ids), CHUNK):
+        offset = 0
+        while True:
+            rows = (
+                sb.table("units")
+                .select("sermon_id, doctrinal_loci")
+                .in_("sermon_id", sermon_ids[i:i + CHUNK])
+                .range(offset, offset + 999)
+                .execute().data or []
+            )
+            for r in rows:
+                for locus in r.get("doctrinal_loci") or []:
+                    if locus in LOCUS_SET:
+                        sermon_loci[r["sermon_id"]].add(locus)
+            if len(rows) < 1000:
+                break
+            offset += 1000
+
+    # Invert sermon→loci to locus→[sermons]
+    locus_to_sermons: dict[str, list[dict]] = defaultdict(list)
+    for sid, loci in sermon_loci.items():
+        s = sermon_by_id[sid]
+        for locus in loci:
+            locus_to_sermons[locus].append(s)
+
+    def _sort_key(s):
+        d = s.get("date") or ""
+        return (d == "", -1 * (int(d.replace("-", "")) if d else 0), (s.get("title") or "").lower())
+
+    for locus in locus_to_sermons:
+        locus_to_sermons[locus].sort(key=_sort_key)
+
+    return dict(locus_to_sermons)
+
+
+def _render_doctrine_surface(
+    c: dict,
+    locus_to_sermons: dict[str, list[dict]],
+    crumb_church: str,
+    loc_phrase: str,
+) -> int:
+    """Emit /<url_slug>/sermons/doctrine/ index + per-locus pages.
+
+    Returns the total number of pages written.
+    """
+    url_slug = c["url_slug"]
+    doctrine_root = SERMON_STEWARD_REPO / url_slug / "sermons" / "doctrine"
+    doctrine_root.mkdir(parents=True, exist_ok=True)
+
+    all_engaged_sermons = {
+        s["id"] for sermons in locus_to_sermons.values() for s in sermons
+    }
+
+    # --- doctrine index ---
+    cards = []
+    for name in LOCUS_NAMES:
+        sermons = locus_to_sermons.get(name, [])
+        count = len(sermons)
+        blurb = LOCUS_BLURB[name]
+        # Truncate blurb at first sentence for the card preview.
+        first_sentence = blurb.split(". ", 1)[0].rstrip(".") + "."
+        cards.append(LOCUS_CARD.format(
+            url_slug=url_slug,
+            locus_slug=locus_slug(name),
+            name=html.escape(name),
+            count=count,
+            count_plural="" if count == 1 else "s",
+            blurb_short=html.escape(first_sentence),
+        ))
+
+    index_html = DOCTRINE_INDEX_PAGE.format(
+        css=CSS_BASE,
+        church_name=html.escape(c["name"] or ""),
+        crumb_church=crumb_church,
+        url_slug=url_slug,
+        total_count=len(all_engaged_sermons),
+        loc_phrase=html.escape(loc_phrase),
+        browse_by=_browse_by_nav(url_slug, here="doctrine"),
+        cards="\n".join(cards),
+    )
+    (doctrine_root / "index.html").write_text(index_html, encoding="utf-8")
+    pages_written = 1
+
+    keep_locus_dirs = set()
+
+    # --- per-locus listings ---
+    for name in LOCUS_NAMES:
+        sermons = locus_to_sermons.get(name, [])
+        if not sermons:
+            continue
+        lslug = locus_slug(name)
+        keep_locus_dirs.add(lslug)
+        locus_dir = doctrine_root / lslug
+        locus_dir.mkdir(parents=True, exist_ok=True)
+
+        total = len(sermons)
+        total_pages = max(1, math.ceil(total / PAGE_SIZE))
+        base_path = f"/{url_slug}/sermons/doctrine/{lslug}"
+
+        # Prune stale page/ subdirs
+        page_root = locus_dir / "page"
+        if page_root.exists():
+            for child in page_root.iterdir():
+                if child.is_dir() and child.name.isdigit():
+                    n = int(child.name)
+                    if n < 2 or n > total_pages:
+                        shutil.rmtree(child)
+            if total_pages == 1 and not any(page_root.iterdir()):
+                page_root.rmdir()
+
+        for page_num in range(1, total_pages + 1):
+            start = (page_num - 1) * PAGE_SIZE
+            chunk = sermons[start:start + PAGE_SIZE]
+
+            rows_html = []
+            for s in chunk:
+                pt = s.get("primary_text") or ""
+                series = s.get("series_name") or ""
+                pt_block = (
+                    f'<span class="dot-sep">·</span>{html.escape(pt)}' if pt else ""
+                )
+                series_block = (
+                    f'<span class="dot-sep">·</span><span class="series">{html.escape(series)}</span>'
+                    if series else ""
+                )
+                date_h = _format_date(s["date"]) if s.get("date") else "Date unknown"
+                rows_html.append(ROW.format(
+                    url_slug=url_slug,
+                    slug=s["slug"],
+                    title=html.escape(s["title"] or "(untitled)"),
+                    date_human=date_h,
+                    primary_text_block=pt_block,
+                    series_block=series_block,
+                    primary_book_badge="",
+                ))
+
+            canonical_path = _page_url(base_path, page_num)
+            title_page_suffix = f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
+            page_of_suffix = f" · page {page_num} of {total_pages}" if total_pages > 1 else ""
+            # Editorial blurb appears only on page 1 (it's a curator's hello).
+            blurb_block = (
+                f'<div class="locus-blurb">{html.escape(LOCUS_BLURB[name])}</div>\n  '
+                if page_num == 1 else ""
+            )
+
+            html_doc = DOCTRINE_LOCUS_PAGE.format(
+                css=CSS_BASE,
+                locus=html.escape(name),
+                church_name=html.escape(c["name"] or ""),
+                crumb_church=crumb_church,
+                url_slug=url_slug,
+                canonical_path=canonical_path,
+                rel_prev_next=_build_rel_prev_next(base_path, page_num, total_pages),
+                loc_phrase=html.escape(loc_phrase),
+                title_page_suffix=title_page_suffix,
+                page_of_suffix=page_of_suffix,
+                blurb_block=blurb_block,
+                count=total,
+                count_plural="" if total == 1 else "s",
+                rows="\n".join(rows_html),
+                pagination_nav=_build_pagination_nav(base_path, page_num, total_pages),
+            )
+
+            if page_num == 1:
+                out_path = locus_dir / "index.html"
+            else:
+                out_path = locus_dir / "page" / str(page_num) / "index.html"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(html_doc, encoding="utf-8")
+            pages_written += 1
+
+    # Prune stale locus directories
+    for child in doctrine_root.iterdir():
+        if child.is_dir() and child.name not in keep_locus_dirs:
+            shutil.rmtree(child)
+
+    return pages_written
+
+
 def main() -> int:
     sb = q.get_supabase()
 
@@ -853,6 +1186,21 @@ def main() -> int:
             f"wrote {SERMON_STEWARD_REPO / c['url_slug'] / 'sermons' / 'scripture'}/  "
             f"({total_cited} sermons across {books_touched} books, "
             f"{scripture_pages} pages)"
+        )
+
+        # --- doctrine surface ---
+        locus_to_sermons = _gather_loci_for_church(sb, preacher_ids, c["url_slug"])
+        doctrine_pages = _render_doctrine_surface(
+            c, locus_to_sermons,
+            crumb_church=crumb_church,
+            loc_phrase=loc_phrase,
+        )
+        loci_touched = sum(1 for n in LOCUS_NAMES if locus_to_sermons.get(n))
+        total_engaged = len({s["id"] for sermons in locus_to_sermons.values() for s in sermons})
+        print(
+            f"wrote {SERMON_STEWARD_REPO / c['url_slug'] / 'sermons' / 'doctrine'}/  "
+            f"({total_engaged} sermons across {loci_touched} loci, "
+            f"{doctrine_pages} pages)"
         )
 
     return 0
