@@ -39,6 +39,7 @@ Environment variables (set in .env or export):
 import os
 import sys
 import json
+import re
 import time
 import argparse
 import logging
@@ -328,8 +329,9 @@ def build_batch_requests(
             skipped += 1
             continue
 
-        # Build the custom_id from the filename stem
-        custom_id = filepath.stem[:64]
+        # Anthropic Batch API requires custom_id to match ^[a-zA-Z0-9_-]{1,64}$,
+        # so sanitize the filename stem before truncating.
+        custom_id = re.sub(r"[^a-zA-Z0-9_-]", "_", filepath.stem)[:64]
 
         # Build system prompt (identical to pipeline.py)
         metadata_hints = f"The preacher is: {file_preacher}"
