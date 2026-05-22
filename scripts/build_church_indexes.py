@@ -10,6 +10,8 @@ richer surface (filtering by topic, series view, etc.).
 from __future__ import annotations
 
 import html
+import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -29,6 +31,8 @@ CHURCH_IDS = [
     "f1fc9898-fafd-4289-b6af-ce99dfde23d6",  # Cross of Grace
 ]
 
+PAGE_SIZE = 25
+
 
 PAGE = """\
 <!DOCTYPE html>
@@ -36,12 +40,12 @@ PAGE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sermons — {church_name} · Sermon Steward</title>
+<title>Sermons{title_page_suffix} — {church_name} · Sermon Steward</title>
 <meta name="description" content="Every stewarded sermon from {church_name}{loc_phrase}, with discussion, reading, prayer, and memory cards.">
-<link rel="canonical" href="https://sermonsteward.com/{url_slug}/sermons">
-<meta property="og:type" content="website">
+<link rel="canonical" href="https://sermonsteward.com{canonical_path}">
+{rel_prev_next}<meta property="og:type" content="website">
 <meta property="og:title" content="Sermons — {church_name}">
-<meta property="og:url" content="https://sermonsteward.com/{url_slug}/sermons">
+<meta property="og:url" content="https://sermonsteward.com{canonical_path}">
 <meta property="og:site_name" content="Sermon Steward">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -106,6 +110,19 @@ PAGE = """\
     background: #fff; border: 1px solid var(--rule); border-radius: 10px;
     padding: 14px 18px; margin: 0 0 32px; font-size: 14px; color: var(--ink-soft);
   }}
+  nav.pagination {{
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--rule); font-size: 14px;
+  }}
+  nav.pagination a, nav.pagination span.disabled {{
+    padding: 8px 14px; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--bg-card);
+  }}
+  nav.pagination a {{ color: var(--ink); }}
+  nav.pagination a:hover {{ border-color: var(--accent); color: var(--accent); }}
+  nav.pagination span.disabled {{ color: var(--ink-faint); background: transparent; border-style: dashed; }}
+  nav.pagination .page-indicator {{ color: var(--ink-soft); font-variant-numeric: tabular-nums; }}
 </style>
 </head>
 <body>
@@ -118,12 +135,11 @@ PAGE = """\
   <div class="breadcrumb"><a href="/">Sermon Steward</a> · {crumb_church} · Sermons</div>
   <h1>{church_name}</h1>
   <p class="location">{location}</p>
-  <div class="note">A simple index of every stewarded sermon. Each page includes the full transcript, six member-facing artifacts, and the related-teaching graph. Richer browsing surfaces (by topic, by series, by passage) are on the way.</div>
-  <h2>Sermons<span class="count">({count} total)</span></h2>
+  {intro_note}<h2>Sermons<span class="count">({count} total{page_of_suffix})</span></h2>
   <ul class="sermons">
 {rows}
   </ul>
-</main>
+{pagination_nav}</main>
 
 <footer>
   Built by pastors, for pastors. · <a href="/">Sermon Steward</a>
@@ -138,6 +154,59 @@ ROW = """    <li>
       <p class="sermon-title"><a href="/{url_slug}/sermons/{slug}">{title}</a></p>
       <p class="sermon-meta">{date_human}{primary_text_block}{series_block}</p>
     </li>"""
+
+
+INTRO_NOTE = (
+    '<div class="note">A simple index of every stewarded sermon. Each page '
+    "includes the full transcript, six member-facing artifacts, and the "
+    "related-teaching graph. Richer browsing surfaces (by topic, by series, "
+    "by passage) are on the way.</div>\n  "
+)
+
+
+def _page_url(url_slug: str, page_num: int) -> str:
+    """Site-relative path for a given page (leading slash, no trailing slash on root)."""
+    if page_num == 1:
+        return f"/{url_slug}/sermons"
+    return f"/{url_slug}/sermons/page/{page_num}"
+
+
+def _build_pagination_nav(url_slug: str, current_page: int, total_pages: int) -> str:
+    if total_pages <= 1:
+        return ""
+    if current_page > 1:
+        prev_target = _page_url(url_slug, current_page - 1) + "/"
+        prev_html = f'<a href="{prev_target}" rel="prev">← Previous</a>'
+    else:
+        prev_html = '<span class="disabled">← Previous</span>'
+    if current_page < total_pages:
+        next_target = _page_url(url_slug, current_page + 1) + "/"
+        next_html = f'<a href="{next_target}" rel="next">Next →</a>'
+    else:
+        next_html = '<span class="disabled">Next →</span>'
+    indicator = f'<span class="page-indicator">Page {current_page} of {total_pages}</span>'
+    return (
+        '  <nav class="pagination" aria-label="Sermon listing pagination">\n'
+        f"    {prev_html}\n"
+        f"    {indicator}\n"
+        f"    {next_html}\n"
+        "  </nav>\n"
+    )
+
+
+def _build_rel_prev_next(url_slug: str, current_page: int, total_pages: int) -> str:
+    if total_pages <= 1:
+        return ""
+    lines = []
+    if current_page > 1:
+        lines.append(
+            f'<link rel="prev" href="https://sermonsteward.com{_page_url(url_slug, current_page - 1)}">'
+        )
+    if current_page < total_pages:
+        lines.append(
+            f'<link rel="next" href="https://sermonsteward.com{_page_url(url_slug, current_page + 1)}">'
+        )
+    return "\n".join(lines) + "\n" if lines else ""
 
 
 _MONTHS = [
@@ -241,27 +310,6 @@ def main() -> int:
             if REQUIRED_PASTORAL.issubset(bundle.get(s["id"], set()))
         ]
 
-        rows_html = []
-        for s in publishable:
-            primary_text = s.get("primary_text") or ""
-            series = s.get("series_name") or ""
-            pt_block = (
-                f'<span class="dot-sep">·</span>{html.escape(primary_text)}'
-                if primary_text else ""
-            )
-            series_block = (
-                f'<span class="dot-sep">·</span><span class="series">{html.escape(series)}</span>'
-                if series else ""
-            )
-            rows_html.append(ROW.format(
-                url_slug=c["url_slug"],
-                slug=s["slug"],
-                title=html.escape(s["title"] or "(untitled)"),
-                date_human=_format_date(s["date"]),
-                primary_text_block=pt_block,
-                series_block=series_block,
-            ))
-
         location = _format_location(c.get("address"))
         loc_phrase = f" in {location}" if location else ""
         # Only link the church name in the breadcrumb if a home page exists
@@ -271,21 +319,89 @@ def main() -> int:
             crumb_church = f'<a href="/{c["url_slug"]}/">{html.escape(c["name"] or "")}</a>'
         else:
             crumb_church = html.escape(c["name"] or "")
-        page_html = PAGE.format(
-            church_name=html.escape(c["name"] or ""),
-            crumb_church=crumb_church,
-            url_slug=c["url_slug"],
-            location=html.escape(location or "Sermon archive"),
-            loc_phrase=html.escape(loc_phrase),
-            count=len(publishable),
-            rows="\n".join(rows_html),
-        )
 
-        out_dir = SERMON_STEWARD_REPO / c["url_slug"] / "sermons"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / "index.html"
-        out_path.write_text(page_html, encoding="utf-8")
-        print(f"wrote {out_path}  ({len(publishable)} sermons)")
+        total_count = len(publishable)
+        total_pages = max(1, math.ceil(total_count / PAGE_SIZE))
+
+        # Prune stale page/N/ directories from a prior run that produced more
+        # pages than this one would. Anything outside [2, total_pages] is dead.
+        page_root = SERMON_STEWARD_REPO / c["url_slug"] / "sermons" / "page"
+        if page_root.exists():
+            for child in page_root.iterdir():
+                if not child.is_dir() or not child.name.isdigit():
+                    continue
+                n = int(child.name)
+                if n < 2 or n > total_pages:
+                    shutil.rmtree(child)
+            # If pagination collapsed back to a single page, remove the empty parent.
+            if total_pages == 1 and not any(page_root.iterdir()):
+                page_root.rmdir()
+
+        for page_num in range(1, total_pages + 1):
+            start = (page_num - 1) * PAGE_SIZE
+            chunk = publishable[start:start + PAGE_SIZE]
+
+            rows_html = []
+            for s in chunk:
+                primary_text = s.get("primary_text") or ""
+                series = s.get("series_name") or ""
+                pt_block = (
+                    f'<span class="dot-sep">·</span>{html.escape(primary_text)}'
+                    if primary_text else ""
+                )
+                series_block = (
+                    f'<span class="dot-sep">·</span><span class="series">{html.escape(series)}</span>'
+                    if series else ""
+                )
+                rows_html.append(ROW.format(
+                    url_slug=c["url_slug"],
+                    slug=s["slug"],
+                    title=html.escape(s["title"] or "(untitled)"),
+                    date_human=_format_date(s["date"]),
+                    primary_text_block=pt_block,
+                    series_block=series_block,
+                ))
+
+            canonical_path = _page_url(c["url_slug"], page_num)
+            title_page_suffix = (
+                f" (Page {page_num} of {total_pages})" if page_num > 1 else ""
+            )
+            page_of_suffix = (
+                f" · page {page_num} of {total_pages}" if total_pages > 1 else ""
+            )
+            intro_note = INTRO_NOTE if page_num == 1 else ""
+
+            page_html = PAGE.format(
+                church_name=html.escape(c["name"] or ""),
+                crumb_church=crumb_church,
+                url_slug=c["url_slug"],
+                canonical_path=canonical_path,
+                rel_prev_next=_build_rel_prev_next(c["url_slug"], page_num, total_pages),
+                location=html.escape(location or "Sermon archive"),
+                loc_phrase=html.escape(loc_phrase),
+                title_page_suffix=title_page_suffix,
+                page_of_suffix=page_of_suffix,
+                intro_note=intro_note,
+                count=total_count,
+                rows="\n".join(rows_html),
+                pagination_nav=_build_pagination_nav(c["url_slug"], page_num, total_pages),
+            )
+
+            if page_num == 1:
+                out_path = SERMON_STEWARD_REPO / c["url_slug"] / "sermons" / "index.html"
+            else:
+                out_path = (
+                    SERMON_STEWARD_REPO / c["url_slug"] / "sermons"
+                    / "page" / str(page_num) / "index.html"
+                )
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(page_html, encoding="utf-8")
+
+        print(
+            f"wrote {SERMON_STEWARD_REPO / c['url_slug'] / 'sermons'}/  "
+            f"({total_count} sermons across {total_pages} page"
+            f"{'s' if total_pages != 1 else ''})"
+        )
 
     return 0
 
