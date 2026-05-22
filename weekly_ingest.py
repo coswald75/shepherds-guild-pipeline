@@ -182,7 +182,7 @@ def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
         log.warning(f"  {customer.ingest_source_type} adapter not yet built; skipping {customer.church_name}")
         return 0
 
-    cmd = ["python", str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
+    cmd = [sys.executable, str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
            "--preacher", customer.preacher_id, *dispatch[customer.ingest_source_type][1:]]
     if dry_run:
         cmd.append("--dry-run")
@@ -233,7 +233,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 
     # Stage 4 — block until batch ends
     log.info(f"  [stage 4] waiting for batch {batch_id} …")
-    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
+    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=BATCH_MAX_WAIT_HOURS * 3600)
     if r.returncode != 0:
         log.error(f"  status --wait failed: {r.stderr[-500:]}")
@@ -241,7 +241,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 
     # Stage 5 — process results
     log.info(f"  [stage 5] processing batch {batch_id} for preacher='{preacher_name}'")
-    cmd = ["python", str(REPO_ROOT / "pipeline_batch.py"), "process", batch_id, "--preacher", preacher_name]
+    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "process", batch_id, "--preacher", preacher_name]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.error(f"  process failed: {r.stderr[-500:]}")
@@ -261,7 +261,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 def generate_artifacts_for(sermon_id: str) -> int:
     n = 0
     for atype in ARTIFACT_TYPES:
-        cmd = ["python", str(REPO_ROOT / "generate_artifacts.py"),
+        cmd = [sys.executable, str(REPO_ROOT / "generate_artifacts.py"),
                "generate", sermon_id, "--type", atype]
         r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
         if r.returncode == 0:
@@ -296,7 +296,7 @@ def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
 # ────────────────────────────────────────────────────────────────────────────
 
 def render_page(sermon_id: str) -> bool:
-    cmd = ["python", str(REPO_ROOT / "generate_sermon_pages.py"), "render", sermon_id]
+    cmd = [sys.executable, str(REPO_ROOT / "generate_sermon_pages.py"), "render", sermon_id]
     r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         log.warning(f"  render failed for {sermon_id}: {r.stderr[-200:]}")
@@ -436,7 +436,7 @@ def submit_decomposition_batch(customer: Customer, sermons: list[dict]) -> Optio
     log.info(f"  wrote {len(sermons)} transcript(s) to {queue}")
 
     cmd = [
-        "python", str(REPO_ROOT / "pipeline_batch.py"), "submit",
+        sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "submit",
         str(queue),
         "--preacher", customer.preacher_name,
     ]
@@ -446,10 +446,11 @@ def submit_decomposition_batch(customer: Customer, sermons: list[dict]) -> Optio
         log.error(f"  submit failed: {result.stderr[-500:]}")
         return None
 
-    # Parse "Batch ID: msgbatch_XXX" from stdout
-    m = re.search(r"Batch ID:\s*(msgbatch_\w+)", result.stdout)
+    # Parse "Batch ID: msgbatch_XXX" — pipeline_batch.py uses the `logging`
+    # module which writes to stderr by default, so check both streams.
+    m = re.search(r"Batch ID:\s*(msgbatch_\w+)", (result.stdout or "") + (result.stderr or ""))
     if not m:
-        log.error(f"  could not find batch ID in stdout. Last lines:\n{result.stdout[-500:]}")
+        log.error(f"  could not find batch ID. stdout: {result.stdout[-300:]}\n  stderr: {result.stderr[-300:]}")
         return None
     batch_id = m.group(1)
     log.info(f"  batch submitted: {batch_id}")

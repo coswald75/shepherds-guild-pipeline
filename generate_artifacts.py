@@ -68,7 +68,9 @@ MAX_OUTPUT_TOKENS = 4000
 # when a preacher isn't listed here (so existing behavior is preserved for the
 # Guild Hall canonical preachers and anyone we haven't profiled yet).
 VOICE_PROFILES: dict[str, str] = {
-    "9c6f8d69-de55-45db-ac60-0fe6d0cfff59": "chris-voice-style-guide.md",  # Chris Oswald · Providence
+    # chris-voice-style-guide.md is TODO — write one once Chris has time to read
+    # through samples and refine. For now Chris's artifacts use the default voice.
+    # "9c6f8d69-de55-45db-ac60-0fe6d0cfff59": "chris-voice-style-guide.md",
     "ccb9e59c-bd20-414a-bd6b-25b117b8144c": "ricky-voice-style-guide.md",  # Ricky Alcantar · Cross of Grace
 }
 

@@ -62,7 +62,10 @@ POLITE_SLEEP = 0.35  # seconds between requests
 
 _DT_DATE = re.compile(r"<dt[^>]*>\s*Date\s*</dt>\s*<dd[^>]*>(.*?)</dd>", re.DOTALL)
 _DT_SPEAKER = re.compile(r"<dt[^>]*>\s*Speaker\s*</dt>\s*<dd[^>]*>(.*?)</dd>", re.DOTALL)
-_SPEAKER_NAME = re.compile(r'<a[^>]*href="/preachers/[^"]*">([^<]+)</a>')
+_SPEAKER_NAME = re.compile(
+    r'<a[^>]*href="/preachers/\d+/[^"]+"[^>]*>\s*([^<]+?)\s*</a>',
+    re.DOTALL,
+)
 _SOURCE = re.compile(r'<source[^>]+src="([^"]+)"')
 _OG_AUDIO = re.compile(
     r'<meta[^>]+content="([^"]+)"[^>]+property="og:audio"'
@@ -125,6 +128,15 @@ def parse_detail(url: str, html: str) -> Item:
         m = _OG_AUDIO.search(html)
         if m:
             audio = m.group(1) or m.group(2)
+
+    # Normalize relative audio URLs (e.g. "/media/mp3/123.mp3") against the
+    # detail-page host so all callers get an absolute URL. Previously this
+    # prefix-add happened in main()'s loop, which silently broke any code
+    # path that called parse_detail directly (e.g. ad-hoc backfill scripts).
+    if audio and audio.startswith("/"):
+        from urllib.parse import urlsplit
+        parts = urlsplit(url)
+        audio = f"{parts.scheme}://{parts.netloc}{audio}"
 
     speaker = None
     m = _DT_SPEAKER.search(html)
