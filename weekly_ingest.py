@@ -111,13 +111,14 @@ class Customer:
     podcast_feed_url: Optional[str]
     audio_base_url: Optional[str]
     deploy_target: Optional[dict]
+    ingest_config: Optional[dict] = None  # per-host params (Nucleus engine_id, etc)
 
 
 def active_customers() -> list[Customer]:
     """All churches flagged auto_publish=true, joined to their primary preacher."""
     sb = supabase()
     res = sb.table("churches").select(
-        "id, name, slug, audio_base_url, podcast_feed_url, ingest_source_type, deploy_target"
+        "id, name, slug, audio_base_url, podcast_feed_url, ingest_source_type, ingest_config, deploy_target"
     ).eq("auto_publish", True).execute()
     customers: list[Customer] = []
     for c in res.data or []:
@@ -149,6 +150,7 @@ def active_customers() -> list[Customer]:
             podcast_feed_url=c.get("podcast_feed_url"),
             audio_base_url=c.get("audio_base_url"),
             deploy_target=c.get("deploy_target"),
+            ingest_config=c.get("ingest_config"),
         ))
     return customers
 
@@ -168,18 +170,21 @@ def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
         .not_.is_("audio_url", "null").execute()
     before_n = before.count or 0
 
+    engine_id = (customer.ingest_config or {}).get("engine_id") or ""
     dispatch = {
         "rss": ["sync_sermon_audio_from_rss.py", "--feed", customer.podcast_feed_url or ""],
         "yash_html": ["sync_sermons_from_yash.py", "--host", customer.audio_base_url or ""],
-        # Nucleus adapter TODO: model on download_crossofgrace.py but write audio_url
-        # to Supabase instead of downloading. Engine ID lives in ingest_config.
-        "nucleus": None,
+        "nucleus": [
+            "sync_sermons_from_nucleus.py",
+            "--host", customer.audio_base_url or "",
+            "--engine-id", engine_id,
+        ],
     }
     if customer.ingest_source_type not in dispatch:
         log.warning(f"  no adapter for ingest_source_type={customer.ingest_source_type}; skipping")
         return 0
-    if dispatch[customer.ingest_source_type] is None:
-        log.warning(f"  {customer.ingest_source_type} adapter not yet built; skipping {customer.church_name}")
+    if customer.ingest_source_type == "nucleus" and not engine_id:
+        log.warning(f"  nucleus adapter requires ingest_config.engine_id; skipping {customer.church_name}")
         return 0
 
     cmd = [sys.executable, str(REPO_ROOT / dispatch[customer.ingest_source_type][0]),
