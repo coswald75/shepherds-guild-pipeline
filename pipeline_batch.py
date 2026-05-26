@@ -813,9 +813,14 @@ def ingest_sermon(
         unit_data = {
             "sermon_id": sermon_id,
             "unit_index": unit.get("unit_index", i),
-            "rhetorical_function": sanitize_enum(
-                unit.get("rhetorical_function"),
-                VALID_RHETORICAL_FUNCTIONS, "rhetorical_function", ctx
+            # rhetorical_function is NOT NULL in the units schema. Default to
+            # "exposition" (the most common bucket) if Sonnet returns an
+            # invalid value — losing a tag is a small cost vs. losing the unit.
+            "rhetorical_function": (
+                sanitize_enum(
+                    unit.get("rhetorical_function"),
+                    VALID_RHETORICAL_FUNCTIONS, "rhetorical_function", ctx,
+                ) or "exposition"
             ),
             "content": unit.get("content"),
             "summary": unit.get("summary"),
@@ -868,10 +873,20 @@ def ingest_sermon(
             }).execute()
 
         for quote in unit.get("quotations", []) or []:
+            # Schema requires attribution NOT NULL. Sonnet occasionally surfaces
+            # a quote-shaped phrase (often the preacher's own coined line) and
+            # leaves attribution null — skip those rather than failing the
+            # whole sermon's ingest on a single questionable quotation.
+            attribution = (quote.get("attribution") or "").strip()
+            if not attribution:
+                log.warning(
+                    f"{ctx}skipping null-attribution quotation: {quote.get('text', '')[:80]!r}"
+                )
+                continue
             sb.table("quotations").insert({
                 "unit_id": unit_id,
                 "text": quote.get("text"),
-                "attribution": quote.get("attribution"),
+                "attribution": attribution,
                 "source": quote.get("source"),
                 "function": sanitize_enum(
                     quote.get("function"),
