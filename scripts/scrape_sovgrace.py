@@ -79,6 +79,13 @@ SERMONS = [
         "primary_text": "1 Peter 1:13-2:3",
         "slug": "new-birth-brotherly-love-2026-04-19",
     },
+    {
+        "url": "https://sermons.sovgracekc.org/sermons/94408/",
+        "date": "2026-05-24",
+        "title": "Virtue as a Vehicle - 1 Peter 3:8-22",
+        "primary_text": "1 Peter 3:8-22",
+        "slug": "virtue-as-a-vehicle-2026-05-24",
+    },
 ]
 
 PREACHER = "Chris Oswald"
