@@ -223,13 +223,37 @@ def pending_for_decomposition(customer: Customer) -> list[dict]:
 # Stages 4-5 — Wait for batch + process results
 # ────────────────────────────────────────────────────────────────────────────
 
+def _all_decomposed_ids(sb: Client) -> set[str]:
+    """Page through `sermons` and return the set of IDs with decomposed_at NOT NULL.
+
+    A single .execute() is capped at 1000 rows by Supabase PostgREST. The corpus
+    crossed that threshold around 2026-05 — without pagination the snapshot
+    silently truncates and the before/after diff drops any sermons whose IDs
+    land in the truncated tail.
+    """
+    ids: set[str] = set()
+    offset = 0
+    while True:
+        page = (
+            sb.table("sermons")
+            .select("id")
+            .not_.is_("decomposed_at", "null")
+            .range(offset, offset + 999)
+            .execute().data or []
+        )
+        ids.update(r["id"] for r in page)
+        if len(page) < 1000:
+            break
+        offset += 1000
+    return ids
+
+
 def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
     """Wait for Anthropic batch to complete, then process results (parse → embed →
     ingest to Supabase). Returns set of sermon_ids newly populated with decomposed_at.
     """
     sb = supabase()
-    pre = sb.table("sermons").select("id, preacher_id, decomposed_at").execute()
-    before_decomposed = {r["id"] for r in (pre.data or []) if r.get("decomposed_at")}
+    before_decomposed = _all_decomposed_ids(sb)
 
     # Stage 4 — block until batch ends
     log.info(f"  [stage 4] waiting for batch {batch_id} …")
@@ -249,8 +273,7 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
     for line in r.stdout.splitlines()[-10:]:
         log.info(f"    {line}")
 
-    post = sb.table("sermons").select("id, decomposed_at").execute()
-    after_decomposed = {r["id"] for r in (post.data or []) if r.get("decomposed_at")}
+    after_decomposed = _all_decomposed_ids(sb)
     return after_decomposed - before_decomposed
 
 
