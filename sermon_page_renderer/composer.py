@@ -187,9 +187,15 @@ def compose(sermon_id: str) -> dict:
     claims = q.roll_up_theological_claims(units)
     quotations = q.roll_up_quotations(units)
 
-    neighbors = q.get_canonical_neighbors(
-        sermon_id, thesis_unit["id"] if thesis_unit else None
-    )
+    # Canonical-neighbors section ("Preachers who said it like this") is
+    # disabled as of 2026-05-26: matches were too unreliable to display
+    # (e.g. a sermon on virtuous suffering returning Voddie Baucham on
+    # Romans 1:26-27 + Mahaney on Sodom — keyword bleed, not thesis match).
+    # Templates still guard with `{% if canonical_neighbors %}`, so emitting
+    # an empty list cleanly hides the section without removing the markup.
+    # See [[Work to be Done]] for the revisit plan.
+    neighbors = []
+    _ = q.get_canonical_neighbors  # keep the import wired for the revisit
     arc = q.get_three_sermon_arc(sermon)
     prior_refs = q.get_prior_pastor_refs(sermon)
 
@@ -331,12 +337,19 @@ def compose(sermon_id: str) -> dict:
                 t["title"] = body.get("title") or "Three questions over coffee"
                 t["desc"] = qs[0][:140].rstrip() + "…" if qs else t["desc"]
 
-    # Expanded artifact sections (rendered below the tiles when present)
+    # Expanded artifact sections (rendered below the tiles when present).
+    # Only emit sections for artifact types we have an anchor / template
+    # block for — sermons in the DB occasionally carry types like
+    # `imperatives_indicatives` or `sermon_scraps` that the page template
+    # doesn't yet handle. Skip those silently rather than KeyError.
     artifact_sections = []
     for artifact_type, row in artifacts.items():
+        anchor = artifact_anchor.get(artifact_type)
+        if not anchor:
+            continue
         artifact_sections.append({
             "type": artifact_type,
-            "anchor": artifact_anchor[artifact_type].lstrip("#"),
+            "anchor": anchor.lstrip("#"),
             "status": row.get("status"),
             "body": row.get("body") or {},
         })
