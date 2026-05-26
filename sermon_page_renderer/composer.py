@@ -337,12 +337,19 @@ def compose(sermon_id: str) -> dict:
                 t["title"] = body.get("title") or "Three questions over coffee"
                 t["desc"] = qs[0][:140].rstrip() + "…" if qs else t["desc"]
 
-    # Expanded artifact sections (rendered below the tiles when present)
+    # Expanded artifact sections (rendered below the tiles when present).
+    # Only emit sections for artifact types we have an anchor / template
+    # block for — sermons in the DB occasionally carry types like
+    # `imperatives_indicatives` or `sermon_scraps` that the page template
+    # doesn't yet handle. Skip those silently rather than KeyError.
     artifact_sections = []
     for artifact_type, row in artifacts.items():
+        anchor = artifact_anchor.get(artifact_type)
+        if not anchor:
+            continue
         artifact_sections.append({
             "type": artifact_type,
-            "anchor": artifact_anchor[artifact_type].lstrip("#"),
+            "anchor": anchor.lstrip("#"),
             "status": row.get("status"),
             "body": row.get("body") or {},
         })
