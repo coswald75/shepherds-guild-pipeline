@@ -1,23 +1,26 @@
 """
 sync_sermon_audio_from_rss.py
 ─────────────────────────────────────────────────────────────────────────────
-Pull a podcast RSS feed and update sermons.audio_url + transcript_url +
-audio_duration_seconds + audio_size_bytes + podcast_guid for matching rows
-in Supabase.
+Pull a podcast RSS feed and either UPDATE existing sermons or INSERT new
+ones, populating audio_url + transcript_url + audio_duration_seconds +
+audio_size_bytes + podcast_guid (and on insert: preacher_id, title, date,
+slug, upload_source='host_sync'). R2 mirror runs in the same pass.
 
 Match strategy, in order of preference:
   1. existing sermons.podcast_guid == item.guid                  (re-runs)
   2. (preacher_id, normalized_title, date) match                 (first run)
 
-If no match, the item is logged as unmatched. Nothing is inserted — this
-script only updates audio metadata for sermons that already exist in
-Supabase (which is true for everything in Chris's 287-row corpus).
+If no match, INSERT a new sermons row from the RSS item. Insert is
+idempotent: a follow-up run finds the new row by podcast_guid and falls
+through to UPDATE. Use --no-insert to preserve the legacy log-only
+behavior (e.g. for debugging feed parsing without writes).
 
 Usage:
     python sync_sermon_audio_from_rss.py \
       --preacher 9c6f8d69-de55-45db-ac60-0fe6d0cfff59 \
       --feed https://sermons.sovgracekc.org/feed/ \
-      [--dry-run]
+      [--dry-run]   # print what would happen; no writes
+      [--no-insert] # keep legacy behavior: log unmatched, do not insert
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -51,10 +54,25 @@ except ImportError:
 
 _TITLE_NOISE = re.compile(r"[^\w\s]")
 _WS = re.compile(r"\s+")
+_SLUG_NONALNUM = re.compile(r"[^a-z0-9]+")
 
 
 def normalize_title(t: str) -> str:
     return _WS.sub(" ", _TITLE_NOISE.sub(" ", (t or "").lower())).strip()
+
+
+def generate_slug(title: str, pub_date: _date | None) -> str:
+    """Make a URL-safe slug from title (+ date suffix for collisions).
+
+    Matches the date-suffixed convention used by scrape_sovgrace.py:
+        "Marriage & The Mission of God" + 2026-03-15
+        → "marriage-the-mission-of-god-2026-03-15"
+    """
+    base = _SLUG_NONALNUM.sub("-", (title or "").lower()).strip("-")
+    base = base[:80].rstrip("-") if base else "untitled"
+    if pub_date:
+        return f"{base}-{pub_date.isoformat()}"
+    return base
 
 
 def parse_duration(raw: str | None) -> int | None:
@@ -179,6 +197,12 @@ def main() -> int:
     ap.add_argument("--preacher", required=True, help="preacher_id UUID")
     ap.add_argument("--feed", required=True, help="Podcast RSS feed URL")
     ap.add_argument("--dry-run", action="store_true", help="Print what would change; write nothing")
+    ap.add_argument(
+        "--no-insert",
+        action="store_true",
+        help="Legacy behavior: log unmatched items, do not INSERT new rows. "
+             "Default is to insert.",
+    )
     args = ap.parse_args()
 
     url = os.environ.get("SUPABASE_URL")
@@ -210,20 +234,93 @@ def main() -> int:
 
     matched = 0
     updated = 0
+    inserted = 0
     no_audio = 0
     mirrored = 0
     mirror_skipped = 0
     mirror_failed = 0
-    unmatched: list[FeedItem] = []
+    unmatched_logged: list[FeedItem] = []
 
     for it in items:
         if not it.audio_url:
             no_audio += 1
             continue
         row = find_match(sb, args.preacher, it)
+
+        # ─── INSERT path: unmatched RSS item → new sermons row ─────────────
+        # This is the cron's entry point for new Sunday sermons. The
+        # find_match guard above gives idempotency: re-runs hit the
+        # podcast_guid match (line 1 of find_match) and fall through to
+        # UPDATE instead of inserting again.
         if not row:
-            unmatched.append(it)
+            if args.no_insert:
+                unmatched_logged.append(it)
+                continue
+
+            new_slug = generate_slug(it.title, it.pub_date)
+            insert_payload: dict[str, object] = {
+                "preacher_id": args.preacher,
+                "title": it.title or "Untitled",
+                "audio_url": it.audio_url,
+                "podcast_guid": it.guid,
+                "slug": new_slug,
+                "upload_source": "host_sync",
+            }
+            if it.pub_date:
+                insert_payload["date"] = it.pub_date.isoformat()
+            if it.transcript_url:
+                insert_payload["transcript_url"] = it.transcript_url
+            if it.duration_s:
+                insert_payload["audio_duration_seconds"] = it.duration_s
+            if it.audio_size:
+                insert_payload["audio_size_bytes"] = it.audio_size
+
+            if args.dry_run:
+                print(
+                    f"  WOULD INSERT (preacher={args.preacher[:8]}…) "
+                    f"{it.pub_date} {it.title[:60]} slug={new_slug}"
+                )
+                inserted += 1
+                continue
+
+            try:
+                ins = sb.table("sermons").insert(insert_payload).execute()
+                if not ins.data:
+                    print(f"  insert returned no rows for {it.title[:60]!r}")
+                    continue
+                new_id = ins.data[0]["id"]
+                inserted += 1
+                print(f"  INSERTED {new_id} ({it.pub_date}) {it.title[:60]}")
+            except Exception as e:
+                print(f"  insert failed for {it.title[:60]!r}: {e}")
+                unmatched_logged.append(it)
+                continue
+
+            # R2 mirror in the same pass (matches the UPDATE-side behavior).
+            if (
+                sermon_audio_host
+                and sermon_audio_host.is_configured()
+                and church_slug
+            ):
+                try:
+                    hosted = sermon_audio_host.mirror_sermon(
+                        source_url=it.audio_url,
+                        church_slug=church_slug,
+                        sermon_slug=new_slug,
+                    )
+                except Exception as e:
+                    print(f"  mirror error: {e}")
+                    hosted = None
+                if hosted:
+                    sb.table("sermons").update({"hosted_audio_url": hosted}).eq(
+                        "id", new_id
+                    ).execute()
+                    mirrored += 1
+                else:
+                    mirror_failed += 1
             continue
+
+        # ─── UPDATE path: existing row, populate audio metadata + R2 mirror ─
         matched += 1
         patch: dict[str, object] = {
             "audio_url": it.audio_url,
@@ -275,15 +372,19 @@ def main() -> int:
     print(f"  Items with audio URL:  {len(items) - no_audio}")
     print(f"  Matched in Supabase:   {matched}")
     print(f"  Updated:               {updated}{' (dry-run)' if args.dry_run else ''}")
+    print(f"  Inserted:              {inserted}{' (dry-run)' if args.dry_run else ''}")
     print(f"  Mirrored to R2:        {mirrored}")
     print(f"  Mirror skipped:        {mirror_skipped}")
     print(f"  Mirror failed:         {mirror_failed}")
-    print(f"  Unmatched (logged):    {len(unmatched)}")
+    print(f"  Unmatched (logged):    {len(unmatched_logged)}")
 
-    if unmatched:
+    if unmatched_logged:
         print()
-        print("Unmatched items (first 20):")
-        for it in unmatched[:20]:
+        if args.no_insert:
+            print("Unmatched items (would have been inserted without --no-insert):")
+        else:
+            print("Unmatched items that failed to insert (first 20):")
+        for it in unmatched_logged[:20]:
             print(f"  {it.pub_date}  {it.title[:80]}")
 
     return 0

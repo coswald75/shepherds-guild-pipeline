@@ -5,9 +5,10 @@ For every customer with `churches.auto_publish = true`, walks the full
 Sunday-evening cadence:
 
   1. DISCOVER   pull new sermons from each customer's host
-                (rss + yash_html implemented; others TODO)
-  2. TRANSCRIBE for sermons missing transcripts, queue for AssemblyAI
-                (currently stubbed — relies on RSS-provided transcripts)
+                (rss + yash_html + nucleus implemented; RSS inserts new rows)
+  2. TRANSCRIBE for sermons missing transcripts: fetch from transcript_url
+                if present; else submit AssemblyAI job and queue the id in
+                transcript_url for the next cron run to poll/collect
   3. DECOMPOSE  submit one Anthropic Batch with all customers' new sermons
                 using pipeline_batch.py submit
   4. WAIT       poll until batch completes (max 24h, typical 1-2h)
@@ -212,16 +213,185 @@ def discover_new_for_customer(customer: Customer, dry_run: bool) -> int:
 # Stage 2 — Pending sermons (those with audio_url but no units yet = un-decomposed)
 # ────────────────────────────────────────────────────────────────────────────
 
+# AssemblyAI-pending sentinel. When a sermon's audio is queued for
+# transcription, we stash the AssemblyAI transcript ID in transcript_url
+# as f"assemblyai://{id}" — so the next cron run knows to poll instead of
+# re-submit. Survives without a schema change.
+ASSEMBLYAI_URL_SCHEME = "assemblyai://"
+
+# How long an HTTP transcript fetch is allowed before we give up and fall
+# through to the AssemblyAI path.
+TRANSCRIPT_FETCH_TIMEOUT_S = 30
+
+
 def pending_for_decomposition(customer: Customer) -> list[dict]:
-    """Sermons with audio_url + no units rows = ready to decompose."""
+    """Sermons with audio_url + no decomposition yet = candidates for Stage 2/3.
+
+    Returns transcript_url too so Stage 2 can decide: fetch synchronously
+    (regular HTTP transcript), poll an in-flight AssemblyAI job, or submit
+    a fresh AssemblyAI job for the audio.
+    """
     sb = supabase()
-    # Get all this preacher's sermons with audio_url
-    res = sb.table("sermons").select("id, title, date, audio_url, raw_transcript") \
+    res = sb.table("sermons").select(
+        "id, title, date, audio_url, raw_transcript, transcript_url"
+    ) \
         .eq("preacher_id", customer.preacher_id) \
         .not_.is_("audio_url", "null") \
         .is_("decomposed_at", "null") \
         .order("date", desc=True).execute()
     return res.data or []
+
+
+def fetch_transcript_text(url: str) -> Optional[str]:
+    """Synchronously fetch a transcript URL and return cleaned text.
+
+    Handles plain text, basic VTT (drop cue timings), and basic SRT (drop
+    sequence + timing lines). Returns None on any failure — caller falls
+    through to AssemblyAI.
+    """
+    import re as _re
+    import urllib.request as _urlreq
+
+    try:
+        req = _urlreq.Request(url, headers={"User-Agent": "shepherds-guild-pipeline/1.0"})
+        with _urlreq.urlopen(req, timeout=TRANSCRIPT_FETCH_TIMEOUT_S) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        log.warning(f"  transcript fetch failed for {url}: {e}")
+        return None
+
+    if not body.strip():
+        return None
+
+    # VTT: drop "WEBVTT" header line, cue timing lines (00:00:00.000 --> ...),
+    # and per-line cue numbers. SRT is similar; drop integer-only lines + timings.
+    cleaned_lines: list[str] = []
+    for line in body.splitlines():
+        s = line.strip()
+        if not s:
+            cleaned_lines.append("")
+            continue
+        if s == "WEBVTT" or s.startswith("WEBVTT"):
+            continue
+        if "-->" in s and _re.match(r"^\d{1,2}:\d{2}", s):
+            continue  # VTT / SRT timing line
+        if s.isdigit():
+            continue  # SRT sequence number
+        # Strip VTT inline tags like <v Speaker> or <c.classname>
+        s = _re.sub(r"</?[a-zA-Z][^>]*>", "", s)
+        cleaned_lines.append(s)
+    text = "\n".join(cleaned_lines)
+    # Collapse runs of blank lines.
+    text = _re.sub(r"\n{3,}", "\n\n", text).strip()
+    if not text:
+        return None
+    return text + "\n"
+
+
+def submit_assemblyai_job(audio_url: str) -> Optional[str]:
+    """Submit an audio URL to AssemblyAI for transcription. Returns the
+    AssemblyAI transcript ID immediately (does NOT block on completion).
+
+    Returns None if AssemblyAI isn't configured or the submit fails — caller
+    logs and moves on. Subsequent cron runs pick up via poll_assemblyai_job.
+    """
+    api_key = os.environ.get("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        log.warning("  ASSEMBLYAI_API_KEY not set — cannot submit transcription job")
+        return None
+    try:
+        import assemblyai as aai
+    except ImportError:
+        log.warning("  assemblyai package not installed — cannot submit transcription job")
+        return None
+
+    aai.settings.api_key = api_key
+    try:
+        config = aai.TranscriptionConfig(speaker_labels=False, punctuate=True, format_text=True)
+        transcript = aai.Transcriber().submit(audio_url, config)
+        return transcript.id
+    except Exception as e:
+        log.warning(f"  assemblyai submit failed for {audio_url}: {e}")
+        return None
+
+
+def poll_assemblyai_job(transcript_id: str) -> Optional[str]:
+    """Fetch an AssemblyAI transcript by ID. Returns transcript text if
+    completed, None otherwise (still running, errored, or AssemblyAI down).
+
+    The status check is one API call and returns immediately even when the
+    job is still processing — cron-friendly.
+    """
+    api_key = os.environ.get("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        return None
+    try:
+        import assemblyai as aai
+    except ImportError:
+        return None
+
+    aai.settings.api_key = api_key
+    try:
+        t = aai.Transcript.get_by_id(transcript_id)
+    except Exception as e:
+        log.warning(f"  assemblyai poll failed for {transcript_id}: {e}")
+        return None
+
+    status = getattr(t, "status", None)
+    status_str = status.value if hasattr(status, "value") else str(status)
+    if status_str == "completed":
+        return (t.text or "").strip() + "\n"
+    if status_str == "error":
+        log.warning(f"  assemblyai job {transcript_id} errored: {getattr(t, 'error', '?')}")
+        return None
+    log.info(f"  assemblyai job {transcript_id} status={status_str}; will retry next run")
+    return None
+
+
+def resolve_transcript_for_pending(sermon: dict) -> Optional[str]:
+    """Decide which transcript path applies to this pending sermon, do the work,
+    and return the populated transcript text — OR return None if the sermon
+    can't be transcribed this run (in flight, no path available, etc.).
+
+    Side effect: when an AssemblyAI job is submitted, writes
+    transcript_url='assemblyai://<id>' so subsequent runs poll instead of
+    re-submitting.
+    """
+    sb = supabase()
+    t_url = sermon.get("transcript_url")
+
+    # Case 1: an AssemblyAI job is already in flight — just poll
+    if t_url and t_url.startswith(ASSEMBLYAI_URL_SCHEME):
+        job_id = t_url[len(ASSEMBLYAI_URL_SCHEME):]
+        text = poll_assemblyai_job(job_id)
+        if text:
+            sb.table("sermons").update({
+                "raw_transcript": text,
+            }).eq("id", sermon["id"]).execute()
+            return text
+        return None  # still in flight
+
+    # Case 2: regular transcript URL (host-provided) — fetch synchronously
+    if t_url:
+        text = fetch_transcript_text(t_url)
+        if text:
+            sb.table("sermons").update({
+                "raw_transcript": text,
+            }).eq("id", sermon["id"]).execute()
+            return text
+        # Fall through to AssemblyAI if the URL failed (404, 5xx, parse error)
+
+    # Case 3: submit a fresh AssemblyAI job. Stash the id in transcript_url
+    # so the next run polls it instead of re-submitting.
+    if sermon.get("audio_url"):
+        job_id = submit_assemblyai_job(sermon["audio_url"])
+        if job_id:
+            sb.table("sermons").update({
+                "transcript_url": f"{ASSEMBLYAI_URL_SCHEME}{job_id}",
+            }).eq("id", sermon["id"]).execute()
+        return None
+
+    return None  # nothing to do
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -387,14 +557,62 @@ def run_weekly(catchup: bool, dry_run: bool) -> RunSummary:
         return summary
 
     # Stages 2–3 — Decompose pending sermons (those with audio + no decomposition yet)
+    #
+    # Stage 2 priority order, per sermon:
+    #   (a) raw_transcript already populated → ready for decomposition
+    #   (b) transcript_url is assemblyai://<id> → poll job; collect if done
+    #   (c) transcript_url is regular HTTP → fetch synchronously
+    #   (d) audio_url only → submit AssemblyAI, queue for next run
+    # See resolve_transcript_for_pending().
     pending: list[tuple[Customer, dict]] = []
+    stage2_stats = {"already_had": 0, "fetched": 0, "assemblyai_polled_done": 0,
+                    "assemblyai_in_flight": 0, "assemblyai_submitted": 0, "skipped": 0}
     for c in customers:
         for s in pending_for_decomposition(c):
             if s.get("raw_transcript"):
                 pending.append((c, s))
+                stage2_stats["already_had"] += 1
+                continue
+
+            t_url = s.get("transcript_url") or ""
+            was_assemblyai = t_url.startswith(ASSEMBLYAI_URL_SCHEME)
+            had_url = bool(t_url) and not was_assemblyai
+
+            text = resolve_transcript_for_pending(s)
+            if text:
+                # Got a transcript this run — re-include for downstream stages
+                s["raw_transcript"] = text
+                pending.append((c, s))
+                if was_assemblyai:
+                    stage2_stats["assemblyai_polled_done"] += 1
+                    log.info(f"  [transcript collected from AssemblyAI] {c.church_name}: {s['title']!r}")
+                elif had_url:
+                    stage2_stats["fetched"] += 1
+                    log.info(f"  [transcript fetched] {c.church_name}: {s['title']!r}")
+                else:
+                    # Edge case: AssemblyAI synchronous result. Shouldn't happen with current code.
+                    stage2_stats["fetched"] += 1
+                continue
+
+            # No transcript this run. Figure out which queued state we ended in.
+            if was_assemblyai:
+                stage2_stats["assemblyai_in_flight"] += 1
+                log.info(f"  [waiting on AssemblyAI] {c.church_name}: {s['title']!r}")
+            elif s.get("audio_url"):
+                # resolve_transcript_for_pending submitted a fresh AssemblyAI job
+                stage2_stats["assemblyai_submitted"] += 1
+                log.info(f"  [AssemblyAI submitted] {c.church_name}: {s['title']!r}")
             else:
-                # TODO Stage 2: download from transcript_url if present, else AssemblyAI on audio_url
-                log.info(f"  [skip] {c.church_name}: {s['title']!r} has no raw_transcript (TODO: download/AssemblyAI)")
+                stage2_stats["skipped"] += 1
+                log.info(f"  [skip] {c.church_name}: {s['title']!r} has no audio path")
+    log.info(
+        f"Stage 2 summary: had={stage2_stats['already_had']} "
+        f"fetched={stage2_stats['fetched']} "
+        f"assemblyai_done={stage2_stats['assemblyai_polled_done']} "
+        f"assemblyai_inflight={stage2_stats['assemblyai_in_flight']} "
+        f"assemblyai_submitted={stage2_stats['assemblyai_submitted']} "
+        f"skipped={stage2_stats['skipped']}"
+    )
 
     if not pending:
         log.info("No sermons pending decomposition.")
