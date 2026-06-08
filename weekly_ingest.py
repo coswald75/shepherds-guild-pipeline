@@ -248,6 +248,11 @@ def fetch_transcript_text(url: str) -> Optional[str]:
     Handles plain text, basic VTT (drop cue timings), and basic SRT (drop
     sequence + timing lines). Returns None on any failure — caller falls
     through to AssemblyAI.
+
+    Strips Unicode NULL bytes (\\x00) before returning. Postgres TEXT
+    cannot store them and will reject the UPDATE with
+    "unsupported Unicode escape sequence — \\u0000 cannot be converted
+    to text" (caught in production 2026-06-08).
     """
     import re as _re
     import urllib.request as _urlreq
@@ -260,6 +265,9 @@ def fetch_transcript_text(url: str) -> Optional[str]:
         log.warning(f"  transcript fetch failed for {url}: {e}")
         return None
 
+    # Strip null bytes up front so the rest of the pipeline doesn't have
+    # to think about them.
+    body = body.replace("\x00", "")
     if not body.strip():
         return None
 
@@ -283,6 +291,9 @@ def fetch_transcript_text(url: str) -> Optional[str]:
     text = "\n".join(cleaned_lines)
     # Collapse runs of blank lines.
     text = _re.sub(r"\n{3,}", "\n\n", text).strip()
+    # Belt-and-suspenders: in case any null byte snuck back in via decode
+    # round-tripping or regex weirdness.
+    text = text.replace("\x00", "")
     if not text:
         return None
     return text + "\n"
@@ -340,7 +351,9 @@ def poll_assemblyai_job(transcript_id: str) -> Optional[str]:
     status = getattr(t, "status", None)
     status_str = status.value if hasattr(status, "value") else str(status)
     if status_str == "completed":
-        return (t.text or "").strip() + "\n"
+        # Strip null bytes (same Postgres TEXT constraint as fetch_transcript_text).
+        text = (t.text or "").replace("\x00", "").strip()
+        return text + "\n" if text else None
     if status_str == "error":
         log.warning(f"  assemblyai job {transcript_id} errored: {getattr(t, 'error', '?')}")
         return None

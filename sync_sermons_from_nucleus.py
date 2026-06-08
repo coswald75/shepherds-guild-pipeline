@@ -203,6 +203,40 @@ def title_sim(a: str, b: str) -> float:
     return SequenceMatcher(None, normalize_title(a), normalize_title(b)).ratio()
 
 
+def speaker_matches_target(speakers: list[str], target_name: str) -> bool:
+    """True iff every token of the target preacher's name appears in the
+    speaker label.
+
+    Nucleus serves the whole CHURCH catalog including guest preachers.
+    Without this filter, the INSERT branch would attribute every guest's
+    sermon to the target preacher (the 96-row mess discovered 2026-06-08).
+
+    "Every token" is the right level of strictness:
+
+    - For target "Ricky Alcantar" — matches speaker "Ricky Alcantar",
+      "Pastor Ricky Alcantar", "Reverend Doctor Ricky Alcantar III", etc.
+    - Rejects "Joe Alcantar Jr." (shares only one token) — important
+      because Ricky's relative Joe Alcantar Jr. also appears in the
+      CoG catalog.
+    - Rejects "Ricky" alone — unfortunate but unavoidable when only the
+      first name is present. Safer to skip than to risk attributing a
+      different "Ricky" to the wrong preacher.
+    - Rejects "Sal Valenzuela", "Alec Shoffeitt", etc. — the
+      not-actually-Ricky guest preachers.
+    """
+    if not target_name or not speakers:
+        return False
+    target_tokens = set(normalize_title(target_name).split())
+    if not target_tokens:
+        return False
+    for s in speakers:
+        s_tokens = set(normalize_title(s or "").split())
+        # All target tokens must be present in the speaker tokens.
+        if target_tokens.issubset(s_tokens):
+            return True
+    return False
+
+
 _SLUG_NONALNUM = re.compile(r"[^a-z0-9]+")
 
 
@@ -286,14 +320,30 @@ def main() -> int:
         return 2
     sb = create_client(url, key)
 
-    # Resolve church_slug once for R2 mirror keys.
-    pre = sb.table("preachers").select("church_id").eq("id", args.preacher).limit(1).execute()
+    # Resolve church_slug + preacher name once. The name is required for the
+    # multi-speaker guard below (Nucleus serves the whole church catalog
+    # including guest preachers; we MUST skip non-target speakers or we
+    # mis-attribute their sermons to the --preacher arg).
+    pre = (
+        sb.table("preachers")
+        .select("church_id, name")
+        .eq("id", args.preacher)
+        .limit(1)
+        .execute()
+    )
     church_slug: Optional[str] = None
-    if pre.data and pre.data[0].get("church_id"):
-        ch = sb.table("churches").select("slug").eq("id", pre.data[0]["church_id"]).limit(1).execute()
-        church_slug = (ch.data[0].get("slug") if ch.data else None)
+    target_preacher_name: str = ""
+    if pre.data:
+        target_preacher_name = pre.data[0].get("name") or ""
+        if pre.data[0].get("church_id"):
+            ch = sb.table("churches").select("slug").eq("id", pre.data[0]["church_id"]).limit(1).execute()
+            church_slug = (ch.data[0].get("slug") if ch.data else None)
     if not church_slug:
         print("  [warn] no church_slug for this preacher; R2 mirror will be skipped")
+    if not target_preacher_name:
+        print(f"  [error] could not resolve target preacher name for id={args.preacher}; refusing to run")
+        return 2
+    print(f"  target preacher: {target_preacher_name!r} (will skip items spoken by others)")
 
     # Lazy-import so the script still works when boto3 isn't installed.
     try:
@@ -313,6 +363,7 @@ def main() -> int:
         print(f"  limited to {len(sermons)}")
 
     counts = {"updated": 0, "inserted": 0, "no_match": 0, "no_audio": 0,
+              "skipped_other_preacher": 0,
               "fetch_error": 0, "mirrored": 0, "mirror_skipped": 0, "mirror_failed": 0}
     by_method: dict[str, int] = {}
     unmatched: list[Item] = []
@@ -328,6 +379,17 @@ def main() -> int:
 
         if not item.audio_url:
             counts["no_audio"] += 1
+            continue
+
+        # ─── Multi-speaker guard ─────────────────────────────────────────
+        # Nucleus serves the whole CHURCH catalog including guest preachers.
+        # The Item.speakers list comes from the same Nucleus payload; if
+        # the target preacher's last name isn't in that list, this sermon
+        # isn't ours and must be skipped — otherwise the INSERT branch
+        # would attribute someone else's sermon to args.preacher (the
+        # 2026-06-08 bug that produced 96 mis-attributed rows).
+        if not speaker_matches_target(item.speakers, target_preacher_name):
+            counts["skipped_other_preacher"] += 1
             continue
 
         row, method = find_match(sb, args.preacher, item)
@@ -459,6 +521,7 @@ def main() -> int:
     print("Summary:")
     print(f"  Sermons in Nucleus listing: {len(sermons)}")
     print(f"  With audio URL:             {len(sermons) - counts['no_audio']}")
+    print(f"  Other preacher (skipped):   {counts['skipped_other_preacher']}")
     print(f"  {'Would update' if args.dry_run else 'Updated'}:                  {counts['updated']}")
     print(f"  {'Would insert' if args.dry_run else 'Inserted'}:                 {counts['inserted']}")
     print(f"  Mirrored to R2:             {counts['mirrored']}")
