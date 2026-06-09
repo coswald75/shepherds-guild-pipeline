@@ -1,0 +1,18 @@
+# Local-dev secrets file. Copy to `.dev.vars` and fill in.
+# `wrangler dev` reads this automatically. NEVER commit .dev.vars.
+#
+# In production, use: wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+
+# Service role key from Supabase dashboard → Project Settings → API.
+# Required for: token lookup, RPC calls scoped by preacher_id, ORDER BY random().
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Voyage AI API key from voyageai.com. Required for embedding queries
+# (search_corpus tool). Get one at https://dash.voyageai.com.
+VOYAGE_API_KEY=
+
+# Supabase ANON key (public/publishable key). Required for the OAuth flow
+# only — used to send magic-link emails via Supabase Auth on the user's
+# side (subject to project email rate limits, not service-role bypass).
+# Without it, OAuth is disabled and only legacy sst_* bearer tokens work.
+SUPABASE_ANON_KEY=

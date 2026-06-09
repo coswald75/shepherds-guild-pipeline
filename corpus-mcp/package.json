@@ -1,0 +1,25 @@
+{
+  "name": "sermon-steward-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server that lets pastors query their own Sermon Steward corpus from Claude Desktop, Claude.ai, or ChatGPT.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "issue-token": "tsx scripts/issue-token.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240924.0",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^3.78.0"
+  }
+}
