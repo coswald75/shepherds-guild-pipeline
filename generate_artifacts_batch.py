@@ -308,7 +308,10 @@ def _insert_artifact(
         "artifact_type": artifact_type,
         "body": body,
         "body_text": body_text,
-        "status": "generated",
+        # Matches sync generate_artifacts.py + the sermon_artifacts_status_check
+        # CHECK constraint which only allows
+        # ('pending_review', 'approved', 'published', 'skipped').
+        "status": "pending_review",
         "generation_model": model,
         "voice_prompt_version": voice_version,
         "input_tokens": in_tokens,

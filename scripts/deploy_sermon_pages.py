@@ -154,14 +154,23 @@ def resolve_sermons(
 
 
 def source_path_for(sermon: dict) -> Optional[Path]:
-    """Locate the rendered HTML in output/sermon-pages/ for a given sermon row."""
+    """Locate the rendered HTML in output/sermon-pages/ for a given sermon row.
+
+    Layout that generate_sermon_pages.py actually produces:
+        output/sermon-pages/<church-slug>/<YYYY>/<MM>/<slug>.html
+    Undated sermons fall back to:
+        output/sermon-pages/<church-slug>/undated/<slug>.html
+    """
     church_slug = sermon["preachers"]["churches"]["slug"]
     slug = sermon.get("slug")
     date = sermon.get("date")
     if not slug:
         return None
-    year_dir = (date or "")[:4] or "undated"
-    return SOURCE_ROOT / church_slug / year_dir / f"{slug}.html"
+    if date and len(date) >= 7:
+        year_dir = date[:4]
+        month_dir = date[5:7]
+        return SOURCE_ROOT / church_slug / year_dir / month_dir / f"{slug}.html"
+    return SOURCE_ROOT / church_slug / "undated" / f"{slug}.html"
 
 
 def target_path_for(sermon: dict) -> Optional[Path]:
