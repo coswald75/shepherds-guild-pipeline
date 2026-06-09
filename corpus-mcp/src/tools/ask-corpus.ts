@@ -32,7 +32,15 @@ export const askCorpusTool = {
     "content of one sermon, include the FULL sermon title in the question " +
     "verbatim (don't truncate). If you know the sermon UUID, also pass it " +
     "as `sermon_id` for guaranteed routing. The tool will return all " +
-    "units in order — that's how to actually summarize one sermon.",
+    "units in order — that's how to actually summarize one sermon.\n\n" +
+    "AUTHOR-SCOPED QUERIES (multi-author endpoints only): When the user " +
+    "names a specific voice — \"what did Spurgeon say about hell\", " +
+    "\"Piper on suffering\", \"Lloyd-Jones on Romans 8\" — pass the author " +
+    "name as the `author` parameter. That HARD-FILTERS to that author and " +
+    "ranks within their sermons, so their best units on the topic can't " +
+    "lose the global ranking to other voices and disappear. Naming the " +
+    "author in the question text alone is only a soft semantic nudge and " +
+    "WILL return mixed-author results.",
   inputSchema: {
     type: "object",
     properties: {
@@ -61,6 +69,32 @@ export const askCorpusTool = {
           "guarantees the full-sermon-fetch path regardless of question " +
           "phrasing. Format: 8-4-4-4-12 hex UUID.",
       },
+      author: {
+        type: "string",
+        description:
+          "Optional. Restricts the search to a single author on the " +
+          "aggregate endpoints (/g Guild Hall, /c/<church-slug> whole " +
+          "church). Vector ranking happens WITHIN that author rather than " +
+          "across the full roster — which is what you want whenever the " +
+          "user names a specific author in their question.\n\n" +
+          "Accepts canonical names case-insensitively plus obvious variants:\n" +
+          "  - 'Spurgeon', 'Charles Spurgeon', 'charles-spurgeon'\n" +
+          "  - 'Lloyd-Jones', 'lloyd jones', 'Martyn Lloyd-Jones'\n" +
+          "  - 'piper', 'John Piper', 'john-piper'\n\n" +
+          "Guild Hall roster (canonical spellings): C.J. Mahaney, " +
+          "Charles Spurgeon, D.A. Carson, David VanAcker, G. Campbell " +
+          "Morgan, Haddon Robinson, James Boice, John MacArthur, John " +
+          "Piper, John Stott, Kevin DeYoung, Martyn Lloyd-Jones, " +
+          "R.C. Sproul, S. Lewis Johnson, Sinclair Ferguson, Thomas " +
+          "Watson, Tim Keller, Voddie Baucham.\n\n" +
+          "Unknown names produce an error listing the valid roster — " +
+          "the tool will NOT silently fall back to an all-author search. " +
+          "Rejected on per-preacher endpoints (/p/<slug>) where the " +
+          "scope is already a single voice.\n\n" +
+          "Pass this whenever the user names an author. Don't pass it " +
+          "for general-corpus questions like 'what do Reformed pastors " +
+          "say about hell' — that's a cross-author question.",
+      },
     },
     required: ["question"],
   } as const,
@@ -69,6 +103,7 @@ export const askCorpusTool = {
 interface AskArgs {
   question?: unknown;
   sermon_id?: unknown;
+  author?: unknown;
 }
 
 interface RouteDecision {
@@ -503,6 +538,110 @@ async function resolveSermonByHint(
 }
 
 // ─── Dispatcher ─────────────────────────────────────────────────────────────
+// ─── Author resolution ─────────────────────────────────────────────────────
+// Resolve a free-text author name to one preacher in the eligible roster
+// (auth.preacher_ids) on aggregate scopes (/g, /c/<church>). Returns a new
+// AuthContext narrowed to that single preacher_id so the downstream tools
+// (search, list, surprise, get_sermon) all scope their queries to that
+// author by the same in()/eq() preacher filter they already implement.
+//
+// Resolution strategies, in order of decreasing specificity:
+//   1. Exact case-insensitive name match           ("Charles Spurgeon")
+//   2. Exact slug match                            ("charles-spurgeon")
+//   3. Last-name only                              ("Spurgeon", "Lloyd-Jones")
+//   4. Partial substring match (unique candidate)  ("Lloyd-Jones" within
+//                                                   "Martyn Lloyd-Jones")
+//   5. Slug-normalized last-name match             ("lloyd jones",
+//                                                   "lloydjones")
+//
+// Unknown input throws an Error whose message lists the canonical roster
+// — the user explicitly asked for NO silent fallback, since the current
+// "soft semantic nudge" behavior produces mixed-author results that look
+// authoritative.
+async function resolveAuthor(
+  input: string,
+  auth: AuthContext,
+  env: Env,
+): Promise<AuthContext> {
+  if (auth.scope !== "guild" && auth.scope !== "church") {
+    throw new Error(
+      "`author` only applies on aggregate endpoints (/g Guild Hall or " +
+        "/c/<church-slug> whole church). This endpoint is already scoped " +
+        "to a single voice; drop the author parameter."
+    );
+  }
+  if (!auth.preacher_ids?.length) {
+    throw new Error(
+      "No preacher roster on this scope; cannot resolve author."
+    );
+  }
+
+  const supabase = adminClient(env);
+  const { data: roster, error } = await supabase
+    .from("preachers")
+    .select("id, name, slug")
+    .in("id", auth.preacher_ids);
+  if (error) {
+    throw new Error(`Roster lookup failed: ${error.message}`);
+  }
+  const eligible = (roster ?? []) as Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+
+  const needle = input.trim();
+  const lower = needle.toLowerCase();
+  // Normalize hyphens/underscores/punctuation → "lloyd-jones" and "lloyd jones"
+  // and "Lloyd-Jones" all collapse to "lloyd-jones".
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const needleSlug = norm(needle);
+
+  // (1) Exact name (case-insensitive)
+  let match = eligible.find((p) => p.name.toLowerCase() === lower);
+
+  // (2) Exact slug
+  if (!match) match = eligible.find((p) => p.slug === needleSlug);
+
+  // (3) Last-name only — uses the slug-normalized form so "Lloyd-Jones"
+  // matches the slug "lloyd-jones" embedded in "martyn-lloyd-jones".
+  if (!match) {
+    const lastCandidates = eligible.filter((p) => {
+      const lastName = p.name.split(/\s+/).slice(-1)[0];
+      return norm(lastName) === needleSlug;
+    });
+    if (lastCandidates.length === 1) match = lastCandidates[0];
+  }
+
+  // (4) Substring containment — handles "lloyd jones" inside the canonical
+  // "martyn lloyd-jones" (after norm), and "Piper" inside "John Piper".
+  if (!match) {
+    const partial = eligible.filter((p) => {
+      const pn = norm(p.name);
+      return pn.includes(needleSlug) || needleSlug.includes(pn);
+    });
+    if (partial.length === 1) match = partial[0];
+  }
+
+  if (!match) {
+    const roster_list = eligible
+      .map((p) => p.name)
+      .sort()
+      .join(", ");
+    throw new Error(
+      `Unknown author "${input}". Valid authors on this endpoint: ${roster_list}.`
+    );
+  }
+
+  return {
+    ...auth,
+    preacher_id: match.id,
+    preacher_name: match.name,
+    preacher_ids: [match.id],
+  };
+}
+
 export async function runAskCorpus(
   args: AskArgs,
   auth: AuthContext,
@@ -512,6 +651,22 @@ export async function runAskCorpus(
     typeof args.question === "string" ? args.question.trim() : "";
   if (!question) {
     throw new Error("ask_corpus requires a non-empty `question` string");
+  }
+
+  // Author override (aggregate endpoints only). Resolved BEFORE any other
+  // dispatch so every downstream call — sermon_id, get_sermon, list,
+  // surprise, search — runs against the narrowed roster. This is the hard
+  // filter the feature request asked for: vector ranking happens WITHIN
+  // the chosen author, not across all 18.
+  const authorArg =
+    typeof args.author === "string" && args.author.trim()
+      ? args.author.trim()
+      : "";
+  if (authorArg) {
+    auth = await resolveAuthor(authorArg, auth, env);
+    console.log(
+      `[ask_corpus] author override → ${auth.preacher_name} (${auth.preacher_id})`
+    );
   }
 
   // Explicit sermon_id arg wins over everything else. The LLM passes this
