@@ -85,17 +85,28 @@ export async function runListRecentSermons(
     preacher_id?: string;
     preachers?: { name: string };
   };
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   const selectCols = isChurchScope
     ? "id, title, date, primary_text, series_name, sermon_type, preacher_id, preachers!inner(name)"
     : "id, title, date, primary_text, series_name, sermon_type";
 
+  // Date filter behavior depends on scope:
+  //   - preacher / church: exclude null-date rows. Working pastors' sermons
+  //     should all be dated; a null date is a data-quality issue. Listing
+  //     them buries the real recent preaching.
+  //   - guild: include null-date rows but sort dated-first via NULLS LAST.
+  //     Guild Hall members include historical figures (Spurgeon, Watson,
+  //     Campbell Morgan) whose 30/30 sermons have NULL date. Excluding
+  //     them would make /g?speaker=charles-spurgeon return zero hits.
+  const isGuildScope = auth.scope === "guild";
   let q = adminClient(env)
     .from("sermons")
     .select(selectCols as never)
-    .not("date", "is", null)
-    .order("date", { ascending: false })
+    .order("date", { ascending: false, nullsFirst: false })
     .limit(limit);
+  if (!isGuildScope) {
+    q = q.not("date", "is", null);
+  }
 
   if (isChurchScope) {
     q = q.in("preacher_id", auth.preacher_ids!);

@@ -52,7 +52,7 @@ export async function runGetSermon(
   // The select string and the filter are conditional, so the static return
   // type from supabase-js can't infer correctly; we cast through `unknown`
   // and use SermonRowWithJoin below for the shape we actually expect.
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   type SermonRowWithJoin = {
     id: string;
     title: string;

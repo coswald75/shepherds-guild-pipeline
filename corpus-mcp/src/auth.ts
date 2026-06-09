@@ -149,6 +149,67 @@ export async function authenticateBySlug(
   };
 }
 
+// Guild Hall scope (/g): the canonical reference library — every preacher
+// in the database whose church_id IS NULL. That's the Reformed reference
+// set (Piper, Keller, Spurgeon, MacArthur, Lloyd-Jones, etc.) that the
+// pipeline canonically compares working pastors against.
+//
+// Same public-read principle as /p/:slug and /c/:slug: this material is
+// public artifacts, attribution is enforced by joined preacher data, not
+// by access control. No auth header required.
+//
+// Optional `?speaker=<preacher-slug>` narrows the roster to a single
+// guild member — lets a consumer query "Spurgeon only" through the
+// guild endpoint instead of switching to /p/charles-spurgeon.
+//
+// There's no slug after /g — there's only one Guild Hall, so the path
+// is unparameterized.
+export async function authenticateGuildHall(
+  speakerSlug: string | null,
+  env: Env,
+): Promise<AuthContext> {
+  if (speakerSlug && !/^[a-z0-9-]+$/.test(speakerSlug)) {
+    throw new AuthError("Invalid speaker slug format", 400);
+  }
+  const supabase = adminClient(env);
+
+  // Pull the canonical reference set. church_id IS NULL is the marker:
+  // when a preacher gets onboarded into a working-pastor cohort they
+  // get a church_id; the reference library stays unattached.
+  const { data: preachers, error } = await supabase
+    .from("preachers")
+    .select("id, name, slug")
+    .is("church_id", null)
+    .order("name");
+  if (error) throw new AuthError(`Guild roster lookup failed: ${error.message}`, 500);
+  if (!preachers || preachers.length === 0) {
+    throw new AuthError("Guild Hall is empty", 404);
+  }
+
+  let scopedPreachers = preachers;
+  let displayPreacherName = "Guild Hall";
+  if (speakerSlug) {
+    scopedPreachers = preachers.filter((p) => p.slug === speakerSlug);
+    if (scopedPreachers.length === 0) {
+      throw new AuthError(
+        `No Guild Hall member with slug "${speakerSlug}"`,
+        404,
+      );
+    }
+    displayPreacherName = scopedPreachers[0].name;
+  }
+
+  const primary = scopedPreachers[0];
+
+  return {
+    preacher_id: primary.id,
+    preacher_name: displayPreacherName,
+    token_name: null,
+    scope: "guild",
+    preacher_ids: scopedPreachers.map((p) => p.id),
+  };
+}
+
 // Church-wide variant of authenticateBySlug. Resolves a church_id from the
 // URL path and loads the full roster of preacher_ids at that church. The
 // resulting AuthContext is used by the tool handlers to scope queries via
