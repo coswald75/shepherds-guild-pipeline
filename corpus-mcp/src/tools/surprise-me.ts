@@ -107,7 +107,7 @@ export async function runSurpriseMe(
     };
   };
 
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   const selectStr = isChurchScope
     ? "id, unit_index, rhetorical_function, illustration_type, doctrinal_loci, summary, content, sermons!inner(id, title, date, primary_text, preacher_id, preachers!inner(name))"
     : "id, unit_index, rhetorical_function, illustration_type, doctrinal_loci, summary, content, sermons!inner(id, title, date, primary_text, preacher_id)";

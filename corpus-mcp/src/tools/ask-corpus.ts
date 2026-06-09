@@ -236,13 +236,17 @@ function routeIntent(question: string): RouteDecision {
   }
 
   // (2) Browse-by-date / list mode — now with proper month/range parsing.
+  // Patterns accept both per-preacher phrasing ("my last 5 sermons") and
+  // multi-preacher phrasing ("show me 5 sermons", "list 5 sermons") — the
+  // multi-preacher version matters for /c/<church> and /g where the LLM
+  // doesn't have a "my" relationship to the corpus.
   const looksLikeListQuery =
-    /(my (last|recent) \d* ?sermons?)|(list .* sermons)|(what (have|did) i (been )?preach)|(recent (preaching|sermons))|(what (did|have) i preach.*(in|during|from))|(my sermons (in|from|during))|(sermons (in|from|during))|(preached (in|during|from))/.test(s);
+    /(my (last|recent) \d* ?sermons?)|(list .* sermons)|(what (have|did) i (been )?preach)|(recent (preaching|sermons))|(what (did|have) i preach.*(in|during|from))|(my sermons (in|from|during))|(sermons (in|from|during))|(preached (in|during|from))|((show|give|get|pull|fetch) (me )?(\d+|some|a few|the) (recent |last )?sermons?)|((show|list|browse) (me )?(recent |all |latest )?sermons?)/.test(s);
   if (looksLikeListQuery) {
     const decision: RouteDecision = { mode: "list", limit: 10 };
 
-    // limit from "last N sermons"
-    const nMatch = s.match(/last (\d+) sermons?/);
+    // limit from "last N sermons" or "show me N sermons"
+    const nMatch = s.match(/(?:last|recent|show me|give me|pull|get me|list) (\d+) ?(?:recent |last )?sermons?/);
     if (nMatch) decision.limit = Math.min(50, parseInt(nMatch[1], 10));
 
     // date constraints (month, range, year)
@@ -403,7 +407,7 @@ async function findSermonTitleInQuestion(
     ? [stripped, question]
     : [question];
 
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   for (const candidate of candidates) {
     const rpcCall = isChurchScope
       ? supabase.rpc("find_sermon_by_title_in_text_church", {
@@ -446,7 +450,7 @@ async function resolveSermonByHint(
   if (cleaned.length < 3) return null;
 
   // Helper applies the right preacher-scope filter for either mode.
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   const scoped = <T>(qb: T): T => {
     if (isChurchScope) {
       return (qb as unknown as { in: (col: string, vals: string[]) => T }).in(

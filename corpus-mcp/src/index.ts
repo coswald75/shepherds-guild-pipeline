@@ -4,6 +4,7 @@ import {
   authenticate,
   authenticateByChurchSlug,
   authenticateBySlug,
+  authenticateGuildHall,
 } from "./auth";
 import { TOOLS, callTool } from "./tools";
 import { listPromptsForAuth, renderPrompt } from "./prompts";
@@ -147,6 +148,11 @@ export default {
           `  (example: /c/cross-of-grace-church)\n` +
           `  Add ?speaker=<preacher-slug> to narrow to one preacher at\n` +
           `  that church without changing the connector URL.\n\n` +
+          `Guild Hall — canonical Reformed reference library:\n` +
+          `  https://corpus-mcp.chris-386.workers.dev/g\n` +
+          `  Spans Piper, Keller, Spurgeon, MacArthur, Lloyd-Jones,\n` +
+          `  Sproul, Ferguson, DeYoung, Carson, Watson, and more.\n` +
+          `  Add ?speaker=<slug> to narrow to one Guild member.\n\n` +
           `Setup guides:\n` +
           `  https://sermonsteward.com/study/connect\n`,
         { status: 200, headers: { "Content-Type": "text/plain" } },
@@ -191,6 +197,31 @@ export default {
               `(e.g. /c/${slug}?speaker=ricky-alcantar).\n\n`) +
           `Discovery + per-church pages:\n` +
           `  https://sermonsteward.com/churches/${slug}\n`,
+        { status: 200, headers: { "Content-Type": "text/plain" } },
+      );
+    }
+
+    // ─── GET /g — Guild Hall landing page ──────────────────────────────────
+    // The canonical Reformed reference library, queryable as one corpus.
+    // POSTs to /g hit the JSON-RPC handler below, which routes auth
+    // through authenticateGuildHall.
+    const guildPathMatch = pathname.match(/^\/g\/?$/);
+    const guildSpeakerFilter = url.searchParams.get("speaker");
+    if (req.method === "GET" && guildPathMatch) {
+      return new Response(
+        `Sermon Steward MCP — Guild Hall\n\n` +
+          `The canonical Reformed reference library: Piper, Keller,\n` +
+          `Spurgeon, MacArthur, Lloyd-Jones, Sproul, Ferguson, DeYoung,\n` +
+          `Carson, Watson, Mahaney, Boice, Stott, Robinson, Baucham,\n` +
+          `Campbell Morgan, S. Lewis Johnson, and David VanAcker.\n\n` +
+          `Add this URL as an MCP connector in Claude Desktop, Cowork,\n` +
+          `or ChatGPT. No auth required — material is public.\n\n` +
+          (guildSpeakerFilter
+            ? `Currently filtered to speaker: ${guildSpeakerFilter}\n\n`
+            : `Add ?speaker=<preacher-slug> to narrow to one member\n` +
+              `(e.g. /g?speaker=charles-spurgeon).\n\n`) +
+          `Discovery + Guild Hall index:\n` +
+          `  https://sermonsteward.com/guild-hall\n`,
         { status: 200, headers: { "Content-Type": "text/plain" } },
       );
     }
@@ -251,17 +282,21 @@ export default {
 
     // Everything below this point requires identity resolution.
     //
-    // Three paths:
+    // Four paths:
     //   /p/:slug   — preacher-scoped public read. Identity comes from the
     //                URL path. Tool queries filter by that preacher_id.
     //   /c/:slug   — church-scoped public read. Identity is the whole
     //                church roster. Tool queries filter by
     //                preacher_id IN preacher_ids. Optional ?speaker=
     //                narrows to one preacher inside the church.
+    //   /g         — Guild Hall public read. Identity is the canonical
+    //                reference library (preachers.church_id IS NULL).
+    //                Tool queries filter by preacher_id IN preacher_ids.
+    //                Optional ?speaker= narrows to one Guild member.
     //   anything   — legacy bearer-token path (sst_* via mcp_tokens, or
     //                sst_oauth_* via oauth_access_tokens). Kept for
     //                backward compatibility with existing pastor configs.
-    const isPublicSlugPath = Boolean(slugMatch || churchSlugMatch);
+    const isPublicSlugPath = Boolean(slugMatch || churchSlugMatch || guildPathMatch);
     let auth;
     try {
       if (slugMatch) {
@@ -272,6 +307,8 @@ export default {
           churchSpeakerFilter,
           env,
         );
+      } else if (guildPathMatch) {
+        auth = await authenticateGuildHall(guildSpeakerFilter, env);
       } else {
         auth = await authenticate(req, env);
       }

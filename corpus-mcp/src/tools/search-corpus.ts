@@ -132,11 +132,11 @@ export async function runSearchCorpus(
   // hangs we can see which stage. The previous -32001 timeouts were
   // opaque because nothing in the search path logged.
   const t0 = Date.now();
-  const isChurchScope = auth.scope === "church" && auth.preacher_ids?.length;
+  const isChurchScope = (auth.scope === "church" || auth.scope === "guild") && auth.preacher_ids?.length;
   console.log(
     `[search] start query="${query.slice(0, 60)}" ` +
       (isChurchScope
-        ? `church=${auth.church_id} preachers=${auth.preacher_ids!.length}`
+        ? `scope=${auth.scope} ${auth.church_id ? `church=${auth.church_id} ` : ""}preachers=${auth.preacher_ids!.length}`
         : `preacher=${auth.preacher_id}`),
   );
 

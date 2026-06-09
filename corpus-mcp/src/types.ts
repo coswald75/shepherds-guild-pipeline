@@ -19,7 +19,7 @@ export interface Env {
   SUPABASE_ANON_KEY?: string;
 }
 
-// Two scoping modes share this shape:
+// Three scoping modes share this shape:
 //   - Per-preacher (bearer token, /p/:slug):
 //       preacher_id is set, preacher_name is set, scope = "preacher".
 //   - Whole-church (/c/:slug):
@@ -28,15 +28,26 @@ export interface Env {
 //       "display" preacher (the primary, used for legacy code paths that
 //       still expect one), but per-preacher filtering should use
 //       preacher_ids when scope === "church".
-//   - Optional speaker_filter (set via /c/:slug?speaker=<slug>) narrows
-//       preacher_ids to just one — useful for a Sermon Steward consumer
-//       that wants the church endpoint shape but is currently focused on
-//       a single preacher.
+//   - Guild Hall (/g):
+//       scope = "guild". preacher_ids is the full canonical reference
+//       library (every preacher in the DB whose church_id IS NULL —
+//       Piper, Keller, Spurgeon, MacArthur, etc.). One global endpoint;
+//       no slug after /g. preacher_id is the "display" preacher (first
+//       in the roster) — same role as the church mode's display.
+//   - Optional speaker_filter (set via /c/:slug?speaker=<slug> or
+//       /g?speaker=<slug>) narrows preacher_ids to just one — useful when
+//       a consumer wants the multi-preacher endpoint shape but is
+//       currently focused on a single preacher.
+//
+// Tool handlers treat "church" and "guild" identically — both use
+// preacher_ids[] as the filter list. The scope field exists so the
+// landing-page text and a couple of attribution labels can read "Guild
+// Hall" vs "the church" in the right places.
 export interface AuthContext {
   preacher_id: string;
   preacher_name: string;
   token_name: string | null;
-  scope?: "preacher" | "church";
+  scope?: "preacher" | "church" | "guild";
   church_id?: string;
   church_name?: string;
   preacher_ids?: string[];
