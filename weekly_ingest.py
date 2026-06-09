@@ -647,13 +647,42 @@ def run_weekly(catchup: bool, dry_run: bool) -> RunSummary:
         log.info("No sermons pending decomposition.")
         return summary
 
-    # Group by preacher — pipeline_batch.py submit takes one --preacher per run
+    # Group by SERMON's preacher_id (not customer's). With whole-church
+    # dispatch, a single customer (Ricky / CoG) can have pending sermons
+    # by Ricky AND every guest who preached this quarter. Grouping by
+    # customer.preacher_id would dump them all under Ricky's name, which
+    # breaks attribution in the LLM prompt header ("Preached by Ricky
+    # Alcantar" on a Sal Valenzuela sermon → poisons the decomposition).
+    sb = supabase()
+    # Resolve every distinct preacher_id once so we don't hammer the DB
+    # inside the grouping loop.
+    distinct_pids = {s.get("preacher_id") for _, s in pending if s.get("preacher_id")}
+    preacher_names: dict[str, str] = {}
+    if distinct_pids:
+        rows = sb.table("preachers").select("id, name").in_("id", list(distinct_pids)).execute().data or []
+        preacher_names = {r["id"]: r["name"] for r in rows}
+
     by_preacher: dict[str, tuple[Customer, list[dict]]] = {}
     for c, s in pending:
-        key = c.preacher_id
-        if key not in by_preacher:
-            by_preacher[key] = (c, [])
-        by_preacher[key][1].append(s)
+        # Build a per-sermon Customer view whose preacher_id / preacher_name
+        # reflect THIS sermon's actual preacher, not the customer primary.
+        sermon_pid = s.get("preacher_id") or c.preacher_id
+        sermon_pname = preacher_names.get(sermon_pid, c.preacher_name)
+        if sermon_pid not in by_preacher:
+            sermon_customer = Customer(
+                church_id=c.church_id,
+                church_name=c.church_name,
+                church_slug=c.church_slug,
+                preacher_id=sermon_pid,
+                preacher_name=sermon_pname,
+                ingest_source_type=c.ingest_source_type,
+                podcast_feed_url=c.podcast_feed_url,
+                audio_base_url=c.audio_base_url,
+                deploy_target=c.deploy_target,
+                ingest_config=c.ingest_config,
+            )
+            by_preacher[sermon_pid] = (sermon_customer, [])
+        by_preacher[sermon_pid][1].append(s)
 
     log.info(f"Submitting decomposition: {len(pending)} sermon(s) across {len(by_preacher)} preacher(s)")
     batch_ids: dict[str, str] = {}
