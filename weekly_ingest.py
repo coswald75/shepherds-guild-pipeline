@@ -227,15 +227,31 @@ TRANSCRIPT_FETCH_TIMEOUT_S = 30
 def pending_for_decomposition(customer: Customer) -> list[dict]:
     """Sermons with audio_url + no decomposition yet = candidates for Stage 2/3.
 
+    Whole-church scope (2026-06-09): queries across every preacher_id whose
+    preachers.church_id matches the customer's church. This pairs with the
+    Nucleus adapter's whole-church dispatch — every CoG sermon (Ricky,
+    guests, future hires) flows through Stage 2/3 and lands on Sermon
+    Steward. The Shepherd's Guild per-pastor V4 dashboard is unaffected
+    because it filters server-side by ?id=<preacher_uuid>.
+
     Returns transcript_url too so Stage 2 can decide: fetch synchronously
     (regular HTTP transcript), poll an in-flight AssemblyAI job, or submit
     a fresh AssemblyAI job for the audio.
     """
     sb = supabase()
+    # Resolve all preachers attached to this customer's church.
+    preacher_rows = sb.table("preachers").select("id") \
+        .eq("church_id", customer.church_id).execute().data or []
+    preacher_ids = [r["id"] for r in preacher_rows]
+    if not preacher_ids:
+        # Fallback to the customer's primary preacher_id if the church has
+        # no rows yet — keeps the function safe during transition.
+        preacher_ids = [customer.preacher_id]
+
     res = sb.table("sermons").select(
-        "id, title, date, audio_url, raw_transcript, transcript_url"
+        "id, title, date, audio_url, raw_transcript, transcript_url, preacher_id"
     ) \
-        .eq("preacher_id", customer.preacher_id) \
+        .in_("preacher_id", preacher_ids) \
         .not_.is_("audio_url", "null") \
         .is_("decomposed_at", "null") \
         .order("date", desc=True).execute()
