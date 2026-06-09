@@ -1,0 +1,30 @@
+# Cloudflare Worker config for the Sermon Steward MCP server.
+#
+# Deploy with: npm run deploy
+# Local dev:    npm run dev      (then http://localhost:8787)
+#
+# Custom domain setup (optional): bind a route in the Cloudflare dashboard
+# (Workers & Pages → corpus-mcp → Settings → Triggers) to e.g.
+# mcp.sermonsteward.com/* once DNS is pointed at Cloudflare.
+
+name = "corpus-mcp"
+main = "src/index.ts"
+compatibility_date = "2025-05-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Default route — pastors get a workers.dev URL until a custom domain is
+# bound. Format: https://corpus-mcp.<your-account>.workers.dev
+workers_dev = true
+
+# Environment variables (non-secret). Secrets are set via:
+#   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+[vars]
+SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
+# How many units a search call returns by default. Pastors can override
+# per-call via the tool's `limit` argument.
+DEFAULT_SEARCH_LIMIT = "5"
+# Voyage embedding model — kept here so it's easy to swap when Voyage
+# releases a new family. The 1024-dim cap must match units.embedding's
+# vector dimension in Postgres.
+VOYAGE_MODEL = "voyage-3.5"
+VOYAGE_DIMENSIONS = "1024"
