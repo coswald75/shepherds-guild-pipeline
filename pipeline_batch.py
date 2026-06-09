@@ -156,6 +156,71 @@ log = logging.getLogger("pipeline_batch")
 
 
 # ---------------------------------------------------------------------------
+# Sonnet response shape helper
+# ---------------------------------------------------------------------------
+def _extract_json_blob(text: str) -> str:
+    """Pull the JSON object out of a Sonnet response, robust to preamble +
+    postamble + ```json fences.
+
+    Strategy, in order:
+      1. ```json ... ``` fence anywhere in the body → use the fence content
+      2. ``` ... ``` fence (untagged) → use the fence content
+      3. First `{` … matched `}` (brace-counting, string-aware) → use that span
+      4. Fall through with the original text — caller's json.loads raises
+         JSONDecodeError just like before, debug_raw_*.txt is still written.
+
+    Designed around the two Sonnet 4.6 failure modes observed in the
+    2026-06-09 CoG batch run:
+      - "I'll decompose this sermon transcript..." then ```json{...}```
+      - {...JSON...} then "**Note to user:**" commentary after
+    """
+    s = text.strip()
+    if not s:
+        return s
+
+    # (1) ```json fenced
+    m = re.search(r"```json\s*\n(.*?)\n```", s, re.DOTALL | re.IGNORECASE)
+    if m:
+        return m.group(1).strip()
+
+    # (2) untagged ``` fenced
+    m = re.search(r"```\s*\n(.*?)\n```", s, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+
+    # (3) brace-counted scan for the first balanced top-level JSON object.
+    #     Tracks string state so braces inside strings don't throw the count.
+    start = s.find("{")
+    if start == -1:
+        return s
+    depth = 0
+    in_str = False
+    escape = False
+    for i in range(start, len(s)):
+        ch = s[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_str:
+            escape = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return s[start : i + 1].strip()
+    # Unbalanced — return the original so the caller's error message is
+    # specific to the JSON content, not our truncation.
+    return s
+
+
+# ---------------------------------------------------------------------------
 # Sanitizer helpers (identical to pipeline.py)
 # ---------------------------------------------------------------------------
 def sanitize_enum(value, valid_set, field_name, context=""):
@@ -507,12 +572,19 @@ def process_batch_results(
             message = entry.result.message
             raw_text = message.content[0].text.strip()
 
-            # Strip markdown fences if present
-            if raw_text.startswith("```"):
-                raw_text = raw_text.split("\n", 1)[1]
-            if raw_text.endswith("```"):
-                raw_text = raw_text.rsplit("```", 1)[0]
-            raw_text = raw_text.strip()
+            # Extract the JSON blob, handling Sonnet 4.6's common shapes:
+            #   1. ```json\n{...}\n```        (fenced, possibly with preamble)
+            #   2. ```\n{...}\n```            (fenced without lang tag)
+            #   3. {...}                       (raw JSON)
+            #   4. preamble + {...} + postamble (chatter both sides)
+            # The previous code only handled (1)/(2) WITHOUT preamble — it
+            # checked startswith/endswith. Today's CoG run surfaced 9 cases
+            # of Sonnet adding "I'll decompose..." chatter before the fence
+            # OR appending commentary after the closing `}`, both of which
+            # produced JSONDecodeError ("Expecting value" or "Extra data")
+            # and silently failed the per-batch process — orchestrator
+            # reported sermons=0 with no other signal.
+            raw_text = _extract_json_blob(raw_text)
 
             # Calculate cost at batch rates
             input_tokens = message.usage.input_tokens
