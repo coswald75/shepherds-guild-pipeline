@@ -58,13 +58,25 @@ WORDS_PER_MINUTE = 150  # fallback pace when proportioning against duration
 
 PREACHER_CHRIS = "9c6f8d69-de55-45db-ac60-0fe6d0cfff59"
 
-# ─── Pilot taxonomy ──────────────────────────────────────────────────────────
-# Each topic: display name, page deck (subtitle), retrieval phrasings.
-# Phrasings are tuned for embedding quality, not display.
+# ─── Taxonomy ────────────────────────────────────────────────────────────────
+# Each topic: display name, page deck (subtitle), retrieval phrasings,
+# and ads/SEO fields added for the "felt-need landing page" use (these
+# pages double as Google Ads landing pages — keyword search ads against
+# phrases like "help with my marriage"):
+#   felt_need — one sentence describing the searcher's state, fed to the
+#               synthesis prompt so the opening meets them where they are
+#   seo_title — keyword-bearing <title>/<og:title>; the editorial H1 the
+#               model writes is unaffected
+#   meta_desc — ~150-char felt-need-phrased meta description
+# Phrasings are tuned for embedding quality, not display — they also
+# double as the seed keyword list for the topic's ad group.
 TOPICS: dict[str, dict] = {
     "marriage": {
         "title": "Marriage",
         "deck": "What Providence teaches about marriage — drawn from the sermons themselves.",
+        "felt_need": "Their marriage is hard right now, or they want it to be more than it is — they searched for help, not a lecture.",
+        "seo_title": "Sermons on Marriage — Help for Your Marriage",
+        "meta_desc": "Struggling in your marriage, or want it to be more? What the Bible actually teaches about marriage — preached at Providence Community Church, Lenexa KS.",
         "phrasings": [
             "marriage",
             "husband and wife",
@@ -76,6 +88,9 @@ TOPICS: dict[str, dict] = {
     "suffering": {
         "title": "Suffering",
         "deck": "Why suffering comes, what God is doing in it, and how to endure — from the pulpit at Providence.",
+        "felt_need": "They are in pain — illness, loss, a season that won't break — and asking why God allows it and how to keep going.",
+        "seo_title": "Sermons on Suffering — Why God Allows It and How to Endure",
+        "meta_desc": "In a hard season and asking why? What the Bible teaches about suffering, endurance, and hope — preached at Providence Community Church, Lenexa KS.",
         "phrasings": [
             "suffering",
             "why does God allow suffering",
@@ -87,12 +102,99 @@ TOPICS: dict[str, dict] = {
     "generosity": {
         "title": "Generosity",
         "deck": "Money, possessions, and the open hand — what Providence teaches about generosity.",
+        "felt_need": "Money has a grip on them — anxiety about it, guilt about it, or a quiet sense that their possessions own them.",
+        "seo_title": "Sermons on Money and Generosity — Breaking Money's Grip",
+        "meta_desc": "Anxious about money, or owned by what you own? What the Bible teaches about generosity, contentment, and stewardship — Providence Community Church, Lenexa KS.",
         "phrasings": [
             "generosity",
             "giving money to the church and the poor",
             "stewardship of money and possessions",
             "treasure in heaven versus treasure on earth",
             "greed, contentment, and the love of money",
+        ],
+    },
+    "prayer": {
+        "title": "Prayer",
+        "deck": "How to pray, why it's hard, and what to do when God seems silent — from the pulpit at Providence.",
+        "felt_need": "They want to pray and don't know how, or they've prayed and heard nothing back — and they're wondering if it works at all.",
+        "seo_title": "Sermons on Prayer — How to Pray When It's Hard",
+        "meta_desc": "Don't know how to pray, or tired of praying into silence? What the Bible teaches about prayer — preached at Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "prayer",
+            "how to pray",
+            "praying when God feels silent",
+            "unanswered prayer and persistence",
+            "the daily practice of prayer",
+        ],
+    },
+    "parenting": {
+        "title": "Parenting",
+        "deck": "Raising children in the faith — what Providence teaches parents.",
+        "felt_need": "They are worried about their kids — their faith, their phones, their future — and they want help that respects how hard this actually is.",
+        "seo_title": "Sermons on Parenting — Raising Kids in the Faith",
+        "meta_desc": "Worried about your kids? What the Bible teaches about parenting, discipling children, and trusting God with them — Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "parenting",
+            "raising children in the faith",
+            "discipling kids and teenagers",
+            "fathers and mothers shepherding children",
+            "anxiety about your children",
+        ],
+    },
+    "forgiveness": {
+        "title": "Forgiveness",
+        "deck": "Forgiving others, being forgiven, and what to do with bitterness — from the pulpit at Providence.",
+        "felt_need": "Someone hurt them and the wound is still open — or they did the hurting and wonder whether forgiveness is available to them.",
+        "seo_title": "Sermons on Forgiveness — Forgiving and Being Forgiven",
+        "meta_desc": "Carrying a wound you can't put down, or guilt you can't shake? What the Bible teaches about forgiveness — Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "forgiveness",
+            "forgiving someone who hurt you",
+            "being forgiven by God",
+            "bitterness, grudges, and reconciliation",
+            "how to forgive",
+        ],
+    },
+    "community": {
+        "title": "Community",
+        "deck": "Friendship, belonging, and why life together in a church matters — from the pulpit at Providence.",
+        "felt_need": "They are lonely — busy but unknown, surrounded but disconnected — and suspicious that church might just be more performance.",
+        "seo_title": "Sermons on Community — Friendship, Belonging, and the Church",
+        "meta_desc": "Lonely, even when surrounded? What the Bible teaches about friendship, belonging, and real community — Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "Christian community and life together",
+            "friendship and belonging",
+            "loneliness and isolation",
+            "why the church gathers",
+            "bearing one another's burdens",
+        ],
+    },
+    "anxiety": {
+        "title": "Anxiety",
+        "deck": "Fear, worry, and the peace that doesn't depend on circumstances — from the pulpit at Providence.",
+        "felt_need": "Their mind won't stop — money, kids, health, the future — and the usual advice to relax has never once worked.",
+        "seo_title": "Sermons on Anxiety — Fear, Worry, and Real Peace",
+        "meta_desc": "Mind racing and can't make it stop? What the Bible teaches about anxiety, fear, and peace that holds — Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "anxiety",
+            "fear and worry",
+            "do not be anxious about your life",
+            "trusting God with the future",
+            "peace in an anxious age",
+        ],
+    },
+    "envy": {
+        "title": "Envy & Comparison",
+        "deck": "Comparison, jealousy, and learning to celebrate someone else's win — from the pulpit at Providence.",
+        "felt_need": "Other people's lives look better than theirs — the feed proves it daily — and the resentment is starting to feel normal.",
+        "seo_title": "Sermons on Envy and Comparison — When Everyone Else Is Winning",
+        "meta_desc": "Tired of measuring your life against everyone else's? What the Bible teaches about envy, comparison, and contentment — Providence Community Church, Lenexa KS.",
+        "phrasings": [
+            "envy and jealousy",
+            "comparison and coveting",
+            "celebrating others instead of resenting them",
+            "contentment with your portion",
+            "social media comparison and discontent",
         ],
     },
 }
@@ -283,9 +385,21 @@ def synthesize(client, topic_cfg: dict, sources: list[dict], voice_guide: str) -
                 content = content[:1600] + " …"
             src_lines.append(f"  excerpt ({u['rhetorical_function']}): {content}")
         src_lines.append("")
+    felt_need = topic_cfg.get("felt_need", "")
+    felt_need_block = (
+        f"WHO IS READING: {felt_need}\n"
+        "Open by meeting that person where they are — name what they're"
+        " living before teaching them anything (diagnosis precedes"
+        " provision). Do not address them as a church member; assume they"
+        " found this page from a search and may not trust church language"
+        " yet.\n\n"
+        if felt_need
+        else ""
+    )
     user = (
         f"TOPIC: {topic_cfg['title']}\n\n"
-        f"Write the topical teaching page for this topic from these sources.\n\n"
+        + felt_need_block
+        + "Write the topical teaching page for this topic from these sources.\n\n"
         + "\n".join(src_lines)
     )
     resp = client.messages.create(
@@ -303,12 +417,12 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — {church_name} · Sermon Steward</title>
-<meta name="description" content="{deck_attr}">
+<title>{seo_title} | {church_name}, {church_city}</title>
+<meta name="description" content="{meta_desc}">
 <link rel="canonical" href="https://sermonsteward.com/{church_slug}/topics/{topic_slug}/">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{title} — {church_name}">
-<meta property="og:description" content="{deck_attr}">
+<meta property="og:title" content="{seo_title} | {church_name}">
+<meta property="og:description" content="{meta_desc}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -350,6 +464,39 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
     border: 1px solid var(--rule); border-left: 3px solid var(--accent);
     border-radius: 8px; font-size: 16px;
   }}
+  .listen-card {{
+    margin-top: 36px; padding: 22px 26px;
+    background: var(--bg-card); border: 1px solid var(--rule);
+    border-radius: 12px;
+  }}
+  .listen-card .card-label {{
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }}
+  .listen-card h3 {{ margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }}
+  .listen-card p {{ font-size: 14.5px; color: var(--ink-soft); margin: 0 0 10px; }}
+  .listen-card a.btn {{
+    display: inline-block; font-size: 14px; font-weight: 600;
+    padding: 10px 18px; border-radius: 8px;
+    background: var(--accent); color: #fff;
+  }}
+  .listen-card a.btn:hover {{ background: var(--accent-deep); color: #fff; }}
+  .visit-row {{
+    display: grid; gap: 16px; grid-template-columns: 1fr 1fr;
+    margin-top: 56px;
+  }}
+  @media (max-width: 640px) {{ .visit-row {{ grid-template-columns: 1fr; }} }}
+  .visit-card {{
+    background: var(--bg-card); border: 1px solid var(--rule);
+    border-radius: 12px; padding: 22px 24px;
+  }}
+  .visit-card .card-label {{
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }}
+  .visit-card h3 {{ margin: 0 0 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }}
+  .visit-card p {{ font-size: 14.5px; margin: 0 0 6px; color: var(--ink-soft); }}
+  .visit-card a {{ font-size: 14px; font-weight: 600; }}
   .sources {{ margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); }}
   .sources h2 {{
     font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
@@ -383,6 +530,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   <p class="deck">{deck}</p>
 {body}
 {closing}
+{listen_card}
   <div class="sources">
     <h2>From the pulpit — the sermons behind this page</h2>
     <ol class="source-list">
@@ -394,6 +542,22 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   sermons — follow any citation to read the full sermon, listen to the audio,
   and see the surrounding context. Minute marks are approximate, estimated
   from each sermon's transcript.</p>
+  <div class="visit-row">
+    <div class="visit-card">
+      <div class="card-label">Hear it in person</div>
+      <h3>Sundays at 10:00 AM</h3>
+      <p>10113 Lenexa Dr · Lenexa, KS</p>
+      <p>This page is preaching, not marketing — and the room where it
+      happens is open. Casual dress, coffee on arrival.</p>
+      <a href="https://sovgracekc.org/visit/" target="_blank" rel="noopener">Plan your visit →</a>
+    </div>
+    <div class="visit-card">
+      <div class="card-label">The church</div>
+      <h3>{church_name}</h3>
+      <p>Statement of faith, leadership, ministries, and contact.</p>
+      <a href="https://sovgracekc.org/" target="_blank" rel="noopener">sovgracekc.org →</a>
+    </div>
+  </div>
 </main>
 <footer>
   Sermon Steward stewards the preaching of {church_name}.
@@ -451,18 +615,37 @@ def render_page(
             f'<br><span class="source-meta">{date}{scripture}{minute}</span></li>'
         )
     deck = synth.get("deck") or topic_cfg["deck"]
+
+    # Listen-first card: the top audio+minute source, surfaced as the
+    # soft conversion right after the teaching (value first, ask second).
+    listen_card = ""
+    featured = next(
+        (s for s in sources if s["has_audio"] and s["minute"] is not None), None
+    )
+    if featured:
+        scripture = f" · {htmlmod.escape(featured['scripture'])}" if featured["scripture"] else ""
+        listen_card = f"""  <div class="listen-card">
+    <div class="card-label">Start with one sermon</div>
+    <h3>{htmlmod.escape(featured["title"])}</h3>
+    <p>{featured["date"] or ""}{scripture} · this topic lands around ≈min {featured["minute"]}</p>
+    <a class="btn" href="{featured["href"]}">Read &amp; listen →</a>
+  </div>"""
+
     return PAGE_TEMPLATE.format(
         title=topic_cfg["title"],
         title_lower=topic_cfg["title"].lower(),
+        seo_title=htmlmod.escape(topic_cfg.get("seo_title") or topic_cfg["title"], quote=True),
+        meta_desc=htmlmod.escape(topic_cfg.get("meta_desc") or deck, quote=True),
+        church_city="Lenexa KS",
         h1=htmlmod.escape(synth.get("page_title") or topic_cfg["title"]),
         deck=htmlmod.escape(deck),
-        deck_attr=htmlmod.escape(deck, quote=True),
         church_slug=church_dir.name,
         church_name=church_name,
         preacher_name=preacher_name,
         topic_slug=topic_slug,
         body="\n".join(body_parts),
         closing=closing_html,
+        listen_card=listen_card,
         sources="\n".join(src_parts),
     )
 
