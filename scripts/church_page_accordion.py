@@ -9,7 +9,7 @@ carry an expand/collapse menu between the About-the-Church prose and the
                            verbatim, never regenerated; see feedback_style)
   - Full sermon index     (every deployed sermon page, grouped by year,
                            newest first — REGENERATED from disk each run)
-  - Topical index         (the doctrine-loci browse pages — REGENERATED
+  - Doctrinal index       (the doctrine-loci browse pages — REGENERATED
                            from the deployed doctrine index each run)
 
 This script regenerates the two data-driven sections in place. It finds
