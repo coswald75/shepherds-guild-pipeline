@@ -94,36 +94,41 @@ def sermon_index_html(sermons: list[dict]) -> str:
 
 
 def topical_index_html(church_dir: Path) -> str:
-    """Reuse the deployed doctrine index: loci label + count + blurb."""
-    doctrine_index = church_dir / "sermons" / "doctrine" / "index.html"
-    if not doctrine_index.exists():
-        return "      <p>Topical browsing is being prepared for this church.</p>"
-    html = doctrine_index.read_text(errors="replace")
-    rel_prefix = ""  # hrefs in doctrine index are absolute (/Church/...)
-    blocks = re.findall(
-        r'href="(/[A-Za-z]+/sermons/doctrine/[a-z-]+/)"[^>]*>(.*?)</a>',
-        html,
-        re.DOTALL,
-    )
+    """Doctrinal index toggle content: the one-off synthesized pages.
+
+    As of 2026-06-10 the toggle links the synthesized doctrine pages at
+    <church>/doctrine/<slug>/ (same treatment as the topic pages —
+    dominant pulpit themes anchored to the Statement of Faith, every
+    claim cited to its sermon), NOT the old paginated browse indexes
+    under sermons/doctrine/ (those remain deployed for archive nav).
+    Scans the deployed doctrine pages on disk; label comes from each
+    page's H1, blurb from its deck line. New-tab links per Chris's spec.
+    """
+    doctrine_dir = church_dir / "doctrine"
+    pages = sorted(doctrine_dir.glob("*/index.html")) if doctrine_dir.exists() else []
+    if not pages:
+        return "      <p>Doctrinal pages are being prepared for this church.</p>"
+
     lines = ['      <ul class="topic-index">']
-    for href, inner in blocks:
-        text = " ".join(re.sub(r"<[^>]+>", " ", inner).split())
-        m = re.match(r"(.+?)\s+(\d+)\s+sermons?\s*(.*)", htmlmod.unescape(text))
-        if not m:
-            continue
-        label, count, blurb = m.group(1), m.group(2), m.group(3)
+    for page in pages:
+        slug = page.parent.name
+        body = page.read_text(errors="replace")
+        m_h1 = re.search(r"<h1>([^<]+)</h1>", body)
+        m_deck = re.search(r'<p class="deck">([^<]+)<', body)
+        label = htmlmod.unescape(m_h1.group(1)) if m_h1 else slug.replace("-", " ").title()
+        blurb = htmlmod.unescape(m_deck.group(1)).strip() if m_deck else ""
         blurb_html = (
-            f' <span class="topic-blurb">{htmlmod.escape(blurb)}</span>'
-            if blurb
-            else ""
+            f' <span class="topic-blurb">{htmlmod.escape(blurb)}</span>' if blurb else ""
         )
         lines.append(
-            f'        <li><a href="{rel_prefix}{href}"><strong>{htmlmod.escape(label)}</strong></a>'
-            f' <span class="topic-count">{count} sermons</span>{blurb_html}</li>'
+            f'        <li><a href="/{church_dir.name}/doctrine/{slug}/" target="_blank" rel="noopener">'
+            f"<strong>{htmlmod.escape(label)}</strong></a>{blurb_html}</li>"
         )
     lines.append("      </ul>")
     lines.append(
-        '      <p class="topic-more">You can also browse '
+        '      <p class="topic-more">Each doctrine opens in a new tab — the dominant '
+        "themes preached here, anchored to the church's Statement of Faith, with every "
+        "claim cited back to its sermon. You can also browse the archive "
         '<a href="sermons/scripture/">by book of the Bible</a> or '
         '<a href="sermons/series/">by sermon series</a>.</p>'
     )
