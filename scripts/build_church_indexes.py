@@ -668,6 +668,7 @@ def _gather_books_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .execute().data or []
     )
@@ -938,6 +939,7 @@ def _gather_series_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .not_.is_("series_name", "null")
         .execute().data or []
@@ -1117,6 +1119,7 @@ def _gather_loci_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .execute().data or []
     )
@@ -1340,6 +1343,7 @@ def main() -> int:
             sb.table("sermons")
             .select("id, title, date, slug, primary_text, series_name")
             .in_("preacher_id", preacher_ids)
+            .eq("unlisted", False)
             .not_.is_("main_thesis", "null")
             .not_.is_("date", "null")
             .not_.is_("slug", "null")
