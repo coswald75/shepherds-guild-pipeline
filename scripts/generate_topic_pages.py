@@ -195,7 +195,10 @@ def build_sources(sb, units: list[dict], church_dir: Path) -> list[dict]:
     ids = list(by_sermon.keys())
     rows = (
         sb.table("sermons")
-        .select("id, title, date, slug, primary_text, audio_duration_seconds")
+        .select(
+            "id, title, date, slug, primary_text, audio_duration_seconds, "
+            "audio_url, hosted_audio_url"
+        )
         .in_("id", ids)
         .execute()
         .data
@@ -216,6 +219,7 @@ def build_sources(sb, units: list[dict], church_dir: Path) -> list[dict]:
         us = sorted(by_sermon[r["id"]]["units"], key=lambda u: -u["final_score"])
         top = us[0]
         minute = approx_minute(sb, r["id"], top["unit_index"])
+        has_audio = bool(r.get("audio_url") or r.get("hosted_audio_url"))
         sources.append(
             {
                 "sermon_id": r["id"],
@@ -224,11 +228,20 @@ def build_sources(sb, units: list[dict], church_dir: Path) -> list[dict]:
                 "scripture": r.get("primary_text"),
                 "href": f"/{church_dir.name}/sermons/{r['slug']}.html",
                 "minute": minute,
+                "has_audio": has_audio,
                 "units": us,
                 "best_score": top["final_score"],
             }
         )
-    sources.sort(key=lambda s: -s["best_score"])
+    # Ordering gate (Chris, 2026-06-10): all of the corpus is fair game
+    # for the synthesis, but the source list leads with sermons the
+    # reader can actually LISTEN to at the cited moment — audio present
+    # AND a minute mark computable. Everything else lists after, still
+    # cited, just not at the top.
+    def tier(s: dict) -> int:
+        return 0 if (s["has_audio"] and s["minute"] is not None) else 1
+
+    sources.sort(key=lambda s: (tier(s), -s["best_score"]))
     for n, s in enumerate(sources, 1):
         s["n"] = n
     return sources
