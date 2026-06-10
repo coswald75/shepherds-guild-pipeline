@@ -56,6 +56,17 @@ MAX_UNITS = 24
 MIN_CONTENT_LEN = 200
 WORDS_PER_MINUTE = 150  # fallback pace when proportioning against duration
 
+# Content exclusion gate (Chris, 2026-06-10): Knox Classical School no
+# longer exists. No unit that mentions it and no sermon link to it may
+# appear on any public topic page. Checked case-insensitively against
+# unit content/summary and sermon titles.
+EXCLUDE_PATTERNS = ("knox", "classical school")
+
+
+def is_excluded(*texts: str | None) -> bool:
+    blob = " ".join(t for t in texts if t).lower()
+    return any(p in blob for p in EXCLUDE_PATTERNS)
+
 PREACHER_CHRIS = "9c6f8d69-de55-45db-ac60-0fe6d0cfff59"
 
 # ─── Taxonomy ────────────────────────────────────────────────────────────────
@@ -242,6 +253,8 @@ def retrieve_units(sb, vo, preacher_id: str, phrasings: list[str]) -> list[dict]
                 continue
             if len((h.get("content") or "").strip()) < MIN_CONTENT_LEN:
                 continue
+            if is_excluded(h.get("content"), h.get("summary"), h.get("sermon_title")):
+                continue
             uid = h["unit_id"]
             if uid not in best or score > best[uid]["final_score"]:
                 h["final_score"] = score
@@ -317,6 +330,10 @@ def build_sources(sb, units: list[dict], church_dir: Path) -> list[dict]:
         # reads as broken. Skip until their titles get cleaned up.
         t = r.get("title") or ""
         if " " not in t.strip():
+            continue
+        # Knox / classical-school exclusion (belt-and-suspenders — the
+        # unit filter should have caught these upstream already).
+        if is_excluded(t):
             continue
         us = sorted(by_sermon[r["id"]]["units"], key=lambda u: -u["final_score"])
         top = us[0]
