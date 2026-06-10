@@ -45,6 +45,10 @@ def extract_sermons(sermons_dir: Path) -> list[dict]:
         # Redundant in a dense index where the scripture ref is usually in
         # the title already; strip for display.
         title = re.sub(r"\s+—\s+A sermon on .*$", "", title)
+        # Knox Classical School no longer exists (Chris, 2026-06-10) —
+        # exclude anything school-related from the public sermon index.
+        if "knox" in title.lower() or "classical school" in title.lower():
+            continue
         out.append({
             "title": title,
             "date": m_date.group(1) if m_date else None,
