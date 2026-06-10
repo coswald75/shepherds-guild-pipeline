@@ -47,7 +47,9 @@ from supabase import create_client  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from pipeline_batch import _extract_json_blob  # noqa: E402
+from doctrine_taxonomy import DOCTRINES  # noqa: E402
 
 VOYAGE_MODEL = "voyage-3.5"
 SYNTH_MODEL = "claude-sonnet-4-6"
@@ -211,8 +213,16 @@ TOPICS: dict[str, dict] = {
 }
 
 
-def retrieve_units(sb, vo, preacher_id: str, phrasings: list[str]) -> list[dict]:
-    """Union of hits across phrasings; max score wins per unit."""
+def retrieve_units(
+    sb, vo, preacher_id: str, phrasings: list[str],
+    doctrinal_loci: list[str] | None = None,
+) -> list[dict]:
+    """Union of hits across phrasings; max score wins per unit.
+
+    doctrinal_loci (doctrine mode): hard-filters candidates to units
+    tagged with the locus, so vector ranking happens WITHIN the
+    doctrine rather than across the whole corpus.
+    """
     best: dict[str, dict] = {}
     for phrase in phrasings:
         emb = vo.embed([phrase], model=VOYAGE_MODEL, input_type="query").embeddings[0]
@@ -234,7 +244,7 @@ def retrieve_units(sb, vo, preacher_id: str, phrasings: list[str]) -> list[dict]
                         "p_rhetorical_functions": None,
                         "p_primary_text": None,
                         "p_keyword_weight": 0.3,
-                        "p_doctrinal_loci": None,
+                        "p_doctrinal_loci": doctrinal_loci,
                     },
                 ).execute()
                 break
@@ -369,8 +379,8 @@ def build_sources(sb, units: list[dict], church_dir: Path) -> list[dict]:
 SYNTH_SYSTEM_RULES = """You are synthesizing a topical teaching page from a pastor's own sermon excerpts.
 
 HARD RULES — violating any of these makes the output unusable:
-1. Synthesize ONLY from the numbered source excerpts provided. If the sources don't address an aspect of the topic, leave it out. Never fill gaps from general theological knowledge.
-2. Every paragraph must carry at least one citation marker like [1] or [2][5], referring to the source numbers provided. Place markers at the end of the sentence they support.
+1. Synthesize ONLY from the numbered source excerpts provided (including, when present, the [SF] Statement of Faith excerpt). If the sources don't address an aspect of the topic, leave it out. Never fill gaps from general theological knowledge.
+2. Every paragraph must carry at least one citation marker like [1] or [2][5] (or [SF] when citing the Statement of Faith), referring to the source numbers provided. Place markers at the end of the sentence they support.
 3. Quote VERBATIM or not at all. Short verbatim quotes (a phrase to a sentence) from the excerpts are encouraged; never paraphrase inside quotation marks.
 4. No invented statistics, anecdotes, or scripture applications that aren't in the sources.
 5. Do not mention "excerpts", "sources", "units", or this process in the prose. Write as a finished teaching page.
@@ -402,20 +412,48 @@ def synthesize(client, topic_cfg: dict, sources: list[dict], voice_guide: str) -
                 content = content[:1600] + " …"
             src_lines.append(f"  excerpt ({u['rhetorical_function']}): {content}")
         src_lines.append("")
+
+    # Doctrine mode: the Statement of Faith excerpt is an additional
+    # citable source [SF]. It anchors what's PREACHED to what the church
+    # CONFESSES — the page should show dominant pulpit themes, with the
+    # confession as the doctrinal floor underneath them.
+    sof = topic_cfg.get("sof", "")
+    if sof:
+        src_lines.append(
+            "SOURCE [SF] — Providence's Statement of Faith "
+            "(\"We Believe\", Sovereign Grace Churches):"
+        )
+        src_lines.append(f"  {sof}")
+        src_lines.append("")
+
     felt_need = topic_cfg.get("felt_need", "")
-    felt_need_block = (
-        f"WHO IS READING: {felt_need}\n"
-        "Open by meeting that person where they are — name what they're"
-        " living before teaching them anything (diagnosis precedes"
-        " provision). Do not address them as a church member; assume they"
-        " found this page from a search and may not trust church language"
-        " yet.\n\n"
-        if felt_need
-        else ""
-    )
+    if felt_need:
+        framing_block = (
+            f"WHO IS READING: {felt_need}\n"
+            "Open by meeting that person where they are — name what they're"
+            " living before teaching them anything (diagnosis precedes"
+            " provision). Do not address them as a church member; assume they"
+            " found this page from a search and may not trust church language"
+            " yet.\n\n"
+        )
+    elif sof:
+        framing_block = (
+            "WHO IS READING: a church member, a student, or a visitor who"
+            " wants to know what this church actually teaches about this"
+            " doctrine — not a generic encyclopedia entry, but the dominant"
+            " themes that actually come through this pulpit.\n"
+            "Organize the page around the DOMINANT THEMES in the sermon"
+            " excerpts — what this preacher keeps returning to when this"
+            " doctrine comes up — and use the Statement of Faith excerpt"
+            " [SF] to anchor those themes to what the church confesses."
+            " Cite [SF] where the confession itself is doing the work;"
+            " cite sermons everywhere else.\n\n"
+        )
+    else:
+        framing_block = ""
     user = (
         f"TOPIC: {topic_cfg['title']}\n\n"
-        + felt_need_block
+        + framing_block
         + "Write the topical teaching page for this topic from these sources.\n\n"
         + "\n".join(src_lines)
     )
@@ -436,7 +474,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{seo_title} | {church_name}, {church_city}</title>
 <meta name="description" content="{meta_desc}">
-<link rel="canonical" href="https://sermonsteward.com/{church_slug}/topics/{topic_slug}/">
+<link rel="canonical" href="https://sermonsteward.com/{church_slug}/{out_subdir}/{topic_slug}/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="{seo_title} | {church_name}">
 <meta property="og:description" content="{meta_desc}">
@@ -584,17 +622,23 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
 """
 
 
-def cite_markers_to_links(text: str, valid_ns: set[int]) -> str:
-    """[1][4] → superscript anchor links to #src-N. Unknown ns dropped."""
+def cite_markers_to_links(text: str, valid_ns: set[int], allow_sf: bool = False) -> str:
+    """[1][4] → superscript anchor links to #src-N. Unknown ns dropped.
+    [SF] (doctrine mode) → anchor to the Statement of Faith source entry."""
     import re
 
     def repl(m):
-        n = int(m.group(1))
+        token = m.group(1)
+        if token.upper() == "SF":
+            if not allow_sf:
+                return ""
+            return '<sup class="cite"><a href="#src-sf">[SF]</a></sup>'
+        n = int(token)
         if n not in valid_ns:
             return ""
         return f'<sup class="cite"><a href="#src-{n}">[{n}]</a></sup>'
 
-    return re.sub(r"\[(\d+)\]", repl, htmlmod.escape(text))
+    return re.sub(r"\[(\d+|[Ss][Ff])\]", repl, htmlmod.escape(text))
 
 
 def render_page(
@@ -605,17 +649,21 @@ def render_page(
     church_dir: Path,
     church_name: str,
     preacher_name: str,
+    out_subdir: str = "topics",
 ) -> str:
     valid_ns = {s["n"] for s in sources}
+    has_sof = bool(topic_cfg.get("sof"))
     body_parts = []
     for sec in synth.get("sections", []):
         body_parts.append(f"  <h2>{htmlmod.escape(sec['heading'])}</h2>")
         for para in sec.get("paragraphs", []):
-            body_parts.append(f"  <p>{cite_markers_to_links(para, valid_ns)}</p>")
+            body_parts.append(
+                f"  <p>{cite_markers_to_links(para, valid_ns, allow_sf=has_sof)}</p>"
+            )
     closing_html = ""
     if synth.get("closing"):
         closing_html = (
-            f'  <div class="closing">{cite_markers_to_links(synth["closing"], valid_ns)}</div>'
+            f'  <div class="closing">{cite_markers_to_links(synth["closing"], valid_ns, allow_sf=has_sof)}</div>'
         )
     src_parts = []
     for s in sources:
@@ -630,6 +678,14 @@ def render_page(
             f'      <li id="src-{s["n"]}"><a href="{s["href"]}">'
             f"{htmlmod.escape(s['title'])}</a>"
             f'<br><span class="source-meta">{date}{scripture}{minute}</span></li>'
+        )
+    if has_sof:
+        src_parts.append(
+            '      <li id="src-sf" style="list-style-type: none;"><strong>[SF]</strong> '
+            '<a href="https://sovgracekc.org/" target="_blank" rel="noopener">'
+            "Providence's Statement of Faith — <em>We Believe</em></a>"
+            '<br><span class="source-meta">The church\'s confession '
+            "(Sovereign Grace Churches). Full text available through the church.</span></li>"
         )
     deck = synth.get("deck") or topic_cfg["deck"]
 
@@ -660,6 +716,7 @@ def render_page(
         church_name=church_name,
         preacher_name=preacher_name,
         topic_slug=topic_slug,
+        out_subdir=out_subdir,
         body="\n".join(body_parts),
         closing=closing_html,
         listen_card=listen_card,
@@ -673,10 +730,19 @@ def main() -> int:
     ap.add_argument("--church-name", default="Providence Community Church")
     ap.add_argument("--preacher-name", default="Chris Oswald")
     ap.add_argument("--preacher-id", default=PREACHER_CHRIS)
-    ap.add_argument("--topics", default=",".join(TOPICS.keys()))
+    ap.add_argument("--mode", choices=["topics", "doctrine"], default="topics",
+                    help="topics = felt-need seeker pages under /topics/; "
+                         "doctrine = confession-anchored pages under /doctrine/ "
+                         "with a doctrinal_loci retrieval filter + [SF] source")
+    ap.add_argument("--topics", default=None,
+                    help="comma list of slugs; default = whole taxonomy for the mode")
     ap.add_argument("--dry-run", action="store_true",
                     help="retrieve + report, skip synthesis and rendering")
     args = ap.parse_args()
+
+    taxonomy = DOCTRINES if args.mode == "doctrine" else TOPICS
+    out_subdir = "doctrine" if args.mode == "doctrine" else "topics"
+    slugs = args.topics or ",".join(taxonomy.keys())
 
     sb = create_client(
         os.environ["SUPABASE_URL"],
@@ -686,13 +752,16 @@ def main() -> int:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     voice_guide = (REPO_ROOT / "chris-voice-style-guide.md").read_text()
 
-    for slug in [t.strip() for t in args.topics.split(",") if t.strip()]:
-        cfg = TOPICS.get(slug)
+    for slug in [t.strip() for t in slugs.split(",") if t.strip()]:
+        cfg = taxonomy.get(slug)
         if not cfg:
-            print(f"unknown topic {slug!r} — skipping", file=sys.stderr)
+            print(f"unknown {args.mode} slug {slug!r} — skipping", file=sys.stderr)
             continue
         print(f"── {cfg['title']} " + "─" * 40)
-        units = retrieve_units(sb, vo, args.preacher_id, cfg["phrasings"])
+        loci = [cfg["loci"]] if cfg.get("loci") else None
+        units = retrieve_units(
+            sb, vo, args.preacher_id, cfg["phrasings"], doctrinal_loci=loci
+        )
         sources = build_sources(sb, units, args.church_dir)
         print(f"  retrieved {len(units)} units across {len(sources)} citable sermons")
         for s in sources[:8]:
@@ -704,11 +773,11 @@ def main() -> int:
             print(f"  only {len(sources)} citable sermons — skipping synthesis")
             continue
         synth = synthesize(client, cfg, sources, voice_guide)
-        out_dir = args.church_dir / "topics" / slug
+        out_dir = args.church_dir / out_subdir / slug
         out_dir.mkdir(parents=True, exist_ok=True)
         page = render_page(
             slug, cfg, synth, sources, args.church_dir,
-            args.church_name, args.preacher_name,
+            args.church_name, args.preacher_name, out_subdir,
         )
         (out_dir / "index.html").write_text(page)
         n_paras = sum(len(s.get("paragraphs", [])) for s in synth.get("sections", []))
