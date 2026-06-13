@@ -175,9 +175,19 @@ export function linkSentPage(email: string): Response {
 }
 
 // ─── Code-entry page (default OTP path) ────────────────────────────────────
-// The pastor enters the 6-digit code Supabase mailed them. Stays in the
+// The pastor enters the numeric code Supabase mailed them. Stays in the
 // same tab as the email submission, so Claude Desktop's loopback listener
 // on localhost:5051 is still alive when we redirect the code back to it.
+//
+// Code LENGTH is governed by the Supabase project's Email OTP Length
+// setting (Dashboard → Authentication → Email → Email OTP Length;
+// default 6, configurable 6–10). This project is currently set to 8.
+// The form accepts 6–10 digits rather than hardcoding a count so it
+// survives any future change to that setting — the server-side
+// verifyOtp is the real validator and doesn't care about length.
+// (2026-06-11: was hardcoded to 6, which silently blocked the 7th/8th
+// digit of the 8-digit codes the project actually mails — surfaced
+// when connecting Perplexity.)
 //
 // All OAuth params round-trip as hidden fields (same shape as signInPage)
 // so a wrong code attempt can re-render this page without losing context.
@@ -198,17 +208,17 @@ export function codeEntryPage(opts: {
   const body = `
     <h1>Enter your sign-in code</h1>
     <p class="sub">
-      We emailed a 6-digit code to <strong>${esc(opts.email)}</strong>.
+      We emailed a code to <strong>${esc(opts.email)}</strong>.
       Enter it below to finish connecting Sermon Steward.
     </p>
     <form method="POST" action="${esc(opts.formAction)}">
       ${hiddenFields}
       <div class="field">
-        <label for="token">6-digit code</label>
+        <label for="token">Code from your email</label>
         <input type="text" id="token" name="token" required
-               class="code" inputmode="numeric" pattern="[0-9]{6}"
-               maxlength="6" autocomplete="one-time-code"
-               placeholder="000000" autofocus>
+               class="code" inputmode="numeric" pattern="[0-9]{6,10}"
+               maxlength="10" autocomplete="one-time-code"
+               placeholder="Enter the code" autofocus>
       </div>
       <button type="submit" class="primary">Sign in</button>
       ${errBlock}
