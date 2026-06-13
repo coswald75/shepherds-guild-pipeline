@@ -134,6 +134,35 @@ export default {
       return handleToken(req, env);
     }
 
+    // ─── Streamable-HTTP standalone SSE probe → 405 ────────────────────────
+    // MCP's Streamable HTTP transport lets a client open a standalone
+    // server→client notification stream by issuing GET <endpoint> with
+    // `Accept: text/event-stream`. A server that does NOT offer such a
+    // stream MUST answer 405 Method Not Allowed (MCP spec, 2025-03-26) —
+    // that's the signal telling the client to fall back to plain
+    // request/response over POST, which is all we implement.
+    //
+    // Without this, a GET on the MCP endpoint fell through to the
+    // friendly landing page (HTTP 200, text/plain). Lenient clients
+    // (Claude, ChatGPT, Grok) ignore that; stricter ones (Perplexity,
+    // 2026-06-13) see a 200 that is neither SSE nor a 405 and declare
+    // the whole connector TEMPORARILY_UNAVAILABLE — tools never load
+    // even though auth + POST tools/list work perfectly.
+    //
+    // Gated strictly on the event-stream Accept so browser landing-page
+    // GETs (text/html, */*) and the OAuth/discovery GETs above are
+    // untouched.
+    if (req.method === "GET") {
+      const accept = req.headers.get("accept") || "";
+      if (accept.includes("text/event-stream")) {
+        return new Response(
+          "This MCP server uses request/response over POST and does not " +
+            "offer a standalone SSE stream. Send JSON-RPC via POST.",
+          { status: 405, headers: { ...CORS_HEADERS, Allow: "POST" } },
+        );
+      }
+    }
+
     // ─── GET / — friendly landing page ─────────────────────────────────────
     if (req.method === "GET" && pathname === "/") {
       return new Response(
