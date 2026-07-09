@@ -1,0 +1,25 @@
+name = "sermon-steward-try"
+main = "src/index.js"
+compatibility_date = "2026-05-21"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+# Custom-domain route — the public "try it" landing page + intake endpoint.
+routes = [
+  { pattern = "try.sermonsteward.com", custom_domain = true },
+]
+
+[vars]
+R2_PUBLIC_BASE = "https://sermons-cdn.sermonsteward.com"
+SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
+MAX_UPLOAD_MB = "200"      # reject larger uploads
+RATE_PER_DAY = "3"          # max submissions per email per rolling 24h
+
+# R2 bucket binding — same public bucket the sermon pages stream from.
+[[r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "sermon-steward-audio"
+
+# Secrets (set via `wrangler secret put`):
+#   SUPABASE_SERVICE_KEY — service-role key for self_serve_jobs inserts

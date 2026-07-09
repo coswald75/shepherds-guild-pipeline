@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.cogwatch</string>
+
+    <!-- Check Cross of Grace for a newly-uploaded sermon at 4pm, 6pm, 8pm
+         (America/Chicago local time). If one has landed and isn't yet
+         processed, run the whole pipeline and publish it live. Idempotent:
+         no-ops when there's nothing new. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/python3</string>
+        <string>/Users/dad/shepherds-guild/pipeline copy 2/scripts/watch_cog_and_process.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-cogwatch.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-cogwatch.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StartOnMount</key>
+    <false/>
+</dict>
+</plist>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.selfserve</string>
+
+    <!-- Every 5 minutes: process any pending self-serve upload jobs
+         (try.sermonsteward.com) end to end and email the report.
+         Idempotent; no-ops when there's nothing pending. -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/python3</string>
+        <string>/Users/dad/shepherds-guild/pipeline copy 2/scripts/selfserve_poller.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-selfserve.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/dad/shepherds-guild/pipeline copy 2/logs/launchd-selfserve.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StartOnMount</key>
+    <false/>
+</dict>
+</plist>

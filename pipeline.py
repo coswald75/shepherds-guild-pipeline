@@ -338,12 +338,24 @@ def decompose_sermon(
     try:
         decomposition = json.loads(raw_text)
     except json.JSONDecodeError as e:
-        log.error(f"Failed to parse JSON response: {e}")
-        log.error(f"First 500 chars: {raw_text[:500]}")
-        debug_path = OUTPUT_DIR / f"debug_raw_{int(time.time())}.txt"
-        debug_path.write_text(raw_text, encoding="utf-8")
-        log.error(f"Raw output saved to {debug_path}")
-        raise
+        # LLMs occasionally emit structurally-broken JSON — most often an
+        # unescaped double-quote inside a string (verbatim Scripture/sermon
+        # quotes reliably trigger this). Fall back to a tolerant repair parse
+        # before giving up; retrying the model just re-rolls the same glitch.
+        log.warning(f"Strict JSON parse failed ({e}); attempting repair…")
+        try:
+            import json_repair
+            decomposition = json_repair.loads(raw_text)
+            if not isinstance(decomposition, dict) or "units" not in decomposition:
+                raise ValueError("repaired JSON missing expected structure")
+            log.info("JSON repair succeeded")
+        except Exception as e2:
+            log.error(f"Failed to parse JSON response (even after repair): {e2}")
+            log.error(f"First 500 chars: {raw_text[:500]}")
+            debug_path = OUTPUT_DIR / f"debug_raw_{int(time.time())}.txt"
+            debug_path.write_text(raw_text, encoding="utf-8")
+            log.error(f"Raw output saved to {debug_path}")
+            raise
 
     decomposition["_pipeline"] = {
         "spec_version": SPEC_VERSION,

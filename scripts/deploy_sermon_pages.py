@@ -25,6 +25,8 @@ Safety flags:
                                no commit, no push.
     --no-commit                Copy files but don't run git add/commit.
     --no-push                  Commit but don't push to origin/main.
+    --no-deploy                Skip the eleventy build + wrangler deploy
+                               (git only; page will NOT go live).
     --branch <name>            Commit + push to a feature branch instead
                                of main. Useful for review before promoting.
 
@@ -276,6 +278,36 @@ def commit_and_push(
     log.info(f"  pushed to origin/{branch}")
 
 
+def build_and_deploy(dry_run: bool, no_deploy: bool) -> None:
+    """Actually publish the site: build Eleventy → _site, then `wrangler deploy`.
+
+    The git push alone does NOT make changes live — sermonsteward.com is a
+    Cloudflare Worker whose git-connected build has proven unreliable — so we
+    build and deploy directly. This is the step that guarantees the page is live.
+    """
+    if no_deploy:
+        log.info("  --no-deploy set; skipping build + wrangler deploy (page NOT published)")
+        return
+    if dry_run:
+        log.info("  WOULD build (eleventy) + wrangler deploy")
+        return
+    log.info("  building site (eleventy) …")
+    b = subprocess.run(["npm", "run", "build"], cwd=str(SS_REPO), capture_output=True, text=True)
+    if b.returncode != 0:
+        log.error(f"  eleventy build failed — page NOT published: {b.stderr[-400:]}")
+        return
+    log.info("  publishing via wrangler deploy …")
+    w = subprocess.run(["npx", "wrangler", "deploy"], cwd=str(SS_REPO), capture_output=True, text=True)
+    out = (w.stdout or "") + (w.stderr or "")
+    if w.returncode != 0:
+        log.error(f"  wrangler deploy failed — page NOT published: {out[-400:]}")
+        return
+    for line in out.splitlines():
+        if "Version ID" in line or "Deployed" in line or "Success!" in line:
+            log.info(f"    {line.strip()}")
+    log.info("  published live via wrangler deploy")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -297,6 +329,8 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-commit", action="store_true")
     ap.add_argument("--no-push", action="store_true")
+    ap.add_argument("--no-deploy", action="store_true",
+                    help="Skip the eleventy build + wrangler deploy (git only; page will NOT go live)")
     ap.add_argument("--branch", default="main", help="Branch in sermon-steward to push to (default: main)")
     ap.add_argument(
         "--message",
@@ -357,6 +391,10 @@ def main() -> int:
         no_commit=args.no_commit,
         no_push=args.no_push,
     )
+
+    # Publish for real: the git push above does not deploy the Cloudflare Worker.
+    # This build + wrangler deploy is what makes the page(s) actually go live.
+    build_and_deploy(dry_run=args.dry_run, no_deploy=args.no_deploy)
 
     log.info("Done.")
     return 0

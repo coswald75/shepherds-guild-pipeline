@@ -68,7 +68,7 @@ QUEUE_DIR = REPO_ROOT / "weekly_queue"
 QUEUE_DIR.mkdir(exist_ok=True)
 
 ARTIFACT_TYPES = (
-    "small_group_questions", "daily_readings", "prayer_prompt",
+    "small_group_questions", "daily_readings",
     "family_card", "couples_guide", "memory_verse",
 )
 

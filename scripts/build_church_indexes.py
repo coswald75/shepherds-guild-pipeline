@@ -215,7 +215,7 @@ PAGE = """\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sermons{title_page_suffix} — {church_name} · Sermon Steward</title>
-<meta name="description" content="Every stewarded sermon from {church_name}{loc_phrase}, with discussion, reading, prayer, and memory cards.">
+<meta name="description" content="Every stewarded sermon from {church_name}{loc_phrase}, with discussion, reading, and memory cards.">
 <link rel="canonical" href="https://sermonsteward.com{canonical_path}">
 {rel_prev_next}<meta property="og:type" content="website">
 <meta property="og:title" content="Sermons — {church_name}">
@@ -238,6 +238,10 @@ PAGE = """\
   <h1>{church_name}</h1>
   <p class="location">{location}</p>
   {intro_note}{browse_by}<h2>Sermons<span class="count">({count} total{page_of_suffix})</span></h2>
+  <div style="display:flex;align-items:center;gap:12px;background:#f0d4cc;border:1px solid #e3a08c;border-radius:12px;padding:13px 18px;margin:12px 0 20px;color:#9a3624;font-weight:600;font-size:15.5px;line-height:1.4;">
+    <span aria-hidden="true" style="font-size:20px;flex:none;line-height:1;">&darr;</span>
+    <span>Click any sermon below to see everything we add &mdash; the full transcript, discussion questions, devotionals, article ideas, and more.</span>
+  </div>
   <ul class="sermons">
 {rows}
   </ul>
@@ -260,7 +264,7 @@ ROW = """    <li>
 
 INTRO_NOTE = (
     '<div class="note">A simple index of every stewarded sermon. Each page '
-    "includes the full transcript, six member-facing artifacts, and the "
+    "includes the full transcript, its member-facing resources, and the "
     "related-teaching graph. Other ways to browse below.</div>\n  "
 )
 
@@ -1374,7 +1378,7 @@ def main() -> int:
             bundle.setdefault(row["sermon_id"], set()).add(row["artifact_type"])
         # Require the original 6 pastoral artifacts. The 2 newer ones are bonus.
         REQUIRED_PASTORAL = {
-            "small_group_questions", "daily_readings", "prayer_prompt",
+            "small_group_questions", "daily_readings",
             "family_card", "couples_guide", "memory_verse",
         }
         publishable = [

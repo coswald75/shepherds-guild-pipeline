@@ -34,9 +34,6 @@ APPLY_TILES = [
     {"key": "devotional",  "label": "Daily readings","title": "5-day reading plan",
      "desc": "Mon–Fri scripture readings drawn from this sermon's citations.",
      "anchor": "#devotional"},
-    {"key": "prayer",      "label": "Prayer",        "title": "Weekly prayer prompt",
-     "desc": "A prayer drawn from this sermon's theological frame.",
-     "anchor": "#prayer"},
     {"key": "family",      "label": "Family table",  "title": "Sunday-evening conversation card",
      "desc": "One prompt for the table; works for kids and adults alike.",
      "anchor": "#family"},
@@ -282,7 +279,6 @@ def compose(sermon_id: str) -> dict:
     artifact_to_tile = {
         "small_group_questions": "small_group",
         "daily_readings": "devotional",
-        "prayer_prompt": "prayer",
         "family_card": "family",
         "couples_guide": "couples",
         "memory_verse": "memory",
@@ -290,7 +286,6 @@ def compose(sermon_id: str) -> dict:
     artifact_anchor = {
         "small_group_questions": "#artifact-small-group",
         "daily_readings": "#artifact-devotional",
-        "prayer_prompt": "#artifact-prayer",
         "family_card": "#artifact-family",
         "couples_guide": "#artifact-couples",
         "memory_verse": "#artifact-memory",

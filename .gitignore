@@ -27,3 +27,6 @@ Thumbs.db
 .pytest_cache/
 audio_cache/
 weekly_queue/
+
+# Runtime logs (launchd cron output)
+logs/
