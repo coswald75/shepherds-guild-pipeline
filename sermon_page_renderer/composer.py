@@ -10,7 +10,11 @@ from __future__ import annotations
 
 import logging
 from datetime import date as date_type, datetime, timezone
+from pathlib import Path
 from typing import Optional
+
+# Repo root — used to check whether a rendered social share card exists on disk.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
 
 from . import queries as q
 from . import schema_org
@@ -86,20 +90,23 @@ def _sermon_url_path(
     church_url_slug: Optional[str] = None,
 ) -> str:
     """
-    Public URL path on theshepherdsguild.com.
+    Public URL path — matches the file the deploy actually serves and the
+    links the church index emits.
 
     With church_url_slug (the standard case):
-      /PCC/sermons/2026/03/marriage-the-mission-of-god
+      /ProvidenceLenexa/sermons/friendship-2026-07-05
     Without (legacy / single-tenant):
-      /sermons/2026/03/marriage-the-mission-of-god
+      /sermons/friendship-2026-07-05
 
-    The DB slug's trailing ISO date suffix is dropped — year/month already
-    appear in the path.
+    The path is flat: the deploy writes each page to
+    <ChurchDir>/sermons/<db-slug>.html (the DB slug already carries the ISO
+    date suffix), so we use the DB slug verbatim — no year/month directories,
+    no suffix stripping. Kept in lock-step with scripts/deploy_sermon_pages.py
+    and scripts/build_church_indexes.py. (`sermon_date` is retained for
+    signature compatibility with callers.)
     """
-    seg = slug_to_url_segment(slug or "")
+    seg = (slug or "").strip("/")
     prefix = f"/{church_url_slug}" if church_url_slug else ""
-    if sermon_date:
-        return f"{prefix}/sermons/{sermon_date.year}/{sermon_date.month:02d}/{seg}"
     return f"{prefix}/sermons/{seg}"
 
 
@@ -202,6 +209,19 @@ def compose(sermon_id: str) -> dict:
     canonical_url = _canonical_url(
         domain, sermon_date, sermon.get("slug") or "", church_url_slug
     )
+
+    # Social share card (Open Graph / Twitter image). Emitted only when a card
+    # has actually been rendered for this sermon — see scripts/generate_og_card.py.
+    # The PNG deploys next to the page at <ChurchDir>/sermons/<slug>.png, so the
+    # public URL mirrors the (flat) page URL with a .png extension. "From now
+    # forward": older sermons with no card on disk simply omit the tag.
+    og_image_url = None
+    _slug = sermon.get("slug") or ""
+    _church_slug = church.get("slug") or ""
+    if church_url_slug and _slug and _church_slug:
+        _card = _REPO_ROOT / "output" / "og-cards" / _church_slug / f"{_slug}.png"
+        if _card.exists():
+            og_image_url = f"https://{domain}/{church_url_slug}/sermons/{_slug}.png"
 
     # Prior-ref callout: take the most recent prior, count its book+chapter citations.
     prior_ref_summary = None
@@ -376,6 +396,7 @@ def compose(sermon_id: str) -> dict:
     return {
         # Page-level
         "canonical_url": canonical_url,
+        "og_image_url": og_image_url,
         "url_path": _sermon_url_path(sermon_date, sermon.get("slug") or "", church_url_slug),
         "domain": domain,
 

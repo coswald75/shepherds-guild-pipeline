@@ -95,6 +95,15 @@ def render_one(
         )
         return None
 
+    # Render the social share card (Open Graph image) first, so the composer
+    # sees the PNG on disk and emits the <meta og:image> tag. Best-effort: a
+    # card failure must never block the page itself.
+    try:
+        from scripts.generate_og_card import generate_og_card
+        generate_og_card(sermon_id, sb=q.get_supabase())
+    except Exception as exc:
+        log.warning(f"  social share card generation failed for {sermon_id}: {exc}")
+
     context = compose(sermon_id)
     html = render_sermon_page(context)
 

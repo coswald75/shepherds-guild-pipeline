@@ -186,6 +186,24 @@ def target_path_for(sermon: dict) -> Optional[Path]:
     return SS_REPO / CHURCH_DIR[church_slug] / "sermons" / f"{slug}.html"
 
 
+def card_source_path_for(sermon: dict) -> Optional[Path]:
+    """Locate the rendered Open Graph share card (may not exist for older sermons)."""
+    church_slug = sermon["preachers"]["churches"]["slug"]
+    slug = sermon.get("slug")
+    if not slug:
+        return None
+    return REPO_ROOT / "output" / "og-cards" / church_slug / f"{slug}.png"
+
+
+def card_target_path_for(sermon: dict) -> Optional[Path]:
+    """Where the share card deploys — next to the page, served at <url>.png."""
+    church_slug = sermon["preachers"]["churches"]["slug"]
+    slug = sermon.get("slug")
+    if not slug or church_slug not in CHURCH_DIR:
+        return None
+    return SS_REPO / CHURCH_DIR[church_slug] / "sermons" / f"{slug}.png"
+
+
 def filter_to_actually_changed(rows: list[dict]) -> list[dict]:
     """For --all-stale: keep only sermons whose source is newer than deploy."""
     keep: list[dict] = []
@@ -224,14 +242,25 @@ def copy_and_collect(sermons: list[dict], dry_run: bool) -> tuple[list[Path], li
             log.warning(f"  skip (unknown church → dir mapping): {title}")
             skipped.append(s)
             continue
+        card_src = card_source_path_for(s)
+        card_tgt = card_target_path_for(s)
+        has_card = bool(card_src and card_tgt and card_src.exists())
         if dry_run:
             log.info(f"  WOULD COPY  {src.relative_to(REPO_ROOT)} → {tgt.relative_to(SS_REPO)}")
             paths_touched.append(tgt)
+            if has_card:
+                log.info(f"  WOULD COPY  {card_src.relative_to(REPO_ROOT)} → {card_tgt.relative_to(SS_REPO)}")
+                paths_touched.append(card_tgt)
             continue
         tgt.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, tgt)
         log.info(f"  copied      {tgt.relative_to(SS_REPO)}")
         paths_touched.append(tgt)
+        if has_card:
+            card_tgt.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(card_src, card_tgt)
+            log.info(f"  copied      {card_tgt.relative_to(SS_REPO)}")
+            paths_touched.append(card_tgt)
     return paths_touched, skipped
 
 
