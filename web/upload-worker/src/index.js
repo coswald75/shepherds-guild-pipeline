@@ -183,16 +183,34 @@ async function getPreachers(env, churchId) {
 }
 
 async function createPreacher(env, churchId, name) {
-  const inserted = await sb(env, `/preachers?select=id,name`, {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      church_id: churchId,
-      name,
-      is_public: true,
-    }),
-  });
-  return Array.isArray(inserted) ? inserted[0] : inserted;
+  // `slug` is NOT NULL and uniquely constrained, so we must supply one.
+  // Derive it from the name; if the clean slug is already taken (e.g. two
+  // guest preachers with the same name), retry with a short random suffix.
+  const base = slugify(name) || "guest-preacher";
+  let lastErr;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = attempt === 0 ? base : `${base}-${crypto.randomUUID().slice(0, 4)}`;
+    try {
+      const inserted = await sb(env, `/preachers?select=id,name`, {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          church_id: churchId,
+          name,
+          slug,
+          is_public: true,
+        }),
+      });
+      return Array.isArray(inserted) ? inserted[0] : inserted;
+    } catch (err) {
+      lastErr = err;
+      // Retry only on a duplicate-slug conflict; surface anything else.
+      if (!/Supabase 409|duplicate key|preachers_slug/i.test(String(err && err.message))) {
+        throw err;
+      }
+    }
+  }
+  throw lastErr;
 }
 
 async function insertSermon(env, row) {
