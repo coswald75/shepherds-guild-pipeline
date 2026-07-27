@@ -485,16 +485,34 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
 # Stage 6 — Artifacts (per-sermon, calls generate_artifacts.py)
 # ────────────────────────────────────────────────────────────────────────────
 
-def generate_artifacts_for(sermon_id: str) -> int:
+def generate_artifacts_for(sermon_id: str, retries: int = 2) -> int:
+    """Generate each artifact type, retrying transient failures (e.g. a Postgres
+    statement timeout) with a short backoff so a sermon never lands with fewer
+    than the full set of artifacts. Returns the count of types generated.
+
+    The CoG path (watch_cog_and_process.py) already re-verifies via
+    selfserve_ingest.generate_artifacts; this gives the Providence/weekly path
+    the same resilience so it stops leaving pages at 4/5.
+    """
     n = 0
     for atype in ARTIFACT_TYPES:
-        cmd = [sys.executable, str(REPO_ROOT / "generate_artifacts.py"),
-               "generate", sermon_id, "--type", atype]
-        r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
-        if r.returncode == 0:
-            n += 1
+        for attempt in range(1, retries + 2):  # initial try + `retries` retries
+            cmd = [sys.executable, str(REPO_ROOT / "generate_artifacts.py"),
+                   "generate", sermon_id, "--type", atype]
+            r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+            if r.returncode == 0:
+                n += 1
+                break
+            log.warning(f"  artifact {atype} attempt {attempt}/{retries + 1} "
+                        f"failed for {sermon_id}: {r.stderr[-160:]}")
+            if attempt <= retries:
+                time.sleep(5)  # let a transient DB statement-timeout clear
         else:
-            log.warning(f"  artifact {atype} failed for {sermon_id}: {r.stderr[-200:]}")
+            log.error(f"  artifact {atype} STILL missing after {retries + 1} "
+                      f"attempts for {sermon_id}")
+    if n < len(ARTIFACT_TYPES):
+        log.error(f"  INCOMPLETE: only {n}/{len(ARTIFACT_TYPES)} artifacts "
+                  f"for {sermon_id} — page will render short")
     return n
 
 
