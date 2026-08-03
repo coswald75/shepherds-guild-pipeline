@@ -402,11 +402,16 @@ def main() -> int:
     paths_touched, skipped = copy_and_collect(sermons, dry_run=args.dry_run)
     log.info(f"Copied {len(paths_touched)} file(s); {len(skipped)} skipped")
 
-    rebuild_church_indexes(dry_run=args.dry_run)
-
+    # Nothing copied → nothing to deploy. Return BEFORE rebuilding the church
+    # indexes: rebuild_church_indexes() rewrites hundreds of listing pages, and
+    # if we bail out afterwards those regenerated files are left uncommitted and
+    # will fail the next deploy's clean-tree check. Only rebuild when we're
+    # actually going to commit (commit_and_push stages the church dirs too).
     if not paths_touched:
-        log.info("No files were copied; nothing to commit.")
+        log.info("No files were copied; nothing to commit. (indexes left untouched)")
         return 0
+
+    rebuild_church_indexes(dry_run=args.dry_run)
 
     message = args.message or (
         f"Deploy {len(paths_touched)} sermon page(s) — "
