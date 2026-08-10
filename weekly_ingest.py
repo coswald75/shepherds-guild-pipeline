@@ -526,14 +526,16 @@ def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
     log.info(f"  [stages 4-5] {len(new_sermon_ids)} sermon(s) newly ingested")
 
     n_artifacts = 0
-    n_pages = 0
+    rendered_ids: list[str] = []
     for sid in new_sermon_ids:
         log.info(f"  [stage 6] generating artifacts for {sid}")
         n_artifacts += generate_artifacts_for(sid)
         log.info(f"  [stage 7] rendering page for {sid}")
         if render_page(sid):
-            n_pages += 1
-    return len(new_sermon_ids), n_artifacts, n_pages
+            rendered_ids.append(sid)
+    # Stage 8 — actually publish the rendered pages (no longer a stub).
+    deploy_rendered(rendered_ids)
+    return len(new_sermon_ids), n_artifacts, len(rendered_ids)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -550,14 +552,25 @@ def render_page(sermon_id: str) -> bool:
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Stage 8 — Deploy (STUBBED — print what would happen)
+# Stage 8 — Deploy (publish rendered pages live)
 # ────────────────────────────────────────────────────────────────────────────
 
-def deploy_for_customer(customer: Customer, sermon_count: int) -> None:
-    target = customer.deploy_target or {}
-    host = target.get("host", "unset")
-    project = target.get("project", "unset")
-    log.info(f"  [deploy STUB] {customer.church_name}: would push {sermon_count} pages to {host}:{project}")
+def deploy_rendered(sermon_ids: list[str]) -> None:
+    """Publish the given rendered sermons to sermonsteward.com via the same
+    deploy script the CoG/cogwatch path uses (copy → rebuild indexes → commit →
+    wrangler deploy). Previously this stage was a stub that only printed what it
+    *would* do, so Providence sermons were decomposed/rendered but never pushed
+    live — hence every one needing a manual deploy. Called from finish_batch."""
+    if not sermon_ids:
+        return
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "deploy_sermon_pages.py"),
+           "--sermon-ids", ",".join(sermon_ids)]
+    log.info(f"  [stage 8] publishing {len(sermon_ids)} page(s) live …")
+    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+    if r.returncode == 0:
+        log.info(f"  [stage 8] deployed + published {len(sermon_ids)} page(s)")
+    else:
+        log.error(f"  [stage 8] deploy FAILED: {(r.stderr or r.stdout)[-400:]}")
 
 
 # ────────────────────────────────────────────────────────────────────────────
