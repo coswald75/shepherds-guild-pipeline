@@ -113,6 +113,28 @@ RESEND_FROM                # e.g. "Sermon Steward <reports@sermonsteward.com>"
 workers). The `wrangler.jsonc` / `wrangler.toml` files hold only non-secret vars
 and bindings.
 
+The **self-serve Worker** (`sermon-steward-try` at `try.sermonsteward.com`) also
+needs the same R2 API token already used on the iMac (names only — paste values
+from `.env`, never print them):
+
+```
+cd web/selfserve-worker
+npx wrangler secret put SUPABASE_SERVICE_KEY
+npx wrangler secret put R2_ACCOUNT_ID
+npx wrangler secret put R2_ACCESS_KEY_ID
+npx wrangler secret put R2_SECRET_ACCESS_KEY
+```
+
+Those three `R2_*` secrets mint the presigned PUT. After they are set, apply
+bucket CORS so the browser may PUT from `https://try.sermonsteward.com`
+(list first so you do not wipe an existing policy):
+
+```
+npx wrangler r2 bucket cors list sermon-steward-audio
+npx wrangler r2 bucket cors set sermon-steward-audio --file cors.json
+npx wrangler deploy
+```
+
 **Fresh-machine setup checklist**
 1. `git clone` this repo.
 2. `cp env.template .env` and fill in the real values (from your password manager).
@@ -159,9 +181,15 @@ and bindings.
    (`web/upload-worker/`). Creates the `sermons` row + streams audio to R2.
    Processed by the **cogwatch** cron.
 
-3. **`self_serve` — public CTA.** `try.sermonsteward.com`
-   (`web/selfserve-worker/`) → `self_serve_jobs` → `selfserve_poller.py` →
-   `scripts/selfserve_ingest.py` → emails the report via Resend.
+3. **`self_serve` — public CTA.** A pastor uploads at `try.sermonsteward.com`
+   (`web/selfserve-worker/`). The browser sends the MP3 **directly to R2** with
+   a short-lived presigned PUT (Cloudflare Free/Pro Workers reject bodies over
+   100 MB with HTTP 413, so the file must not go through the Worker). The
+   Worker then inserts a `self_serve_jobs` row (`status='pending'`, key
+   `self-serve/<uuid>.mp3`) → `selfserve_poller.py` →
+   `scripts/selfserve_ingest.py` → emails the report via Resend. **A git push
+   does not publish this Worker** — deploy from `web/selfserve-worker/` with
+   `npx wrangler deploy`.
 
 ### The pipeline stages (per sermon)
 
@@ -244,6 +272,14 @@ recommended change; batch remains ideal for any future bulk re-import.)
 ---
 
 ## 9. Runbook — common operations
+
+**Deploy the public try. form** (`try.sermonsteward.com`). Git push does **not**
+publish this Worker. From `web/selfserve-worker/`, after any R2 secrets / CORS
+are already set:
+
+```bash
+npx wrangler deploy
+```
 
 **Process one Cross of Grace sermon now** (instead of waiting for cogwatch):
 ```bash

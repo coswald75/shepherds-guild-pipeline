@@ -12,14 +12,24 @@ routes = [
 
 [vars]
 R2_PUBLIC_BASE = "https://sermons-cdn.sermonsteward.com"
+R2_BUCKET = "sermon-steward-audio"
 SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
-MAX_UPLOAD_MB = "200"      # reject larger uploads
+MAX_UPLOAD_MB = "200"      # advertised + enforced max (decimal MB)
 RATE_PER_DAY = "3"          # max submissions per email per rolling 24h
 
 # R2 bucket binding — same public bucket the sermon pages stream from.
+# Used to HEAD/delete after the browser PUTs the MP3 via a presigned URL.
 [[r2_buckets]]
 binding = "AUDIO_BUCKET"
 bucket_name = "sermon-steward-audio"
 
-# Secrets (set via `wrangler secret put`):
+# Secrets (set via `wrangler secret put` — do not commit values):
 #   SUPABASE_SERVICE_KEY — service-role key for self_serve_jobs inserts
+#   R2_ACCOUNT_ID        — Cloudflare account id (R2 S3 endpoint)
+#   R2_ACCESS_KEY_ID     — R2 API token, Object Read & Write on this bucket
+#   R2_SECRET_ACCESS_KEY — matching secret
+#
+# After first deploy of the presigned-PUT path, also apply bucket CORS
+# (one-time; see cors.json):
+#   npx wrangler r2 bucket cors list sermon-steward-audio
+#   npx wrangler r2 bucket cors set sermon-steward-audio --file cors.json
