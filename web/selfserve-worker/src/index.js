@@ -213,6 +213,26 @@ const PAGE_HTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Try Sermon Steward — turn one sermon into a full report</title>
+<meta name="description" content="Upload one sermon, get a report. A free one-sermon try. Usually about 15 minutes. We never publish without your permission.">
+<link rel="canonical" href="https://try.sermonsteward.com">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Try Sermon Steward — upload one sermon, get a report">
+<meta property="og:description" content="A free one-sermon try. Usually about 15 minutes. We never publish without your permission.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://try.sermonsteward.com">
+<meta property="og:image" content="https://sermonsteward.com/og-sermon-steward.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sermon Steward — upload one sermon, get a report">
+
+<!-- Twitter card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Try Sermon Steward — upload one sermon, get a report">
+<meta name="twitter:description" content="A free one-sermon try. Usually about 15 minutes. We never publish without your permission.">
+<meta name="twitter:image" content="https://sermonsteward.com/og-sermon-steward.png">
+<meta name="twitter:image:alt" content="Sermon Steward — upload one sermon, get a report">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
