@@ -2,20 +2,37 @@
  * Sermon Steward — "Try it" self-serve Worker
  * ─────────────────────────────────────────────────────────────────────────
  * Public landing page (no token) where a pastor drops one MP3 + name/church/
- * email. The file is streamed to R2 and a `self_serve_jobs` row is created with
- * status='pending'. A local poller then runs the full ingest and emails the
- * report. This Worker does NOT run the pipeline — it's just the front door.
+ * email. The MP3 is uploaded **directly to R2** with a short-lived presigned
+ * PUT (Cloudflare Free/Pro Workers reject request bodies over 100 MB with
+ * HTTP 413 before this handler runs). After the PUT succeeds, the Worker
+ * inserts a `self_serve_jobs` row with status='pending'. A local poller then
+ * runs the full ingest and emails the report. This Worker does NOT run the
+ * pipeline — it's just the front door.
  *
  * Routes:
  *   GET  /                → landing page (HTML)
- *   POST /api/submit      → multipart/form-data {name, church, email, file}
+ *   POST /api/prepare     → JSON {name, church, email, filename, type, size}
+ *                           → {uploadUrl, ticket, contentType}
+ *   POST /api/complete    → JSON {ticket} → verify object in R2, insert job
  *
  * Bindings (wrangler.toml):
  *   env.AUDIO_BUCKET           R2 bucket (sermon-steward-audio)
  *   env.R2_PUBLIC_BASE         https://sermons-cdn.sermonsteward.com
  *   env.SUPABASE_URL / SUPABASE_SERVICE_KEY
  *   env.MAX_UPLOAD_MB / RATE_PER_DAY
+ *   env.R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+ *     (secrets — used only to mint the presigned PUT; never sent to the browser)
  */
+
+import {
+  maxUploadBytes,
+  validateFields,
+  selfServeKey,
+  presignR2Put,
+  signTicket,
+  verifyTicket,
+  PRESIGN_EXPIRES_SEC,
+} from "./lib.js";
 
 export default {
   async fetch(request, env) {
@@ -26,8 +43,11 @@ export default {
           headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
         });
       }
-      if (request.method === "POST" && url.pathname === "/api/submit") {
-        return await handleSubmit(request, env);
+      if (request.method === "POST" && url.pathname === "/api/prepare") {
+        return await handlePrepare(request, env);
+      }
+      if (request.method === "POST" && url.pathname === "/api/complete") {
+        return await handleComplete(request, env);
       }
       return new Response("Not found", { status: 404 });
     } catch (err) {
@@ -39,24 +59,117 @@ export default {
 
 // ───────────────────────────────────────────────────────────────────────────
 
-async function handleSubmit(request, env) {
-  const form = await request.formData();
-  const name = (form.get("name") || "").toString().trim();
-  const church = (form.get("church") || "").toString().trim() || null;
-  const email = (form.get("email") || "").toString().trim().toLowerCase();
-  const file = form.get("file");
+function maxMb(env) {
+  return env.MAX_UPLOAD_MB || "200";
+}
 
-  if (!name) return json({ ok: false, error: "Please enter your name." }, 400);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ ok: false, error: "Please enter a valid email." }, 400);
-  if (!file || typeof file === "string") return json({ ok: false, error: "Please attach an MP3." }, 400);
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
 
-  const maxBytes = (parseInt(env.MAX_UPLOAD_MB || "200", 10)) * 1_000_000;
-  if (file.size > maxBytes) return json({ ok: false, error: `File too large (max ${env.MAX_UPLOAD_MB} MB).` }, 400);
-  const type = file.type || "";
-  const okType = type.startsWith("audio/") || /\.mp3$/i.test(file.name || "");
-  if (!okType) return json({ ok: false, error: "That doesn't look like an audio file. Please upload an MP3." }, 400);
+async function handlePrepare(request, env) {
+  const body = await readJson(request);
+  if (!body || typeof body !== "object") {
+    return json({ ok: false, error: "Please fill in the form and attach an MP3." }, 400);
+  }
 
-  // Per-email rate cap over a rolling 24h.
+  const name = (body.name || "").toString().trim();
+  const church = (body.church || "").toString().trim() || null;
+  const email = (body.email || "").toString().trim().toLowerCase();
+  const filename = (body.filename || "").toString();
+  const type = (body.type || "").toString();
+  const size = Number(body.size);
+  const limit = maxUploadBytes(maxMb(env));
+
+  const fieldErr = validateFields({ name, email, filename, type, size, maxBytes: limit });
+  if (fieldErr) return json({ ok: false, error: fieldErr }, 400);
+
+  const rateErr = await checkRateLimit(env, email);
+  if (rateErr) return rateErr;
+
+  if (!env.R2_ACCOUNT_ID || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
+    console.error("Missing R2 presign secrets (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY)");
+    return json({
+      ok: false,
+      error: "Uploads are temporarily unavailable. Please try again shortly.",
+    }, 503);
+  }
+
+  const jobId = crypto.randomUUID();
+  const key = selfServeKey(jobId);
+  const uploadUrl = await presignR2Put({
+    accountId: env.R2_ACCOUNT_ID,
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    bucket: env.R2_BUCKET || "sermon-steward-audio",
+    key,
+    expiresSec: PRESIGN_EXPIRES_SEC,
+  });
+
+  const ticket = await signTicket(env.SUPABASE_SERVICE_KEY, {
+    v: 1,
+    id: jobId,
+    name,
+    church,
+    email,
+    key,
+    exp: Date.now() + PRESIGN_EXPIRES_SEC * 1000,
+  });
+
+  return json({ ok: true, uploadUrl, ticket, contentType: "audio/mpeg" });
+}
+
+async function handleComplete(request, env) {
+  const body = await readJson(request);
+  const payload = await verifyTicket(env.SUPABASE_SERVICE_KEY, body && body.ticket);
+  if (!payload) {
+    return json({ ok: false, error: "This upload expired. Please try again." }, 400);
+  }
+
+  const rateErr = await checkRateLimit(env, payload.email);
+  if (rateErr) return rateErr;
+
+  const obj = await env.AUDIO_BUCKET.head(payload.key);
+  if (!obj || !obj.size) {
+    return json({ ok: false, error: "The upload didn't finish. Please try again." }, 400);
+  }
+  const limit = maxUploadBytes(maxMb(env));
+  if (obj.size > limit) {
+    try { await env.AUDIO_BUCKET.delete(payload.key); } catch (_) { /* best-effort */ }
+    return json({
+      ok: false,
+      error: `That file is too large. Please use an MP3 of ${maxMb(env)} MB or less.`,
+    }, 400);
+  }
+
+  const audioUrl = `${env.R2_PUBLIC_BASE}/${payload.key}`;
+  try {
+    await sb(env, `/self_serve_jobs`, {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        id: payload.id,
+        name: payload.name,
+        church_name: payload.church,
+        email: payload.email,
+        audio_key: payload.key,
+        audio_url: audioUrl,
+        status: "pending",
+      }),
+    });
+  } catch (err) {
+    // A retry after a dropped complete-response should not fail the pastor.
+    if (!/Supabase 409/.test(err.message || "")) throw err;
+  }
+
+  return json({ ok: true });
+}
+
+async function checkRateLimit(env, email) {
   const cap = parseInt(env.RATE_PER_DAY || "3", 10);
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const recent = await sb(env,
@@ -64,26 +177,7 @@ async function handleSubmit(request, env) {
   if (Array.isArray(recent) && recent.length >= cap) {
     return json({ ok: false, error: "You've reached today's limit. Please try again tomorrow." }, 429);
   }
-
-  // Use one id for both the R2 key and the job row, so they're easy to trace.
-  const jobId = crypto.randomUUID();
-  const key = `self-serve/${jobId}.mp3`;
-  await env.AUDIO_BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: type || "audio/mpeg", cacheControl: "public, max-age=31536000, immutable" },
-    customMetadata: { uploadedBy: "sermon-steward-try", email },
-  });
-  const audioUrl = `${env.R2_PUBLIC_BASE}/${key}`;
-
-  await sb(env, `/self_serve_jobs`, {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      id: jobId, name, church_name: church, email,
-      audio_key: key, audio_url: audioUrl, status: "pending",
-    }),
-  });
-
-  return json({ ok: true });
+  return null;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -212,7 +306,7 @@ const PAGE_HTML = `<!doctype html>
   <div class="cta-card">
     <h2>Try it with one sermon</h2>
     <p class="sub">Drop in an MP3 and we'll email your report.</p>
-    <form id="form" enctype="multipart/form-data">
+    <form id="form">
       <label for="name">Your name</label>
       <input type="text" id="name" name="name" required placeholder="e.g. Pastor John Smith">
       <label for="church">Church <span class="opt">(optional)</span></label>
@@ -222,7 +316,7 @@ const PAGE_HTML = `<!doctype html>
       <label>Sermon audio (MP3)</label>
       <div id="drop">
         <div>Drop an MP3 here, or <a href="#" id="browse">click to browse</a></div>
-        <div class="hint">Most sermon files are 30&ndash;90 MB.</div>
+        <div class="hint">Most sermon files are 30&ndash;90 MB. Maximum 200 MB.</div>
         <div id="file-info"></div>
         <input type="file" id="file" name="file" accept="audio/mpeg,audio/mp3,.mp3" style="display:none" required>
       </div>
@@ -237,6 +331,7 @@ const PAGE_HTML = `<!doctype html>
 <footer>Sermon Steward &middot; <a href="https://sermonsteward.com">sermonsteward.com</a></footer>
 
 <script>
+  var MAX_BYTES = 200 * 1000000;
   var $ = function(id){ return document.getElementById(id); };
   var fi = $("file"), dz = $("drop");
   $("browse").addEventListener("click", function(e){ e.preventDefault(); fi.click(); });
@@ -250,30 +345,83 @@ const PAGE_HTML = `<!doctype html>
     $("file-info").textContent = f.name + " (" + (f.size/1000000).toFixed(1) + " MB)";
     dz.classList.add("has-file"); }
   function showStatus(kind, msg){ var s = $("status"); s.textContent = msg; s.className = kind + " show"; }
+  function readJson(xhr){ try { return JSON.parse(xhr.responseText); } catch(_){ return {}; } }
+  function postJson(url, body){
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) }).then(function(r){
+        return r.text().then(function(t){
+          var data = {}; try { data = t ? JSON.parse(t) : {}; } catch(_){}
+          return { okHttp: r.ok, status: r.status, data: data };
+        });
+      });
+  }
+  function putFile(url, file, contentType, onProgress){
+    return new Promise(function(resolve, reject){
+      var xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("Content-Type", contentType || "audio/mpeg");
+      xhr.upload.onprogress = function(evt){
+        if (evt.lengthComputable && onProgress) onProgress(evt.loaded / evt.total);
+      };
+      xhr.onload = function(){
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error("upload-failed"));
+      };
+      xhr.onerror = function(){ reject(new Error("network")); };
+      xhr.send(file);
+    });
+  }
 
   $("form").addEventListener("submit", function(e){
     e.preventDefault();
-    if (!fi.files[0]) return showStatus("error", "Please attach an MP3 first.");
-    var fd = new FormData(e.target);
+    var file = fi.files[0];
+    if (!file) return showStatus("error", "Please attach an MP3 first.");
+    if (file.size > MAX_BYTES) {
+      return showStatus("error", "That file is too large. Please use an MP3 of 200 MB or less.");
+    }
     $("btn").disabled = true; $("status").className = "";
     $("progress").classList.add("show"); $("bar").style.width = "0%";
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/submit");
-    xhr.upload.onprogress = function(evt){ if (evt.lengthComputable) $("bar").style.width = (evt.loaded/evt.total*100) + "%"; };
-    xhr.onload = function(){
+
+    var fields = {
+      name: $("name").value,
+      church: $("church").value,
+      email: $("email").value,
+      filename: file.name,
+      type: file.type,
+      size: file.size
+    };
+
+    postJson("/api/prepare", fields).then(function(prep){
+      if (!prep.okHttp || !prep.data.ok) {
+        throw { form: true, message: (prep.data && prep.data.error) || "Something went wrong. Please try again." };
+      }
+      return putFile(prep.data.uploadUrl, file, prep.data.contentType, function(frac){
+        $("bar").style.width = Math.round(frac * 100) + "%";
+      }).then(function(){ return prep.data.ticket; });
+    }).then(function(ticket){
+      $("bar").style.width = "100%";
+      function completeOnce(){ return postJson("/api/complete", { ticket: ticket }); }
+      return completeOnce().then(function(res){
+        if (res.okHttp && res.data.ok) return res;
+        return completeOnce();
+      });
+    }).then(function(done){
       $("progress").classList.remove("show");
-      var body = {}; try { body = JSON.parse(xhr.responseText); } catch(_){}
-      if (xhr.status >= 200 && xhr.status < 300 && body.ok){
+      if (done && done.okHttp && done.data.ok){
         $("form").reset(); $("file-info").textContent = ""; dz.classList.remove("has-file");
         showStatus("ok", "Thanks! We're studying your sermon now — your report will arrive by email in about 10–15 minutes.");
       } else {
         $("btn").disabled = false;
-        showStatus("error", body.error || "Something went wrong. Please try again.");
+        showStatus("error", (done && done.data && done.data.error) || "Something went wrong. Please try again.");
       }
-    };
-    xhr.onerror = function(){ $("btn").disabled = false; $("progress").classList.remove("show");
-      showStatus("error", "Network error. Check your connection and try again."); };
-    xhr.send(fd);
+    }).catch(function(err){
+      $("btn").disabled = false; $("progress").classList.remove("show");
+      if (err && err.form) return showStatus("error", err.message);
+      if (err && err.message === "upload-failed") {
+        return showStatus("error", "We couldn't upload the sermon. Please try again.");
+      }
+      showStatus("error", "Network error. Check your connection and try again.");
+    });
   });
 </script>
 </body>
