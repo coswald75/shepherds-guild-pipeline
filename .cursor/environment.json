@@ -1,0 +1,4 @@
+{
+  "name": "Shepherd's Guild Pipeline",
+  "install": "bash .cursor/install.sh"
+}
