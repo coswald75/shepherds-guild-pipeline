@@ -136,7 +136,7 @@ def resolve_sermons(
     base = sb.table("sermons").select(
         "id, slug, title, date, last_rendered_at, "
         "preacher_id, preachers!inner(church_id, churches!inner(slug))"
-    )
+    ).eq("unlisted", False)  # unlisted sermons never deploy to public pages
 
     if ids:
         res = base.in_("id", ids).execute()
