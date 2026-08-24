@@ -128,6 +128,27 @@ def ensure_ss_repo_clean(branch: Optional[str]) -> None:
         log.info(f"sermon-steward is on {cur}; switching to {target_branch}")
         _git(["checkout", target_branch], cwd=SS_REPO)
 
+    # Sync with origin BEFORE we build/commit/push. The website is also edited
+    # elsewhere (GitHub/Cursor/PRs), so this machine's clone falls behind; if we
+    # don't fast-forward first, our push is rejected and the deploy aborts before
+    # `wrangler deploy` (pages processed fine but never publish). Fast-forward
+    # only — a genuine divergence is surfaced, not silently discarded.
+    _git(["fetch", "origin", target_branch], cwd=SS_REPO, check=False)
+    behind = _git(["rev-list", "--count", f"HEAD..origin/{target_branch}"],
+                  cwd=SS_REPO, check=False).stdout.strip()
+    ahead = _git(["rev-list", "--count", f"origin/{target_branch}..HEAD"],
+                 cwd=SS_REPO, check=False).stdout.strip()
+    if behind not in ("", "0"):
+        if ahead not in ("", "0"):
+            log.error(
+                f"{SS_REPO} '{target_branch}' has diverged from origin "
+                f"(local ahead {ahead}, behind {behind}). Reconcile manually "
+                f"(e.g. `git pull --rebase`) before deploying."
+            )
+            sys.exit(1)
+        log.info(f"  syncing {behind} new commit(s) from origin/{target_branch} (fast-forward) …")
+        _git(["merge", "--ff-only", f"origin/{target_branch}"], cwd=SS_REPO)
+
 
 def resolve_sermons(
     sb, *, ids: list[str] | None, since: datetime | None, all_stale: bool
