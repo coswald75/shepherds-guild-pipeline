@@ -17,3 +17,6 @@ python t1_ingest.py batch fixtures/t1
 | `sermonindex-nicene.json` | Existing sermonindex JSON shape (`transcript` + `contributor`) |
 | `sidecar-chapters.json` | Pre-attached AssemblyAI-style chapters + timestamps |
 | `html-ligonier-style.json` | HTML body with `<h4>` headings (text-first public libraries) |
+| `continuous-romans8.txt` | Verse-by-verse walk (style: continuous_exposition) |
+| `topical-tips-habits.txt` | Theme + tips (style: topical / tips_imperatives) |
+| `narrative-david.txt` | Story + be-like (style: narrative / moral_exemplary) |

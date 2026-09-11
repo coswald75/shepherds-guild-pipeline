@@ -201,9 +201,10 @@ cheap structure. It does **not** change `weekly_ingest.py` or `pipeline.py`.
 python t1_ingest.py batch fixtures/t1
 ```
 
-T1: local chapters/chunks + keyword index, **$0** when source text already
-exists. Optional Voyage `--embed`. Promote to T2 is a stub that prints the
-existing `pipeline.py decompose` command. Details and cost model: `t1-README.md`.
+T1: local chapters/chunks + keyword index + **provisional preaching-style
+labels** (heuristics, **$0**) when source text already exists. Optional Voyage
+`--embed`. Promote to T2 is a stub that prints the existing
+`pipeline.py decompose` command. Details, label set, and cost model: `t1-README.md`.
 
 ### The pipeline stages (per sermon)
 

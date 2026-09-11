@@ -19,6 +19,7 @@ from t1.cost import estimate_t1_cost, estimate_t2_cost
 from t1.index import build_keyword_index, search_index
 from t1.pipeline import ingest_paths, structure_sermon
 from t1.promote import promote_record, t2_command
+from t1.style import discern_style, label_set_doc, ministry_profile
 
 
 def test_fixtures_exist_for_ci_without_secrets():
@@ -205,6 +206,97 @@ def test_cli_batch_and_search(tmp_path):
     assert promote.returncode == 0, promote.stderr
     assert "pipeline.py decompose" in promote.stdout
     assert list((out / "promote").glob("*.promote.json"))
+
+
+def test_style_continuous_exposition():
+    sermon = acquire_path(FIXTURES / "continuous-romans8.txt")
+    style = discern_style(sermon.text, title=sermon.title)
+    assert style["living_likeness_score"] is None
+    assert style["not_coach_product"] is True
+    assert style["axes"]["text_relationship"]["label"] == "continuous_exposition"
+    ev = style["axes"]["text_relationship"]["evidence"]
+    assert ev and ev[0]["quote"]
+    assert ev[0]["char_end"] > ev[0]["char_start"]
+    assert style["axes"]["fallen_condition_focus"]["label"] == "fcf_gospel"
+
+
+def test_style_topical_tips_individual():
+    sermon = acquire_path(FIXTURES / "topical-tips-habits.txt")
+    style = discern_style(sermon.text, title=sermon.title)
+    assert style["axes"]["text_relationship"]["label"] == "topical"
+    assert style["axes"]["fallen_condition_focus"]["label"] == "tips_imperatives"
+    assert style["axes"]["application_shape"]["audience"] == "individual"
+    assert style["axes"]["redemptive_frame"]["label"] != "redemptive_historical"
+
+
+def test_style_narrative_moral():
+    sermon = acquire_path(FIXTURES / "narrative-david.txt")
+    style = discern_style(sermon.text, title=sermon.title)
+    assert style["axes"]["text_relationship"]["label"] == "narrative"
+    assert style["axes"]["redemptive_frame"]["label"] == "moral_exemplary"
+    school = style["axes"]["redemptive_frame"].get("school_illustration") or {}
+    assert "likeness" in (school.get("note") or "").lower()
+
+
+def test_style_fcf_on_gospel_words():
+    sermon = acquire_path(FIXTURES / "discourse-three-words.txt")
+    style = discern_style(sermon.text, title=sermon.title)
+    assert style["axes"]["fallen_condition_focus"]["label"] == "fcf_gospel"
+    assert style["axes"]["redemptive_frame"]["label"] in {
+        "redemptive_historical", "doctrinal_systematic",
+    }
+
+
+def test_style_never_scores_living_likeness():
+    sermon = acquire_path(FIXTURES / "heading-blessing.txt")
+    _, payload = structure_sermon(sermon)
+    style = payload["style"]
+    assert style["living_likeness_score"] is None
+    dump = json.dumps(style)
+    # Keller may appear only inside school_illustration, never as a score key.
+    if "Keller" in dump:
+        assert "school_illustration" in dump
+    assert style["primary_axis"] == "category"
+    assert "preacher_similarity" not in dump
+    assert "nearest_neighbor" not in dump
+
+
+def test_no_style_flag_omits_block(tmp_path):
+    results = ingest_paths(
+        [FIXTURES / "heading-blessing.txt"],
+        output_dir=tmp_path,
+        style=False,
+    )
+    assert results[0].payload.get("style") is None
+
+
+def test_ministry_profile_and_cli_styles(tmp_path):
+    results = ingest_paths(list(iter_sermon_files(FIXTURES)), output_dir=tmp_path)
+    assert results
+    index = json.loads((tmp_path / "index.json").read_text())
+    profile = index["ministry_profile"]
+    assert profile["sermons"] >= 8
+    assert profile["living_likeness_score"] is None
+    assert profile["majority"]["text_relationship"]
+    report = json.loads((tmp_path / "run_report.json").read_text())
+    assert report["style_enabled"] is True
+
+    proc = subprocess.run(
+        [sys.executable, str(CLI), "styles", "--index", str(tmp_path / "index.json")],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "living_likeness_score: None" in proc.stdout
+    assert "ministry profile" in proc.stdout
+
+    labels = label_set_doc()
+    assert "continuous_exposition" in labels["axes"]["text_relationship"]
+    assert labels["cost_usd"] == 0.0
+    rolled = ministry_profile([r.payload["style"] for r in results])
+    assert rolled["question"].startswith("what kind of preaching")
 
 
 def test_cli_does_not_import_production_pipeline():

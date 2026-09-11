@@ -35,9 +35,19 @@ T1_COST_MODEL = {
     ],
     "usd_per_sermon": {
         "t1_text_keyword": 0.0,
+        "t1_text_plus_style": 0.0,
         "t1_text_plus_voyage": "~$0.0005",
         "t1_if_stt_already_paid_at_t0": 0.0,
         "t2_decompose_plus_embed": "$0.21–0.41",
+    },
+    "style": {
+        "method": "heuristic_v1",
+        "cost_vs_chunk_only": 0.0,
+        "note": (
+            "Default T1 now includes provisional preaching-style labels. "
+            "Local regex/heuristics — no cheap-LLM and no Anthropic. "
+            "Same $0 as chunk-only when source text exists."
+        ),
     },
     "assemblyai_chaptering_verdict": (
         "Rejected as the default T1 chunker. auto_chapters is deprecated "
@@ -61,6 +71,7 @@ def estimate_t1_cost(
     char_count: int = 0,
     chapter_count: int = 0,
     audio_duration_sec: Optional[int] = None,
+    style: bool = True,
 ) -> dict[str, Any]:
     apis: list[str] = []
     usd = 0.0
@@ -87,6 +98,10 @@ def estimate_t1_cost(
     else:
         notes.append("Keyword inverted index only — $0 embeddings.")
 
+    if style:
+        notes.append("Style heuristics included — $0 vs chunk-only T1.")
+    else:
+        notes.append("Style disabled (--no-style); chunk + index only.")
     notes.append("Anthropic decompose not called.")
     return {
         "usd_estimate": round(usd, 6),

@@ -108,6 +108,7 @@ should **not** run this T2 decompose by default. Use the separate T1 path:
 python t1_ingest.py batch fixtures/t1
 ```
 
-That writes chapters + a keyword index to `t1_output/` and **does not** call
-Anthropic. Weekly/paid ingest is unchanged. Cost model, promote stub, and
+That writes chapters, a keyword index, and **provisional preaching-style
+labels** (heuristics, $0) to `t1_output/`. It does **not** call Anthropic.
+Weekly/paid ingest is unchanged. Cost model, style axes, promote stub, and
 why AssemblyAI chaptering is not the default chunker: **`t1-README.md`**.

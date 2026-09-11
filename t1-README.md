@@ -6,7 +6,7 @@ This does **not** replace, delete, or change default weekly/paid ingest.
 | Tier | Job | Default spend |
 |---|---|---|
 | **T0 Acquire** | Grab source text/audio + durable ids | $0 if text exists; AssemblyAI STT only when audio has no transcript (existing scraper / weekly_ingest) |
-| **T1 Structure** | Chapters/chunks + searchable index | **$0** on text (local chunker + keyword index). Optional Voyage `--embed` is fractions of a cent |
+| **T1 Structure** | Chapters/chunks + keyword index + **provisional preaching-style labels** | **$0** on text. Optional Voyage `--embed` is fractions of a cent |
 | **T2 Decompose** | Existing Anthropic Sonnet unit graph | **~$0.21–0.41** per sermon (see `pipeline-README.md`) |
 
 Promote a T1 sermon to T2 only when a paid seat / product event funds it.
@@ -40,6 +40,42 @@ chapters, and skip STT when text already exists.
 Keyword inverted index is always built. Voyage embeddings are **opt-in**
 (`--embed` + `VOYAGE_API_KEY`).
 
+## Provisional preaching-style labels (not Coach)
+
+T1 now emits **basic discernment** so Sermon Audit can ask “what kind of
+preaching is this ministry?” without a $0.20–0.40 decompose. Heuristics only.
+No Anthropic. No cheap-LLM in this POC (`--no-style` skips it; cost is still $0).
+
+Categories are primary. Famous preacher names appear only as nested
+`school_illustration` metadata. `living_likeness_score` is always `null`.
+
+| Axis | Labels |
+|---|---|
+| `text_relationship` | `continuous_exposition` · `textual` · `topical` · `narrative` · `unclear` |
+| `redemptive_frame` | `redemptive_historical` · `moral_exemplary` · `doctrinal_systematic` · `unclear` |
+| `fallen_condition_focus` | `fcf_gospel` · `fcf_partial` · `tips_imperatives` · `unclear` |
+| `application_shape` | weight `heavy`/`moderate`/`light`; audience `corporate`/`individual`/`mixed` |
+| `tone_register` | `teaching` · `prophetic` · `pastoral` · `unclear` |
+
+**How computed:** weighted regex / phrase hits on the source text (verse-walk
+language, “today I want to talk about,” “be like David,” diagnosis + gospel
+resolve pairs, “tip one,” “this week,” “as a church,” “the Greek,” “woe,” …).
+Each axis stores `label`, `confidence`, `scores`, and up to three **evidence
+quotes with character offsets**.
+
+**Cost vs chunk-only T1:** **+$0.00**. Same APIs (none).
+
+**Deferred to later Coach / homiletic taxonomy** (Chris will refine taste):
+
+- Full Chapell FCF *quality* (is it the right fallen condition?)
+- Living-preacher nearest-neighbor / “you preach like Keller”
+- T2 unit graph (rhetorical functions, citation tiers, BT moves)
+- Optional Haiku/Flash second pass if heuristics saturate
+
+```bash
+python t1_ingest.py styles --index t1_output/index.json --show-labels
+```
+
 ## How to run the POC (3–10 sermons, no secrets)
 
 From the repo root, with the six committed fixtures (original test copy — CI
@@ -60,11 +96,12 @@ python t1_ingest.py ingest sermon-transcripts/john-stott/the-son-john-1118.json 
 python t1_ingest.py batch fixtures/t1 --limit 6
 ```
 
-Search the cheap index:
+Search the cheap index and print style / ministry profile:
 
 ```bash
 python t1_ingest.py search "justification"
 python t1_ingest.py search "sign of Jonah"
+python t1_ingest.py styles
 ```
 
 Print the cost model:
@@ -96,8 +133,10 @@ Each `sermons/*.json` includes:
 - `text` — cleaned source (HTML stripped when needed)
 - `chapters[]` — `title`, `text`, `char_start` / `char_end`, optional `start_ms` / `end_ms`
 - `index` — `keyword` or `voyage`
+- `style` — provisional axes (labels, evidence quotes/offsets, confidence)
 - `cost` — `usd_estimate` and `apis_called` (empty on the default path)
 - `promote.command` — the existing T2 invoke line
+- `index.json` also has `ministry_profile` (majority labels across the batch)
 
 Override the destination with `--output /tmp/t1-demo`.
 
@@ -108,7 +147,7 @@ Prices are public mid-2026 list rates, not a quote. T2 numbers match
 
 | Path | APIs called | Typical $/sermon |
 |---|---|---|
-| **T1, text already available (default)** | none | **$0.00** |
+| **T1, text already available (default, includes style)** | none | **$0.00** |
 | **T1 + `--embed`** | Voyage `voyage-3.5` on ~8–15 chunks | **~$0.0005** (Voyage is $0.06 / 1M tokens) |
 | **T0 STT only** (no text, existing AssemblyAI job) | AssemblyAI transcribe | **~$0.10–0.14** for 40 min. This is *acquire*, not T1 structure |
 | **T1 if we had used AssemblyAI `auto_chapters`** | STT + deprecated +$0.08/hr | **~$0.15–0.22** — misses the cents target and is sunsetting |

@@ -10,6 +10,7 @@ Usage:
     python t1_ingest.py batch fixtures/t1
     python t1_ingest.py ingest fixtures/t1/heading-blessing.txt
     python t1_ingest.py search "justification" --index t1_output/index.json
+    python t1_ingest.py styles --index t1_output/index.json
     python t1_ingest.py promote t1_output/sermons/<slug>.json
     python t1_ingest.py cost
 
@@ -36,6 +37,7 @@ from t1.cost import T1_COST_MODEL, estimate_t1_cost, estimate_t2_cost
 from t1.index import search_index
 from t1.pipeline import ingest_paths
 from t1.promote import promote_record, write_promote_receipt
+from t1.style import label_set_doc
 
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = REPO_ROOT / "t1_output"
@@ -52,6 +54,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         output_dir=Path(args.output),
         preacher=args.preacher,
         embed=args.embed,
+        style=not args.no_style,
     )
     _print_results(results, Path(args.output))
     return 0
@@ -73,6 +76,7 @@ def cmd_batch(args: argparse.Namespace) -> int:
         output_dir=Path(args.output),
         preacher=args.preacher,
         embed=args.embed,
+        style=not args.no_style,
     )
     _print_results(results, Path(args.output))
     return 0
@@ -117,9 +121,30 @@ def cmd_promote(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_styles(args: argparse.Namespace) -> int:
+    index_path = Path(args.index)
+    if not index_path.exists():
+        print(f"index not found: {index_path} — run batch first", file=sys.stderr)
+        return 2
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    profile = index.get("ministry_profile") or {}
+    print("ministry profile (provisional; not Coach):")
+    print(json.dumps(profile.get("majority") or {}, indent=2))
+    print("living_likeness_score:", profile.get("living_likeness_score"))
+    print()
+    for row in index.get("sermons") or []:
+        style = row.get("style") or {}
+        print(f"  {row.get('slug')}: {style.get('summary') or '(no style)'}")
+    if args.show_labels:
+        print()
+        print(json.dumps(label_set_doc(), indent=2))
+    return 0
+
+
 def cmd_cost(_: argparse.Namespace) -> int:
     print(json.dumps({
         "model": T1_COST_MODEL,
+        "style_labels": label_set_doc(),
         "example_t1_text_only": estimate_t1_cost(
             has_source_text=True, embed=False, char_count=18000, chapter_count=8
         ),
@@ -136,9 +161,12 @@ def _print_results(results, output_dir: Path) -> None:
     for r in results:
         sources = sorted({c.source for c in r.chapters})
         cost = (r.payload.get("cost") or {}).get("usd_estimate")
+        style_bit = ""
+        if r.payload.get("style"):
+            style_bit = f" | {r.payload['style'].get('summary')}"
         print(
             f"  {r.payload['slug']}: {len(r.chapters)} chapters "
-            f"({', '.join(sources)}) ${cost} → {r.dest.name}"
+            f"({', '.join(sources)}) ${cost}{style_bit} → {r.dest.name}"
         )
     report = output_dir / "run_report.json"
     if report.exists():
@@ -158,6 +186,8 @@ def main() -> int:
     p_in.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p_in.add_argument("--embed", action="store_true",
                       help="Optional Voyage embeddings (requires VOYAGE_API_KEY)")
+    p_in.add_argument("--no-style", action="store_true",
+                      help="Skip preaching-style heuristics (chunk + index only)")
     p_in.set_defaults(func=cmd_ingest)
 
     p_batch = sub.add_parser("batch", help="Structure every sermon in a folder")
@@ -166,7 +196,16 @@ def main() -> int:
     p_batch.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p_batch.add_argument("--limit", type=int, default=0)
     p_batch.add_argument("--embed", action="store_true")
+    p_batch.add_argument("--no-style", action="store_true")
     p_batch.set_defaults(func=cmd_batch)
+
+    p_styles = sub.add_parser(
+        "styles",
+        help="Print provisional style labels / ministry profile from a T1 index",
+    )
+    p_styles.add_argument("--index", type=Path, default=DEFAULT_OUTPUT / "index.json")
+    p_styles.add_argument("--show-labels", action="store_true")
+    p_styles.set_defaults(func=cmd_styles)
 
     p_search = sub.add_parser("search", help="Keyword search a T1 index")
     p_search.add_argument("query")
