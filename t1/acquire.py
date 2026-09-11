@@ -141,7 +141,8 @@ def acquire_text(
     cleaned = text or ""
     if looks_like_html(cleaned):
         cleaned = html_to_text(cleaned)
-        source_kind = "html" if source_kind == "txt" else source_kind
+        if source_kind in {"txt", "sermonindex"}:
+            source_kind = "html"
     cleaned = cleaned.replace("\x00", "").strip()
     if not cleaned:
         raise ValueError(f"No usable text in {source_path}")

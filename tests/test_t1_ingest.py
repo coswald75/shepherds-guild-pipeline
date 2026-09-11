@@ -82,6 +82,25 @@ def test_window_chunker_has_offsets():
         assert ch.char_end > ch.char_start
 
 
+def test_window_chunker_splits_single_paragraph_stt_blob():
+    """AssemblyAI transcripts are often one long paragraph with no blank lines."""
+    from t1.acquire import acquire_text
+
+    sentence = (
+        "The Word became flesh and dwelt among us, and we have seen his glory. "
+    )
+    text = sentence * 80  # ~720 words, one paragraph
+    sermon = acquire_text(text, title="STT Blob", preacher="Fixture")
+    chapters = chunk_sermon(sermon)
+    assert len(chapters) >= 2
+    assert all(c.source == "window" for c in chapters)
+    assert sum(_approx_words(c.text) for c in chapters) >= 600
+
+
+def _approx_words(text: str) -> int:
+    return len(text.split())
+
+
 def test_sidecar_timestamps_preferred():
     sermon = acquire_path(FIXTURES / "sidecar-chapters.json")
     assert len(sermon.sidecar_chapters) == 3
@@ -192,5 +211,7 @@ def test_cli_does_not_import_production_pipeline():
     # The module must be importable without anthropic/voyage/supabase.
     src = (REPO / "t1_ingest.py").read_text()
     assert "import pipeline" not in src
+    assert "from pipeline" not in src
     assert "import anthropic" not in src
-    assert "weekly_ingest" not in src
+    assert "import weekly_ingest" not in src
+    assert "from weekly_ingest" not in src

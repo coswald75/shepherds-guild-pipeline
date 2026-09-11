@@ -91,6 +91,50 @@ def _word_count(text: str) -> int:
     return len(re.findall(r"\b[\w']+\b", text))
 
 
+SENTENCE_RE = re.compile(r".+?(?:[.!?][\"')\]]?\s+|\Z)", re.S)
+
+
+def _split_sentences(text: str, abs_start: int) -> list[tuple[int, int, str]]:
+    """Sentence spans inside a (possibly huge) paragraph, offsets into the sermon."""
+    spans: list[tuple[int, int, str]] = []
+    for match in SENTENCE_RE.finditer(text):
+        sent = match.group(0)
+        stripped = sent.strip()
+        if not stripped:
+            continue
+        local = sent.find(stripped)
+        start = abs_start + match.start() + local
+        end = start + len(stripped)
+        spans.append((start, end, stripped))
+    if not spans:
+        stripped = text.strip()
+        if stripped:
+            start = abs_start + text.find(stripped)
+            spans.append((start, start + len(stripped), stripped))
+    return spans
+
+
+def _units_for_windows(text: str) -> list[tuple[int, int, str]]:
+    """Paragraphs, with oversize blocks broken into sentence groups."""
+    units: list[tuple[int, int, str]] = []
+    for start, end, para in _split_paragraphs(text):
+        if _word_count(para) <= WINDOW_WORDS:
+            units.append((start, end, para))
+            continue
+        sentences = _split_sentences(text[start:end], start)
+        buf: list[tuple[int, int, str]] = []
+        words = 0
+        for sent in sentences:
+            buf.append(sent)
+            words += _word_count(sent[2])
+            if words >= WINDOW_WORDS:
+                units.append((buf[0][0], buf[-1][1], text[buf[0][0]:buf[-1][1]].strip()))
+                buf, words = [], 0
+        if buf:
+            units.append((buf[0][0], buf[-1][1], text[buf[0][0]:buf[-1][1]].strip()))
+    return units
+
+
 def _from_sidecar(sermon: AcquiredSermon) -> list[Chapter]:
     chapters: list[Chapter] = []
     cursor = 0
@@ -224,7 +268,7 @@ def _from_discourse(text: str) -> list[Chapter]:
 
 
 def _from_windows(text: str) -> list[Chapter]:
-    paras = _split_paragraphs(text)
+    paras = _units_for_windows(text)
     if not paras:
         return []
     chapters: list[Chapter] = []
