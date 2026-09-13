@@ -76,6 +76,30 @@ quotes with character offsets**.
 python t1_ingest.py styles --index t1_output/index.json --show-labels
 ```
 
+## Fidelity slice (keyword / citation harvest)
+
+Cheap diagnosis for a few contested axes (1 Tim 2, Eph 5, providence under evil,
+wrath/hell, guilt vs wound, exclusivity, annihilation, Romans 13). **$0.**
+Heuristics only — not Coach, not a ministry profile.
+
+**Re-attribute before profiling.** All Souls 2025–26 scrapes often carry
+contributor `John Stott` while the preacher is contemporary. The harvester
+labels each slug `historical_stott` | `all_souls_contemporary` | `uncertain`
+and refuses to treat the modern set as Stott.
+
+```bash
+# optional companion T1 batch (still $0, no Voyage)
+python t1_ingest.py batch sermon-transcripts/john-stott \
+  --output t1_output/stott-batch --preacher "John Stott"
+
+python t1_ingest.py fidelity sermon-transcripts/john-stott \
+  --output t1_output/stott-fidelity --preacher "John Stott"
+```
+
+Writes `attribution.json`, `hits.jsonl`, `rollup.md`, `summary.json`.
+Prefer under-calling (`mixed` / `hedged` / `no_hit`) over drift claims.
+Do not merge `all_souls_contemporary` into a Stott ministry profile.
+
 ## How to run the POC (3–10 sermons, no secrets)
 
 From the repo root, with the six committed fixtures (original test copy — CI
