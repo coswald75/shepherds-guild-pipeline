@@ -11,6 +11,7 @@ Usage:
     python t1_ingest.py ingest fixtures/t1/heading-blessing.txt
     python t1_ingest.py search "justification" --index t1_output/index.json
     python t1_ingest.py styles --index t1_output/index.json
+    python t1_ingest.py fidelity sermon-transcripts/john-stott --output t1_output/stott-fidelity
     python t1_ingest.py promote t1_output/sermons/<slug>.json
     python t1_ingest.py cost
 
@@ -34,6 +35,7 @@ for _forbidden in ("pipeline", "pipeline_batch", "weekly_ingest", "anthropic"):
 
 from t1.acquire import iter_sermon_files
 from t1.cost import T1_COST_MODEL, estimate_t1_cost, estimate_t2_cost
+from t1.fidelity import harvest_folder, write_bundle
 from t1.index import search_index
 from t1.pipeline import ingest_paths
 from t1.promote import promote_record, write_promote_receipt
@@ -141,6 +143,24 @@ def cmd_styles(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fidelity(args: argparse.Namespace) -> int:
+    folder = Path(args.folder)
+    if not folder.exists():
+        print(f"not found: {folder}", file=sys.stderr)
+        return 2
+    bundle = harvest_folder(folder, preacher=args.preacher)
+    written = write_bundle(bundle, Path(args.output))
+    counts = {}
+    for row in bundle["attributions"].values():
+        counts[row["attribution"]] = counts.get(row["attribution"], 0) + 1
+    print(f"T1 fidelity harvest {len(bundle['hits'])} sermon(s) → {args.output}")
+    print(f"  attribution: {counts}")
+    print(f"  cost: $0.00 (no Anthropic / Voyage / T2)")
+    for key, path in written.items():
+        print(f"  {key}: {path}")
+    return 0
+
+
 def cmd_cost(_: argparse.Namespace) -> int:
     print(json.dumps({
         "model": T1_COST_MODEL,
@@ -219,6 +239,19 @@ def main() -> int:
     p_prom.add_argument("--execute", action="store_true",
                         help="POC still only writes a receipt; does not call T2")
     p_prom.set_defaults(func=cmd_promote)
+
+    p_fid = sub.add_parser(
+        "fidelity",
+        help="Cheap keyword/citation fidelity slice (attribution + diagnostic axes)",
+    )
+    p_fid.add_argument("folder", type=Path)
+    p_fid.add_argument("--preacher", default=None)
+    p_fid.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT / "fidelity",
+    )
+    p_fid.set_defaults(func=cmd_fidelity)
 
     p_cost = sub.add_parser("cost", help="Print the T1 vs T2 cost model")
     p_cost.set_defaults(func=cmd_cost)
