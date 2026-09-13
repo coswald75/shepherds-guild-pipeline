@@ -227,6 +227,39 @@ def test_b7_classical_vs_flat_vs_citation_only():
     assert cite_only["axes"]["B7"]["band"] == "no_hit"
 
 
+def test_b6_ignores_annihilate_the_gibeonites():
+    row = score_sermon(
+        "Saul had tried to annihilate the Gibeonites. That is the backstory of this chapter.",
+        title="House of Blood",
+    )
+    assert row["axes"]["B6"]["band"] == "no_hit"
+
+
+def test_b4_brokenness_alone_is_not_wound_only():
+    row = score_sermon(
+        "The fallen world is full of brokenness and pain. Jesus began remaking the world.",
+        title="Groans",
+    )
+    assert row["axes"]["B4"]["band"] != "wound_only"
+
+
+def test_b1_generic_providence_is_not_theodicy():
+    row = score_sermon(
+        "The purpose of the Bible in the providence of God is not to teach scientific facts.",
+        title="Continue in the Gospel",
+    )
+    assert row["axes"]["B1"]["band"] == "unclear_or_no_hit"
+
+
+def test_b3_hell_forever_is_judicial():
+    row = score_sermon(
+        "This is eternal death, the separation of soul and body from God in hell forever. "
+        "Men are guilty sinners under the judgment of God.",
+        title="Guard the Gospel",
+    )
+    assert row["axes"]["B3"]["band"] == "judicial_retained"
+
+
 def test_score_is_zero_cost_and_not_coach():
     row = score_sermon("Hello.", title="Hi", slug="hi")
     assert row["cost_usd"] == 0.0

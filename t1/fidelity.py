@@ -143,6 +143,10 @@ _WS = re.compile(r"\s+")
 def _quote(text: str, start: int, end: int, pad: int = 72) -> dict[str, Any]:
     q_start = max(0, start - pad)
     q_end = min(len(text), end + pad)
+    while q_start > 0 and not text[q_start].isspace():
+        q_start -= 1
+    while q_end < len(text) and not text[q_end].isspace():
+        q_end += 1
     quote = _WS.sub(" ", text[q_start:q_end]).strip()
     return {
         "quote": quote[:280],
@@ -461,7 +465,8 @@ _A2_EGAL = [
 ]
 
 _B1_GATE = [
-    (r"\bprovidence\b", 2.4),
+    (r"\bprovidence\b.{0,70}\b(?:suffer|evil|tragedy|injustice|pain|elect)\b", 2.6),
+    (r"\b(?:suffer|evil|tragedy|injustice|pain)\b.{0,70}\bprovidence\b", 2.6),
     (r"\b(?:god|he)\s+(?:ordain(?:ed|s)?|sovereign)\b", 2.2),
     (r"\bwhere\s+was\s+god\b", 3.0),
     (r"\bwhy\s+(?:does|did)\s+god\s+(?:allow|let|permit)\b", 2.8),
@@ -477,7 +482,8 @@ _B1_GATE = [
 _B1_STOUT = [
     (r"\bgod\s+(?:is\s+)?sovereign\s+(?:even\s+)?(?:over|in)\b", 3.0),
     (r"\b(?:he|god)\s+ordain(?:ed|s)\b", 2.8),
-    (r"\bprovidence\b", 2.2),
+    (r"\bprovidence\b.{0,70}\b(?:suffer|evil|tragedy|injustice|pain|elect)\b", 2.4),
+    (r"\b(?:suffer|evil|tragedy|injustice|pain|elect)\b.{0,70}\bprovidence\b", 2.4),
     (r"\bmeant\s+it\s+for\s+good\b", 2.6),
     (r"\bworks?\s+all\s+things\s+together\s+for\s+(?:the\s+)?good\b", 2.6),
     (r"\bnothing\s+(?:happens|takes\s+place)\s+(?:outside|apart from)\s+(?:his|god'?s)\s+(?:will|purpose)\b", 3.0),
@@ -495,6 +501,9 @@ _B1_THIN = [
 _B3_GATE = [
     (r"\bwrath\s+of\s+god\b|\bgod'?s\s+wrath\b|\bdivine\s+wrath\b", 3.0),
     (r"\bhell\b", 2.2),
+    (r"\bhell\s+forever\b|\bin\s+hell\b", 2.6),
+    (r"\beternal\s+death\b", 2.6),
+    (r"\bimpenitent\b.{0,40}\b(?:hell|judgment|judgement)\b", 2.8),
     (r"\beternal\s+(?:punishment|condemnation|fire|torment)\b", 3.0),
     (r"\bday\s+of\s+(?:judgment|judgement)\b", 2.4),
     (r"\b(?:final|last)\s+judgment\b", 2.4),
@@ -506,6 +515,9 @@ _B3_GATE = [
 _B3_JUDICIAL = [
     (r"\bwrath\s+of\s+god\b|\bgod'?s\s+wrath\b", 2.8),
     (r"\bhell\s+is\s+(?:real|eternal|a\s+real)\b", 3.0),
+    (r"\bhell\s+forever\b|\bin\s+hell\b", 2.6),
+    (r"\beternal\s+death\b", 2.6),
+    (r"\b(?:under\s+)?(?:the\s+)?judgment\s+of\s+god\b", 2.4),
     (r"\beternal\s+(?:punishment|fire|condemnation)\b", 2.8),
     (r"\bgod\s+(?:will\s+)?(?:judge|judges)\b", 2.0),
     (r"\bjudgment\s+(?:is\s+coming|seat|day)\b", 2.2),
@@ -529,9 +541,11 @@ _B3_EMPTY = [
 
 _B4_GUILT = [
     (r"\bguilt(?:y)?\s+before\s+god\b", 3.0),
+    (r"\bguilty\s+sinners?\b", 2.6),
     (r"\bforgiveness\s+of\s+(?:our\s+)?sins\b", 2.2),
     (r"\brepent(?:ance|ed|s)?\b", 1.8),
-    (r"\btrespass(?:es)?\b", 2.0),
+    (r"\btrespasses(?:\s+and\s+sins)?\b", 2.0),
+    (r"\bour\s+trespass", 2.0),
     (r"\bculpab", 2.4),
     (r"\bbad\s+conscience\b|\bguilty\s+conscience\b", 2.6),
     (r"\bwe\s+are\s+(?:sinners|guilty)\b", 2.2),
@@ -541,7 +555,6 @@ _B4_GUILT = [
 
 _B4_WOUND = [
     (r"\btrauma(?:tized|tic)?\b", 2.4),
-    (r"\bbrokenness\b", 2.0),
     (r"\bshame\b.{0,30}\bnot\s+guilt\b|\bnot\s+guilt\b.{0,30}\bshame\b", 3.0),
     (r"\bsystems?(?:ic)?\s+(?:sin|injustice|oppression)\b", 2.0),
     (r"\bwound(?:ed|s)?\b.{0,30}\b(?:inner|soul|heart)\b", 2.0),
@@ -584,7 +597,8 @@ _B5_PLURAL = [
 ]
 
 _B6_GATE = [
-    (r"\bannihilat", 3.0),
+    (r"\bannihilat\w*\b.{0,90}\b(?:soul|hell|immortal|wicked|eternal|torment|conditional|punishment|final\s+state)\b", 3.0),
+    (r"\b(?:soul|hell|immortal|wicked|eternal|torment|conditional|punishment|final\s+state)\b.{0,90}\bannihilat", 3.0),
     (r"\bconditional\s+immortality\b", 3.2),
     (r"\bconditionalism\b", 3.2),
     (r"\bsoul\s+sleep\b", 3.0),
@@ -602,7 +616,8 @@ _B6_ECP = [
 ]
 
 _B6_ANN = [
-    (r"\bannihilat", 3.0),
+    (r"\bannihilat\w*\b.{0,90}\b(?:soul|hell|immortal|wicked|eternal|torment|conditional|punishment|final\s+state)\b", 3.0),
+    (r"\b(?:soul|hell|immortal|wicked|eternal|torment|conditional|punishment|final\s+state)\b.{0,90}\bannihilat", 3.0),
     (r"\bconditional\s+immortality\b", 3.2),
     (r"\bconditionalism\b", 3.2),
     (r"\bsoul\s+sleep\b", 2.8),
@@ -996,7 +1011,7 @@ def _pct(n: int, d: int) -> str:
     return f"{n}/{d} ({n / d:.0%})"
 
 
-def _best_quotes(hits: list[dict[str, Any]], limit: int = 16) -> list[dict[str, Any]]:
+def _best_quotes(hits: list[dict[str, Any]], limit: int = 18) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for hit in hits:
         for axis_id, axis in (hit.get("axes") or {}).items():
@@ -1014,20 +1029,45 @@ def _best_quotes(hits: list[dict[str, Any]], limit: int = 16) -> list[dict[str, 
                     "char_start": ev.get("char_start"),
                     "char_end": ev.get("char_end"),
                 })
-    # Diversity: at most two quotes per axis, prefer higher confidence.
-    rows.sort(key=lambda r: (-float(r["confidence"]), r["axis"], r["slug"] or ""))
+
+    def _rank(row: dict[str, Any]) -> tuple:
+        hist = 0 if row.get("attribution") == "historical_stott" else 1
+        return (hist, -float(row["confidence"]), row["axis"], row["slug"] or "")
+
+    rows.sort(key=_rank)
     picked: list[dict[str, Any]] = []
     per_axis: Counter[str] = Counter()
+    per_axis_group: Counter[tuple[str, str]] = Counter()
+    per_slug: Counter[str] = Counter()
     seen_quotes: set[str] = set()
-    for row in rows:
+
+    def _take(row: dict[str, Any]) -> bool:
         q = (row.get("quote") or "").strip()
+        slug = row.get("slug") or ""
+        group = row.get("attribution") or "uncertain"
         if not q or q in seen_quotes:
-            continue
-        if per_axis[row["axis"]] >= 3:
-            continue
+            return False
+        if per_axis[row["axis"]] >= 2:
+            return False
+        if per_axis_group[(row["axis"], group)] >= 1:
+            return False
+        if per_slug[slug] >= 1:
+            return False
         per_axis[row["axis"]] += 1
+        per_axis_group[(row["axis"], group)] += 1
+        per_slug[slug] += 1
         seen_quotes.add(q)
         picked.append(row)
+        return True
+
+    # Prefer one historical + one contemporary per axis when both exist.
+    for row in rows:
+        if row.get("attribution") == "historical_stott":
+            _take(row)
+        if len(picked) >= limit:
+            return picked
+    for row in rows:
+        _take(row)
         if len(picked) >= limit:
             break
     return picked
@@ -1123,9 +1163,34 @@ def render_rollup(bundle: dict[str, Any]) -> str:
             lines.append(f"- all sermons: {bits}")
             lines.append("")
 
+    lines += [
+        "## 4. What we can (and cannot) say",
+        "",
+        "- **A1 / A2:** no sermon in this folder takes 1 Timothy 2 or Ephesians 5 "
+        "as a live argument. That is a **coverage gap**, not a complementarian or "
+        "egalitarian finding. Do not infer drift from silence.",
+        "- **B1/B2:** historical Stott hits only when providence is tied to "
+        "suffering / the elect — not every use of the word “providence.” "
+        "All Souls has at least one clear Romans 8 “meant it for good” hit; "
+        "most sermons simply never run a theodicy.",
+        "- **B3:** when wrath / hell / judgment of God is actually on the table, "
+        "both groups keep a judicial register. Historical Stott also uses "
+        "“hell forever” / “impenitent in hell.” No `emptied_or_silent` band fired.",
+        "- **B4:** historical Stott is `guilt_before_god` where the slice fires. "
+        "All Souls is mostly guilt/repentance too, with some `mixed` (guilt plus "
+        "wound language). Bare “brokenness” is **not** scored as `wound_only`.",
+        "- **B5:** few hits, all `exclusive_hard` (Acts 4:12 / John 14:6). "
+        "No soft-pluralist band. Low hit rate = most sermons never argue religions.",
+        "- **B6:** no theological annihilation / conditional-immortality discussion "
+        "in this folder. Historical Stott’s late-career openness does **not** "
+        "appear in these seven talks. “Annihilate the Gibeonites” is not a hit.",
+        "- **B7:** no Romans 13 / governing-authorities treatment. Honest `no_hit`.",
+        "",
+    ]
+
     quotes = _best_quotes(hits, limit=18)
     lines += [
-        "## 4. Best evidence quotes",
+        "## 5. Best evidence quotes",
         "",
         "Selected for axis coverage and confidence. Offsets are into "
         "`title + newline + cleaned transcript`.",
@@ -1146,7 +1211,7 @@ def render_rollup(bundle: dict[str, Any]) -> str:
         lines.append("")
 
     lines += [
-        "## 5. Caveats",
+        "## 6. Caveats",
         "",
         "- Historical Stott **n is tiny** (the SermonIndex Urbana set). "
         "Do not treat group percentages as a Stott doctrine profile.",
@@ -1162,7 +1227,7 @@ def render_rollup(bundle: dict[str, Any]) -> str:
         "- This is **not Coach** and not a living-preacher likeness score.",
         "- Cost of this slice: **$0.00**. No production data was deleted.",
         "",
-        "## 6. Cost",
+        "## 7. Cost",
         "",
         "| Step | API | USD |",
         "|---|---|---:|",
@@ -1208,10 +1273,13 @@ def compact_summary(bundle: dict[str, Any]) -> dict[str, Any]:
         "historical_slugs": sorted(
             s for s, row in attrs.items() if row.get("attribution") == "historical_stott"
         ),
-        "do_not_merge_into_stott_profile": [
-            s for s, row in attrs.items()
-            if row.get("attribution") == "all_souls_contemporary"
-        ],
+        "do_not_merge_into_stott_profile": {
+            "count": sum(
+                1 for row in attrs.values()
+                if row.get("attribution") == "all_souls_contemporary"
+            ),
+            "note": "All all_souls_contemporary slugs — listed in attribution.json",
+        },
         "best_quotes": _best_quotes(hits, limit=18),
         "created_at": bundle.get("created_at"),
     }
