@@ -1,0 +1,92 @@
+# Stuck-sermon check. Read-only against Supabase. Emails Chris when a sermon
+# has been sitting partway through the pipeline for more than a day.
+#
+# NOTHING in this file is scheduled. The cron lines below are comments.
+# GitHub Actions cron is UTC and ignores daylight saving time.
+# America/Chicago is UTC-5 during CDT and UTC-6 during CST. When you enable
+# a schedule, uncomment exactly ONE line. A scheduled run sends the email.
+# A hand run prints instead, until you uncheck "Print instead of emailing".
+#
+# Daily 8:00am America/Chicago:
+# CDT (UTC-5):
+# schedule:
+#   - cron: "0 13 * * *"  # 8:00am CDT = 13:00 UTC
+# CST (UTC-6):
+# schedule:
+#   - cron: "0 14 * * *"  # 8:00am CST = 14:00 UTC
+
+name: Stuck sermon check
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print stuck sermons instead of emailing. Uncheck to email Chris."
+        type: boolean
+        default: true
+
+concurrency:
+  group: stuck-sermons
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Look for stuck sermons
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the pipeline
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check for stuck sermons
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          args=(--run-url "${RUN_URL}")
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ "${INPUT_DRY_RUN}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          python scripts/check_stuck_sermons.py "${args[@]}"
+
+  alert:
+    name: Email Chris
+    needs: check
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pipeline
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Send the failure email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+        run: python scripts/check_stuck_sermons.py --workflow-failure --run-url "${RUN_URL}" --workflow-name "${WORKFLOW_NAME}"

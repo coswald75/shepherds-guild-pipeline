@@ -54,3 +54,58 @@ launchd survives reboots and respects macOS's power-management more gracefully t
 ## Time zone
 
 `StartCalendarInterval` uses the system's local time zone. The iMac should be set to America/Chicago (Central) for these schedules to make sense.
+
+## GitHub Actions — schedules are off
+
+The weekly, catchup, and cogwatch jobs now have matching workflows under
+`.github/workflows/`. **They are not scheduled.** Each one is
+`workflow_dispatch` only (Actions tab → Run workflow). The clock times are
+comments, converted to UTC, with both CDT and CST written out because
+GitHub's cron is UTC and ignores daylight saving time. Uncomment one set
+later, not both. The stuck-sermon check (`stuck-sermons.yml`) is new: it
+emails Chris when a sermon has been sitting half-finished for more than a
+day. It is also dispatch-only.
+
+The self-serve poller (every 5 minutes) stays on this Mac. Actions is a
+poor fit for a job that frequent. `scripts/selfserve_poller.py` no longer
+hardcodes the Mac path, but nothing in Actions starts it.
+
+### Secrets and variables
+
+Add these in the repo's **Settings → Secrets and variables → Actions**.
+Names only — paste values from `.env`, never commit them.
+
+Secrets: `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `ASSEMBLYAI_API_KEY`,
+`SUPABASE_URL`, `SUPABASE_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `RESEND_API_KEY`, `RESEND_FROM`,
+`CLOUDFLARE_API_TOKEN`, `SERMON_STEWARD_PUSH_TOKEN` (a fine-grained PAT
+with Contents read/write on `coswald75/sermon-steward` only).
+
+Variables (not passwords; a secret copy also works): `R2_BUCKET`,
+`R2_PUBLIC_BASE`, `CLOUDFLARE_ACCOUNT_ID`.
+
+### Run one by hand
+
+Actions → the workflow name → **Run workflow**. Leave dry run checked the
+first time. Weekly ingest defaults to `discover-dry-run`, which lists new
+sermons and writes nothing. Full steps are in `OPERATIONS.md` §12.
+
+### Cutover
+
+The Mac jobs and the Actions schedules must never both be live. That
+processes every sermon twice and deploys the site twice.
+
+1. Add the secrets and variables.
+2. Run each workflow by hand with dry run on. Read the log.
+3. Unload the Mac jobs you are replacing:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.shepherdsguild.weekly.plist
+launchctl unload ~/Library/LaunchAgents/com.shepherdsguild.catchup.plist
+launchctl unload ~/Library/LaunchAgents/com.shepherdsguild.cogwatch.plist
+launchctl list | grep shepherdsguild
+```
+
+Leave `com.shepherdsguild.selfserve` loaded.
+
+4. Only after that, uncomment one schedule block in each workflow file.
