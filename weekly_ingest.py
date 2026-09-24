@@ -30,6 +30,9 @@ Usage:
     python weekly_ingest.py weekly --catchup       # second-pass mode
     python weekly_ingest.py discover --dry-run     # just print what's new
     python weekly_ingest.py process <batch_id>     # process a known batch
+    python weekly_ingest.py auto-process           # finish batches from the queue
+                                                   # file, or from Anthropic when
+                                                   # that file is not on this machine
 
 Environment (per CLAUDE.md):
     ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_KEY, VOYAGE_API_KEY
@@ -42,11 +45,12 @@ import argparse
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -73,7 +77,43 @@ ARTIFACT_TYPES = (
 )
 
 BATCH_POLL_SECONDS = 60
-BATCH_MAX_WAIT_HOURS = 24
+# Mac launchd waits up to 24h. GitHub-hosted jobs cannot (the cap is 6h),
+# so Actions sets BATCH_MAX_WAIT_HOURS=5 and the next catchup resumes.
+# Long enough that next Monday's catchup still sees a batch Sunday's run
+# submitted, even if both Monday attempts stopped at the 5-hour wait.
+PENDING_BATCH_LOOKBACK_HOURS = int(os.environ.get("PENDING_BATCH_LOOKBACK_HOURS", "192"))
+# In-progress batches bigger than this are not the Sunday/CoG submit
+# (those are one small batch per preacher). Leave a Hall-of-preachers
+# import alone instead of waiting on it.
+WEEKLY_BATCH_MAX_REQUESTS = int(os.environ.get("WEEKLY_BATCH_MAX_REQUESTS", "30"))
+
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.I,
+)
+
+
+def _batch_max_wait_hours() -> float:
+    raw = os.environ.get("BATCH_MAX_WAIT_HOURS", "24")
+    try:
+        hours = float(raw)
+    except ValueError:
+        return 24.0
+    return hours if hours > 0 else 24.0
+
+
+class BatchNotFinished(Exception):
+    """The Anthropic batch was still running when the wait budget ran out.
+
+    GitHub-hosted jobs are killed at 6 hours. Raising (instead of treating
+    the batch as processed) lets the next catchup resume it.
+    """
+
+    def __init__(self, batch_id: str):
+        super().__init__(
+            f"batch {batch_id} still running after {_batch_max_wait_hours():g}h"
+        )
+        self.batch_id = batch_id
 
 logging.basicConfig(
     level=logging.INFO,
@@ -459,13 +499,11 @@ def wait_and_process_batch(batch_id: str, preacher_name: str) -> set[str]:
     sb = supabase()
     before_decomposed = _all_decomposed_ids(sb)
 
-    # Stage 4 — block until batch ends
-    log.info(f"  [stage 4] waiting for batch {batch_id} …")
-    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
-    r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=BATCH_MAX_WAIT_HOURS * 3600)
-    if r.returncode != 0:
-        log.error(f"  status --wait failed: {r.stderr[-500:]}")
-        return set()
+    # Stage 4 — block until batch ends, but not past the wait budget.
+    # The default budget is 24h (the Mac). Actions sets a shorter one.
+    timeout_s = _wait_budget_seconds()
+    if not _wait_for_batch_ended(batch_id, timeout_s):
+        raise BatchNotFinished(batch_id)
 
     # Stage 5 — process results
     log.info(f"  [stage 5] processing batch {batch_id} for preacher='{preacher_name}'")
@@ -498,7 +536,7 @@ def generate_artifacts_for(sermon_id: str, retries: int = 2) -> int:
     for atype in ARTIFACT_TYPES:
         for attempt in range(1, retries + 2):  # initial try + `retries` retries
             cmd = [sys.executable, str(REPO_ROOT / "generate_artifacts.py"),
-                   "generate", sermon_id, "--type", atype]
+                   "generate", sermon_id, "--type", atype, "--skip-existing"]
             r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
             if r.returncode == 0:
                 n += 1
@@ -521,21 +559,58 @@ def generate_artifacts_for(sermon_id: str, retries: int = 2) -> int:
 # ────────────────────────────────────────────────────────────────────────────
 
 def finish_batch(batch_id: str, preacher_name: str) -> tuple[int, int, int]:
-    """Wait → process → artifacts → render. Returns (sermons, artifacts, pages)."""
-    new_sermon_ids = wait_and_process_batch(batch_id, preacher_name)
-    log.info(f"  [stages 4-5] {len(new_sermon_ids)} sermon(s) newly ingested")
+    """Wait → process → artifacts → render → deploy.
+
+    If this batch's sermons were already decomposed (a previous runner
+    ingested them, then died before publish), skip the re-ingest and
+    resume artifacts, render, and deploy. Re-ingesting would delete units
+    and spend the embedding budget again.
+    """
+    publish_retry = os.environ.get("PUBLISH_RETRY") == "true"
+    owned, rows = _owned_sermon_rows(batch_id)
+    counts = _artifact_counts([r["id"] for r in rows]) if rows else {}
+    found = {r["id"] for r in rows}
+    missing_from_db = [sid for sid in owned if sid not in found]
+    already = bool(rows) and not missing_from_db and all(r.get("decomposed_at") for r in rows)
+    needs_followup = _rows_need_followup(rows, counts)
+
+    if already and not needs_followup and not publish_retry:
+        log.info(f"  batch {batch_id} already ingested and rendered; nothing to do")
+        return (0, 0, 0)
+
+    if already:
+        why = "publish retry" if publish_retry and not needs_followup else "resume after a partial run"
+        log.info(f"  batch {batch_id} already decomposed ({why}); finishing publish")
+        targets = [r["id"] for r in rows if r.get("decomposed_at")]
+    else:
+        new_ids = wait_and_process_batch(batch_id, preacher_name)
+        targets = list(new_ids)
+        if not owned:
+            owned, _after = _owned_sermon_rows(batch_id)
+        if not targets and owned:
+            refreshed = _sermon_rows_for_ids(owned)
+            targets = [r["id"] for r in refreshed if r.get("decomposed_at")]
+            if targets:
+                log.info(f"  resuming {len(targets)} sermon(s) already decomposed from {batch_id}")
+            else:
+                raise RuntimeError(
+                    f"batch {batch_id} ended but none of its sermons are decomposed"
+                )
+        log.info(f"  [stages 4-5] {len(targets)} sermon(s) to finish")
 
     n_artifacts = 0
     rendered_ids: list[str] = []
-    for sid in new_sermon_ids:
+    for sid in targets:
         log.info(f"  [stage 6] generating artifacts for {sid}")
         n_artifacts += generate_artifacts_for(sid)
         log.info(f"  [stage 7] rendering page for {sid}")
         if render_page(sid):
             rendered_ids.append(sid)
+        else:
+            raise RuntimeError(f"render failed for {sid}")
     # Stage 8 — actually publish the rendered pages (no longer a stub).
     deploy_rendered(rendered_ids)
-    return len(new_sermon_ids), n_artifacts, len(rendered_ids)
+    return len(targets), n_artifacts, len(rendered_ids)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -570,7 +645,9 @@ def deploy_rendered(sermon_ids: list[str]) -> None:
     if r.returncode == 0:
         log.info(f"  [stage 8] deployed + published {len(sermon_ids)} page(s)")
     else:
-        log.error(f"  [stage 8] deploy FAILED: {(r.stderr or r.stdout)[-400:]}")
+        detail = (r.stderr or r.stdout or "")[-400:]
+        log.error(f"  [stage 8] deploy FAILED: {detail}")
+        raise RuntimeError(f"deploy failed for {len(sermon_ids)} sermon(s)")
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -725,13 +802,12 @@ def run_weekly(catchup: bool, dry_run: bool) -> RunSummary:
     summary.batch_id = " · ".join(f"{k}={v}" for k, v in batch_ids.items()) if batch_ids else None
 
     if batch_ids:
-        # Persist for the followup `process` command
-        state = QUEUE_DIR / "pending_batches.json"
-        state.write_text(json.dumps({
-            "submitted_at": datetime.now().isoformat(timespec="seconds"),
-            "batches": batch_ids,
-        }, indent=2))
-        log.info(f"Batch IDs persisted to {state}")
+        # Persist for the followup `process` command. Merge into any
+        # batches already listed so a Monday catchup on a machine that
+        # still has Sunday's file does not drop those ids. A second batch
+        # for the same preacher replaces that preacher's key; auto-process
+        # still finds the older id from Anthropic's batch list.
+        _write_pending_state(batch_ids)
         log.info("Stages 4–8 (poll → process → artifacts → render → deploy) will run when you invoke:")
         for name, bid in batch_ids.items():
             log.info(f"  python weekly_ingest.py process {bid}    # {name}")
@@ -819,6 +895,445 @@ def print_summary(s: RunSummary) -> None:
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# Pending batches — local file on the Mac, Anthropic + Supabase on Actions
+# ────────────────────────────────────────────────────────────────────────────
+
+# Set by auto-process so several batches share one wait budget. None means
+# "use the full BATCH_MAX_WAIT_HOURS", which is what the Mac and cogwatch do.
+_WAIT_DEADLINE: Optional[float] = None
+
+
+def _wait_budget_seconds() -> float:
+    budget = _batch_max_wait_hours() * 3600
+    if _WAIT_DEADLINE is None:
+        return budget
+    return _WAIT_DEADLINE - time.monotonic()
+
+
+@dataclass
+class WorkItem:
+    batch_id: str
+    preacher_name: Optional[str]
+    source: str
+
+
+def _as_utc(value) -> datetime:
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        text = str(value).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(text)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _request_total(batch) -> int:
+    rc = getattr(batch, "request_counts", None)
+    if rc is None:
+        return 0
+    total = 0
+    for name in ("processing", "succeeded", "errored", "canceled", "expired"):
+        total += int(getattr(rc, name, 0) or 0)
+    return total
+
+
+def _anthropic_client():
+    import anthropic
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("ANTHROPIC_API_KEY missing")
+    return anthropic.Anthropic(api_key=key)
+
+
+def _read_pending_file() -> dict[str, str]:
+    """preacher name → batch id from weekly_queue/pending_batches.json."""
+    path = QUEUE_DIR / "pending_batches.json"
+    if not path.exists():
+        return {}
+    try:
+        state = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        log.warning("pending_batches.json is not valid JSON")
+        return {}
+    batches = state.get("batches") or {}
+    if not isinstance(batches, dict):
+        return {}
+    return {str(name): str(bid) for name, bid in batches.items()}
+
+
+def _write_pending_state(batch_ids: dict[str, str]) -> None:
+    """Merge newly submitted batches into the local queue file."""
+    path = QUEUE_DIR / "pending_batches.json"
+    state: dict = {"batches": {}, "processed": []}
+    if path.exists():
+        try:
+            loaded = json.loads(path.read_text())
+            if isinstance(loaded, dict):
+                state["batches"] = dict(loaded.get("batches") or {})
+                state["processed"] = list(loaded.get("processed") or [])
+        except json.JSONDecodeError:
+            log.warning("pending_batches.json was unreadable; writing a new file")
+    state["batches"].update(batch_ids)
+    state["submitted_at"] = datetime.now().isoformat(timespec="seconds")
+    path.write_text(json.dumps(state, indent=2))
+    log.info(f"Batch IDs persisted to {path}")
+
+
+def _drop_finished_from_file(finished_ids: set[str]) -> None:
+    path = QUEUE_DIR / "pending_batches.json"
+    if not path.exists() or not finished_ids:
+        return
+    try:
+        state = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        log.warning("pending_batches.json is not valid JSON; leaving it untouched")
+        return
+    batches = dict(state.get("batches") or {})
+    processed = list(state.get("processed") or [])
+    for name, bid in list(batches.items()):
+        if bid in finished_ids:
+            processed.append({
+                "batch_id": bid,
+                "preacher": name,
+                "processed_at": datetime.now().isoformat(timespec="seconds"),
+            })
+            del batches[name]
+    state["batches"] = batches
+    state["processed"] = processed
+    path.write_text(json.dumps(state, indent=2))
+
+
+def _wait_for_batch_ended(batch_id: str, timeout_s: float) -> bool:
+    """Return True when the batch has ended. False when the wait budget runs out."""
+    if timeout_s < 30:
+        log.warning(f"  not enough time left in this run to wait on {batch_id}")
+        return False
+    log.info(f"  [stage 4] waiting up to {timeout_s / 3600:.1f}h for batch {batch_id}")
+    cmd = [sys.executable, str(REPO_ROOT / "pipeline_batch.py"), "status", batch_id, "--wait"]
+    try:
+        result = subprocess.run(
+            cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired:
+        log.warning(
+            f"  [stage 4] batch {batch_id} still running after {timeout_s / 3600:.1f}h. "
+            "Leaving it for the next run."
+        )
+        return False
+    if result.returncode != 0:
+        log.error(f"  status --wait failed: {(result.stderr or '')[-500:]}")
+        raise RuntimeError(f"status --wait failed for {batch_id}")
+    return True
+
+
+def uuid_sermon_ids_for_batch(batch_id: str) -> list[str]:
+    """Sermon UUIDs submitted in this batch.
+
+    The manifest under output/batches is on the machine that submitted.
+    A later runner does not have it, so the custom ids are read from
+    Anthropic's results. Weekly ingest names each request with the sermon UUID.
+    """
+    manifest = REPO_ROOT / "output" / "batches" / f"{batch_id}_manifest.json"
+    raw: list[str] = []
+    if manifest.is_file():
+        try:
+            data = json.loads(manifest.read_text())
+            raw = list((data.get("manifest") or {}).keys())
+        except (json.JSONDecodeError, OSError) as exc:
+            log.warning(f"  could not read {manifest}: {exc}")
+    if not raw:
+        client = _anthropic_client()
+        raw = [entry.custom_id for entry in client.messages.batches.results(batch_id)]
+    seen: list[str] = []
+    for cid in raw:
+        if _UUID_RE.match(str(cid)) and cid not in seen:
+            seen.append(str(cid))
+    return seen
+
+
+def _sermon_rows_for_ids(ids: list[str]) -> list[dict]:
+    if not ids:
+        return []
+    sb = supabase()
+    rows: list[dict] = []
+    for i in range(0, len(ids), 50):
+        chunk = ids[i:i + 50]
+        rows.extend(
+            sb.table("sermons")
+            .select("id, title, decomposed_at, last_rendered_at, preacher_id")
+            .in_("id", chunk)
+            .execute()
+            .data or []
+        )
+    return rows
+
+
+def _artifact_counts(sermon_ids: list[str]) -> dict[str, int]:
+    if not sermon_ids:
+        return {}
+    sb = supabase()
+    kinds: dict[str, set[str]] = {sid: set() for sid in sermon_ids}
+    for i in range(0, len(sermon_ids), 50):
+        chunk = sermon_ids[i:i + 50]
+        offset = 0
+        while True:
+            page = (
+                sb.table("sermon_artifacts")
+                .select("sermon_id, artifact_type")
+                .in_("sermon_id", chunk)
+                .range(offset, offset + 999)
+                .execute()
+                .data or []
+            )
+            for row in page:
+                kinds.setdefault(row["sermon_id"], set()).add(row["artifact_type"])
+            if len(page) < 1000:
+                break
+            offset += 1000
+    return {sid: len(types) for sid, types in kinds.items()}
+
+
+def _preacher_name(preacher_id: str) -> str:
+    sb = supabase()
+    rows = sb.table("preachers").select("name").eq("id", preacher_id).limit(1).execute().data or []
+    if not rows or not rows[0].get("name"):
+        raise RuntimeError(f"no preacher name for id {preacher_id}")
+    return rows[0]["name"]
+
+
+def _rows_need_followup(rows: list[dict], counts: dict[str, int]) -> bool:
+    for row in rows:
+        if not row.get("decomposed_at"):
+            return True
+        if counts.get(row["id"], 0) < len(ARTIFACT_TYPES):
+            return True
+        if not row.get("last_rendered_at"):
+            return True
+    return False
+
+
+def _owned_sermon_rows(batch_id: str) -> tuple[list[str], list[dict]]:
+    try:
+        owned = uuid_sermon_ids_for_batch(batch_id)
+    except Exception as exc:
+        log.info(f"  batch {batch_id} results not readable yet ({exc}); will wait")
+        return [], []
+    if not owned:
+        return [], []
+    return owned, _sermon_rows_for_ids(owned)
+
+
+def _batch_still_needs_work(batch_id: str, *, publish_retry: bool) -> Optional[str]:
+    """Preacher name when an ended batch still needs ingest or publish.
+
+    None means this batch is not a weekly/Cross-of-Grace submit, or it is
+    already fully rendered with all 5 congregant resources. publish_retry
+    also returns the preacher for a finished batch so a failed site publish
+    can be tried again.
+    """
+    ids = uuid_sermon_ids_for_batch(batch_id)
+    if not ids:
+        log.info(f"  {batch_id}: no sermon-id requests; not a weekly or Cross of Grace batch")
+        return None
+    rows = _sermon_rows_for_ids(ids)
+    by_id = {r["id"]: r for r in rows}
+    ours = [by_id[i] for i in ids if i in by_id]
+    if not ours:
+        log.info(f"  {batch_id}: sermon ids are not in Supabase; skipping")
+        return None
+    counts = _artifact_counts([r["id"] for r in ours])
+    needs = _rows_need_followup(ours, counts)
+    if not needs and publish_retry:
+        log.info(f"  {batch_id}: publish retry — will deploy again")
+        needs = True
+    if not needs:
+        log.info(f"  {batch_id}: sermons are decomposed, rendered, and have their resources")
+        return None
+    return _preacher_name(ours[0]["preacher_id"])
+
+
+def _iter_recent_batches(client, max_age: timedelta):
+    cutoff = datetime.now(timezone.utc) - max_age
+    page = client.messages.batches.list(limit=100)
+    while page is not None:
+        data = list(getattr(page, "data", None) or [])
+        if not data:
+            break
+        passed_cutoff = False
+        for batch in data:
+            created = _as_utc(batch.created_at)
+            if created < cutoff:
+                passed_cutoff = True
+                continue
+            yield batch
+        if passed_cutoff:
+            break
+        has_next = getattr(page, "has_next_page", None)
+        if callable(has_next):
+            if not has_next():
+                break
+        elif not has_next:
+            break
+        getter = getattr(page, "get_next_page", None)
+        if not callable(getter):
+            break
+        page = getter()
+
+
+def recover_work_from_anthropic(publish_retry: bool) -> tuple[list[WorkItem], list[str]]:
+    """Batches from the last few days that Supabase says are not finished.
+
+    This is how Monday's job finds Sunday's submits. The queue file lives
+    on the Mac disk (and is gitignored); a GitHub-hosted runner does not
+    have it. Anthropic still has the batch, and the sermon row still has
+    decomposed_at null until process runs.
+
+    Returns (work items, inspect errors). One batch whose results cannot
+    be read does not drop the others; the caller still fails the run so
+    the error is emailed.
+    """
+    client = _anthropic_client()
+    lookback = timedelta(hours=PENDING_BATCH_LOOKBACK_HOURS)
+    items: list[WorkItem] = []
+    errors: list[str] = []
+    for batch in _iter_recent_batches(client, lookback):
+        status = getattr(batch, "processing_status", "")
+        batch_id = batch.id
+        if status == "in_progress":
+            total = _request_total(batch)
+            if total > WEEKLY_BATCH_MAX_REQUESTS:
+                log.info(
+                    f"  skip in-progress {batch_id} ({total} requests; "
+                    f"larger than a weekly batch)"
+                )
+                continue
+            log.info(f"  in-progress batch {batch_id} ({total} requests) will be waited on")
+            items.append(WorkItem(batch_id, None, "anthropic"))
+            continue
+        if status != "ended":
+            log.info(f"  skip {batch_id} status={status}")
+            continue
+        try:
+            name = _batch_still_needs_work(batch_id, publish_retry=publish_retry)
+        except Exception as exc:
+            log.error(f"  could not inspect {batch_id}: {exc}")
+            errors.append(f"{batch_id}: {exc}")
+            continue
+        if name:
+            items.append(WorkItem(batch_id, name, "anthropic"))
+    return items, errors
+
+
+def merge_work(file_batches: dict[str, str], recovered: list[WorkItem]) -> list[WorkItem]:
+    """Union the local queue file with batches recovered from Anthropic.
+
+    The file wins when both name the same batch id, because it already
+    has the preacher. In-progress batches (no preacher yet) sort last so
+    a long wait does not delay batches that are already done.
+    """
+    by_id: dict[str, WorkItem] = {}
+    for name, bid in file_batches.items():
+        by_id[str(bid)] = WorkItem(str(bid), str(name), "file")
+    for item in recovered:
+        current = by_id.get(item.batch_id)
+        if current is None:
+            by_id[item.batch_id] = item
+        elif current.preacher_name is None and item.preacher_name:
+            current.preacher_name = item.preacher_name
+    items = list(by_id.values())
+    items.sort(key=lambda item: (item.preacher_name is None, item.source != "file"))
+    return items
+
+
+def auto_process_pending() -> int:
+    """Finish every batch the local file or Anthropic still has open.
+
+    Returns 0 when the work is done or a batch is simply still running
+    (the next catchup resumes it). Returns 1 when a batch failed.
+    """
+    global _WAIT_DEADLINE
+    file_batches = _read_pending_file()
+    publish_retry = os.environ.get("PUBLISH_RETRY") == "true"
+    if publish_retry:
+        log.info(
+            "PUBLISH_RETRY is set — rendered batches from the last "
+            f"{PENDING_BATCH_LOOKBACK_HOURS}h will be deployed again"
+        )
+    recovered: list[WorkItem] = []
+    list_error: Optional[str] = None
+    inspect_errors: list[str] = []
+    try:
+        recovered, inspect_errors = recover_work_from_anthropic(publish_retry=publish_retry)
+    except Exception as exc:
+        list_error = str(exc)
+        log.error(f"could not recover batches from Anthropic: {exc}")
+
+    work = merge_work(file_batches, recovered)
+    log.info(
+        f"auto-process: {len(file_batches)} in pending_batches.json, "
+        f"{len(recovered)} from Anthropic, {len(work)} to run"
+    )
+    if not work:
+        if inspect_errors or (list_error and not file_batches):
+            return 1
+        log.info("no pending batches")
+        return 0
+
+    _WAIT_DEADLINE = time.monotonic() + _batch_max_wait_hours() * 3600
+    failed = bool(inspect_errors)
+    if inspect_errors:
+        log.error(
+            f"{len(inspect_errors)} batch(es) could not be inspected; "
+            "the ones that could will still be processed"
+        )
+    deferred = False
+    finished: set[str] = set()
+    try:
+        for item in work:
+            preacher = item.preacher_name
+            try:
+                if not preacher:
+                    if not _wait_for_batch_ended(item.batch_id, _wait_budget_seconds()):
+                        deferred = True
+                        log.warning(
+                            f"  {item.batch_id} still running. The next catchup resumes it. "
+                            "GitHub-hosted jobs cap at 6 hours; Anthropic allows up to 24."
+                        )
+                        continue
+                    preacher = _batch_still_needs_work(
+                        item.batch_id, publish_retry=publish_retry,
+                    )
+                    if not preacher:
+                        log.info(f"  {item.batch_id} has nothing left to publish")
+                        finished.add(item.batch_id)
+                        continue
+                n_sermons, n_artifacts, n_pages = finish_batch(item.batch_id, preacher)
+                log.info(
+                    f"  {preacher}: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages"
+                )
+                finished.add(item.batch_id)
+            except BatchNotFinished as exc:
+                deferred = True
+                log.warning(f"  {exc}")
+            except Exception as exc:
+                failed = True
+                who = preacher or "unknown preacher"
+                log.error(f"  {item.batch_id} ({who}) failed: {exc}")
+    finally:
+        _drop_finished_from_file(finished)
+        _WAIT_DEADLINE = None
+
+    if deferred:
+        log.info(
+            "At least one batch is still running. This run is stopping cleanly "
+            "so it is not marked as a failure. Run catchup again later. "
+            "auto-process reads the batch from Anthropic, not from the runner disk."
+        )
+    return 1 if failed else 0
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # CLI
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -840,7 +1355,11 @@ def main() -> int:
     p_process = sub.add_parser("process", help="Process a known batch_id (wait + ingest + artifacts + render)")
     p_process.add_argument("batch_id")
 
-    p_auto = sub.add_parser("auto-process", help="Process all batches listed in weekly_queue/pending_batches.json")
+    p_auto = sub.add_parser(
+        "auto-process",
+        help=("Finish batches in weekly_queue/pending_batches.json, "
+              "and any recent Anthropic batch Supabase still shows as unfinished"),
+    )
 
     args = ap.parse_args()
 
@@ -899,30 +1418,7 @@ def main() -> int:
         return 0
 
     elif args.mode == "auto-process":
-        state_path = QUEUE_DIR / "pending_batches.json"
-        if not state_path.exists():
-            log.info("no pending batches")
-            return 0
-        state = json.loads(state_path.read_text())
-        pending = state.get("batches") or {}
-        if not pending:
-            log.info("no pending batches")
-            return 0
-        log.info(f"auto-processing {len(pending)} pending batch(es)")
-        for preacher_name, batch_id in pending.items():
-            try:
-                n_sermons, n_artifacts, n_pages = finish_batch(batch_id, preacher_name)
-                log.info(f"  {preacher_name}: {n_sermons} sermons, {n_artifacts} artifacts, {n_pages} pages")
-                state.setdefault("processed", []).append({
-                    "batch_id": batch_id, "preacher": preacher_name,
-                    "sermons": n_sermons, "artifacts": n_artifacts, "pages": n_pages,
-                    "processed_at": datetime.now().isoformat(timespec="seconds"),
-                })
-            except Exception as e:
-                log.error(f"  {preacher_name} failed: {e}")
-        state["batches"] = {}
-        state_path.write_text(json.dumps(state, indent=2))
-        return 0
+        return auto_process_pending()
 
     return 1
 

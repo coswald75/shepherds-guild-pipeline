@@ -12,19 +12,36 @@ Idempotent: only touches status='pending' jobs, and the orchestrator flips a
 job to 'transcribing'/'processing' immediately, so a later poll won't double-run
 one that's already underway.
 
-Env from .env (Anthropic / Voyage / Supabase / AssemblyAI / Resend).
+Env from .env when that file exists (the Mac). On a runner, the same
+variables may already be in the environment; a missing .env is not an error.
+Override the repo location with PIPELINE_REPO if the checkout is not this file's parent.
 """
 import os
 import sys
 import subprocess
 from datetime import datetime
+from pathlib import Path
 
-REPO = "/Users/dad/shepherds-guild/pipeline copy 2"
+def _repo_root() -> Path:
+    override = os.environ.get("PIPELINE_REPO")
+    if override:
+        return Path(override).expanduser().resolve()
+    return Path(__file__).resolve().parent.parent
+
+
+REPO_PATH = _repo_root()
+REPO = str(REPO_PATH)
 os.chdir(REPO)
 sys.path.insert(0, REPO)
-sys.path.insert(0, REPO + "/scripts")
+sys.path.insert(0, str(REPO_PATH / "scripts"))
 from dotenv import load_dotenv  # noqa: E402
-load_dotenv(REPO + "/.env")
+
+_env_file = REPO_PATH / ".env"
+if _env_file.is_file():
+    load_dotenv(_env_file)
+else:
+    # No .env on GitHub Actions; secrets are already in the environment.
+    load_dotenv()
 
 from weekly_ingest import supabase  # noqa: E402
 

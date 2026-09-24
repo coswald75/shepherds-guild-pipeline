@@ -869,8 +869,13 @@ def ingest_sermon(
         sb.table("sermon_artifacts").delete().eq("sermon_id", existing_sermon_id).execute()
         # Don't overwrite audio_url/slug/hosted_audio_url — those are upstream
         # fields that came from the ingest adapter, not from decomposition.
+        # Keep preacher_id stable too. And don't blank raw_transcript when the
+        # local queue file is gone (a fresh GitHub runner has no weekly_queue):
+        # Stage 2 already stored the text on the sermon row.
         update_fields = {k: v for k, v in sermon_data.items()
-                         if k not in ("preacher_id",)}  # also keep preacher stable
+                         if k not in ("preacher_id",)}
+        if not update_fields.get("raw_transcript"):
+            update_fields.pop("raw_transcript", None)
         sb.table("sermons").update(update_fields).eq("id", existing_sermon_id).execute()
         sermon_id = existing_sermon_id
         log.info(f"Updated existing sermon: {decomposition.get('title')} ({sermon_id})")

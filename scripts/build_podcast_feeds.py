@@ -35,7 +35,8 @@ from supabase import create_client
 
 REPO = Path(__file__).resolve().parent.parent
 load_dotenv(REPO / ".env")
-SS_REPO = Path("/Users/dad/shepherds-guild/sermon-steward")
+# SERMON_STEWARD_REPO is set in GitHub Actions. The Mac path remains the fallback.
+SS_REPO = Path(os.environ.get("SERMON_STEWARD_REPO") or "/Users/dad/shepherds-guild/sermon-steward")
 SITE = "https://sermonsteward.com"
 
 # Per-church podcast config. `dir` matches the deploy CHURCH_DIR mapping.

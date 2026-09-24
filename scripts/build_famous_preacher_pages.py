@@ -13,7 +13,8 @@ samples, which still show "forthcoming" placeholders.
 
 No audio players (none of the famous-preacher sermons have audio_url).
 
-Output dir: /Users/dad/shepherds-guild/sermon-steward/
+Output dir: $SERMON_STEWARD_REPO, or /Users/dad/shepherds-guild/sermon-steward
+on the Mac when that variable is unset.
 """
 from __future__ import annotations
 import html
@@ -40,7 +41,7 @@ PREACHERS: list[tuple[str, str, str, str]] = [
     ("C.J. Mahaney",      "0468d470-6f5f-40f3-9e1c-ff71cbc39289", "preacher-mahaney",   "Founder of Sovereign Grace Churches and pastor of Sovereign Grace Church of Louisville; long-time senior pastor of Covenant Life Church in Gaithersburg, MD; author of <em>Humility</em> and <em>The Cross-Centered Life</em>."),
 ]
 
-OUTPUT_DIR = Path("/Users/dad/shepherds-guild/sermon-steward")
+OUTPUT_DIR = Path(os.environ.get("SERMON_STEWARD_REPO") or "/Users/dad/shepherds-guild/sermon-steward")
 
 MONTHS = ("January","February","March","April","May","June","July","August","September","October","November","December")
 
