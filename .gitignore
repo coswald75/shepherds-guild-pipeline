@@ -30,3 +30,6 @@ weekly_queue/
 
 # Runtime logs (launchd cron output)
 logs/
+
+# Local scrape backups (regenerate by re-running ligonier-scraper.js)
+sermon-transcripts/*.v1-backup/
