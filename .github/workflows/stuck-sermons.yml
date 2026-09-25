@@ -24,6 +24,11 @@ on:
         description: "Print stuck sermons instead of emailing. Uncheck to email Chris."
         type: boolean
         default: true
+  # Temporary branch exercise. This push is forced to --dry-run below.
+  # Remove this trigger after the check. It is not a schedule.
+  push:
+    branches:
+      - cursor/actions-dispatch-only-7654
 
 concurrency:
   group: stuck-sermons
@@ -53,8 +58,8 @@ jobs:
 
       - name: Check for stuck sermons
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          EVENT_NAME: ${{ github.event_name == 'push' && 'workflow_dispatch' || github.event_name }}
+          INPUT_DRY_RUN: ${{ github.event_name == 'push' && 'true' || inputs.dry_run }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -65,13 +70,16 @@ jobs:
           args=(--run-url "${RUN_URL}")
           if [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ "${INPUT_DRY_RUN}" = "true" ]; then
             args+=(--dry-run)
+          else
+            echo "Refusing to run: this branch push must stay a dry run." >&2
+            exit 1
           fi
           python scripts/check_stuck_sermons.py "${args[@]}"
 
   alert:
     name: Email Chris
     needs: check
-    if: failure()
+    if: failure() && github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
