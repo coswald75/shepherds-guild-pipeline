@@ -91,6 +91,10 @@ class ScheduleOffTests(unittest.TestCase):
             text = (ROOT / rel).read_text()
             self.assertIn("PIPELINE_REPO", text, rel)
             self.assertNotIn('REPO = "/Users/dad', text, rel)
+        watch = (ROOT / "scripts/watch_cog_and_process.py").read_text()
+        self.assertIn("AUTO_EMAIL_UNTIL = date(2026, 9, 23)", watch)
+        self.assertIn("def _maybe_email_cog_report", watch)
+        self.assertNotIn("import requests", watch)
 
 
 class PlanTests(unittest.TestCase):

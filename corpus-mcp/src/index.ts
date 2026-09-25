@@ -6,7 +6,7 @@ import {
   authenticateBySlug,
   authenticateGuildHall,
 } from "./auth";
-import { TOOLS, callTool } from "./tools";
+import { callTool, listToolsForAuth } from "./tools";
 import { listPromptsForAuth, renderPrompt } from "./prompts";
 import {
   authorizationServerMetadata,
@@ -379,7 +379,7 @@ export default {
         case "tools/list":
           return jsonResponse(
             rpcOk(msg.id, {
-              tools: TOOLS.map((t) => ({
+              tools: listToolsForAuth(auth).map((t) => ({
                 name: t.name,
                 description: t.description,
                 inputSchema: t.inputSchema,

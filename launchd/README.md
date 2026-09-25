@@ -70,6 +70,10 @@ The self-serve poller (every 5 minutes) stays on this Mac. Actions is a
 poor fit for a job that frequent. `scripts/selfserve_poller.py` no longer
 hardcodes the Mac path, but nothing in Actions starts it.
 
+`launchd/com.shepherdsguild.cogwatch.plist` is a Mac reference. It currently
+fires every two hours. Actions does not load that file, and the workflow
+comments stay at 4pm, 6pm, and 8pm.
+
 ### Secrets and variables
 
 Add these in the repo's **Settings → Secrets and variables → Actions**.

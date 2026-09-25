@@ -61,6 +61,12 @@ export async function authenticate(
   return authenticateLegacyBearer(raw, env);
 }
 
+// Chris's preacher_id — hardcoded as the admin/master principal. Bearer
+// tokens that resolve to this preacher get is_admin=true, unlocking the
+// search_references tool and cross-preacher sermon search. OAuth tokens
+// for Chris get the same treatment.
+const ADMIN_PREACHER_ID = "9c6f8d69-de55-45db-ac60-0fe6d0cfff59";
+
 async function authenticateLegacyBearer(
   raw: string,
   env: Env,
@@ -88,11 +94,20 @@ async function authenticateLegacyBearer(
     preachers: { id: string; name: string };
   }).preachers;
 
-  return {
+  return applyAdminScope({
     preacher_id: preacher.id,
     preacher_name: preacher.name,
     token_name: tokenRow.name ?? null,
-  };
+  });
+}
+
+// If the authenticated preacher is the hardcoded admin, promote the auth
+// context to master scope. Runs on every successful bearer/OAuth resolution.
+function applyAdminScope(ctx: AuthContext): AuthContext {
+  if (ctx.preacher_id === ADMIN_PREACHER_ID) {
+    return { ...ctx, scope: "master", is_admin: true };
+  }
+  return ctx;
 }
 
 async function authenticateOAuth(
@@ -107,11 +122,11 @@ async function authenticateOAuth(
   const preacher = (row as unknown as {
     preachers: { id: string; name: string };
   }).preachers;
-  return {
+  return applyAdminScope({
     preacher_id: preacher.id,
     preacher_name: preacher.name,
     token_name: null, // OAuth clients are labeled by client_name, not token name
-  };
+  });
 }
 
 // Slug-based identity resolution for the public read path /p/:slug.

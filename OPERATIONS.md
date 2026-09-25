@@ -443,6 +443,14 @@ workflow has no separate "list only" mode inside the script: a dry run does
 not start the script; a real run publishes if a new sermon is waiting, and
 does nothing if there isn't one.
 
+The Mac `cogwatch` plist is reference only (it currently fires every two
+hours). Actions does not load it. The commented Actions times stay at
+4pm, 6pm, and 8pm. After a Cross of Grace sermon is published, the watcher
+can email the PDF report to Ricky and Janel. That window closed on
+2026-09-23, so it logs and does not send. A publish retry of a sermon that
+already rendered does not email. Set `COG_AUTO_EMAIL_REPORTS=0` to keep it
+off if the date is ever extended.
+
 ### Monday does not need Sunday's files
 
 Sunday's run writes `weekly_queue/pending_batches.json` and stops. That file

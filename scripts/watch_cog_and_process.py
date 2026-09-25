@@ -23,11 +23,21 @@ Deploy is handled by scripts/deploy_sermon_pages.py, which builds and runs
 `wrangler deploy` itself, so a processed sermon goes all the way to live.
 
 The process exits non-zero if any sermon fails, so GitHub Actions can email.
+
+After a sermon is published, a temporary helper can email the per-sermon PDF
+report to Cross of Grace. That window closed on 2026-09-23, so the helper
+logs and does not send unless AUTO_EMAIL_UNTIL is extended. Set
+COG_AUTO_EMAIL_REPORTS=0 to keep it off even inside the window. It never
+sends on a publish retry of a sermon that was already rendered.
 """
+import base64
+import json
 import os
 import sys
 import subprocess
-from datetime import datetime, timedelta
+import urllib.error
+import urllib.request
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 
@@ -60,9 +70,113 @@ from selfserve_ingest import transcribe, generate_artifacts  # noqa: E402
 COG_CHURCH_ID = "f1fc9898-fafd-4289-b6af-ce99dfde23d6"
 RECENT_DAYS = 3  # only consider uploads from the last few days (skip old stragglers)
 
+# Temporary auto-email of the per-sermon report to Cross of Grace, from
+# Sermon Steward <reports@sermonsteward.com> (Resend), reply-to + BCC Chris.
+# The window is closed: after AUTO_EMAIL_UNTIL the watcher only ingests.
+# Disable early with COG_AUTO_EMAIL_REPORTS=0.
+AUTO_EMAIL_UNTIL = date(2026, 9, 23)  # last day auto-send is allowed
+REPORT_RECIPIENTS = ["ricky@crossofgrace.net", "janel@crossofgrace.net"]
+REPORT_REPLY_TO = "chris@sovgracekc.org"
+REPORT_BCC = "chris@sovgracekc.org"
+
 
 def log(msg: str) -> None:
     print(f"[{datetime.now().isoformat(timespec='seconds')}] {msg}", flush=True)
+
+
+def _auto_email_on() -> bool:
+    if os.environ.get("COG_AUTO_EMAIL_REPORTS", "1") == "0":
+        return False
+    return date.today() <= AUTO_EMAIL_UNTIL
+
+
+def email_cog_report(sid: str, title: str, date_str: str) -> None:
+    """Best-effort: build the per-sermon PDF report and email it to Cross of
+    Grace (reply-to + BCC Chris). Never raises — the sermon is already live."""
+    try:
+        pretty = datetime.strptime(date_str, "%Y-%m-%d").strftime("%b %-d, %Y")
+    except Exception:
+        pretty = date_str
+    try:
+        log("  generating report PDF …")
+        rc = subprocess.run(
+            [sys.executable, "scripts/generate_sermon_report.py", sid],
+            cwd=REPO, capture_output=True, text=True,
+        )
+        pdf = next((ln.strip() for ln in reversed(rc.stdout.splitlines())
+                    if ln.strip().endswith(".pdf")), None)
+        if rc.returncode != 0 or not pdf or not Path(pdf).exists():
+            log("  report PDF FAILED; email skipped. " + (rc.stderr[-300:] or ""))
+            return
+
+        slug = Path(pdf).stem
+        url = f"https://sermonsteward.com/CoGElPaso/sermons/{slug}"
+        subject = f'Sermon Steward report — "{title}" ({pretty})'
+        html = f"""<div style="font-family:Georgia,serif;font-size:15px;line-height:1.55;color:#1a1a1a">
+<p>Hi Ricky and Janel,</p>
+<p>Here's the Sermon Steward report for Sunday's message,
+<strong>&ldquo;{title}&rdquo;</strong> ({pretty}).</p>
+<p>The report opens with a plain-English summary and what we noticed in the ingest,
+then a set of article ideas &mdash; one pitch per major point, with one written out
+as a full sample article in the preacher's voice &mdash; followed by the congregant
+resources (small-group questions, daily readings, family and couples guides, and a
+memory verse).</p>
+<p>The sermon is also live with its own page and a Facebook-ready share card:<br>
+<a href="{url}">{url}</a></p>
+<p>Report is attached. Reply here if anything looks off or you'd like a different
+angle on any of the pieces.</p>
+<p>Grace and peace,<br>Chris</p>
+<hr style="border:none;border-top:1px solid #e5e0d5;margin:18px 0">
+<p style="font-size:12px;color:#8a8a8a">Sent automatically by Sermon Steward on Chris's behalf. Replies go to Chris.</p>
+</div>"""
+
+        key = os.environ.get("RESEND_API_KEY")
+        sender = os.environ.get("RESEND_FROM", "Sermon Steward <reports@sermonsteward.com>")
+        if not key:
+            log("  RESEND_API_KEY not set — report generated but NOT emailed.")
+            return
+        payload = {
+            "from": sender,
+            "to": REPORT_RECIPIENTS,
+            "subject": subject,
+            "html": html,
+            "reply_to": REPORT_REPLY_TO,
+            "bcc": [REPORT_BCC],
+            "attachments": [{
+                "filename": Path(pdf).name,
+                "content": base64.b64encode(Path(pdf).read_bytes()).decode(),
+            }],
+        }
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                body = json.loads(resp.read().decode() or "{}")
+        except urllib.error.HTTPError as err:
+            detail = err.read().decode(errors="replace")[:300]
+            log(f"  Resend FAILED {err.code}: {detail}")
+            return
+        log(
+            f"  report emailed to {', '.join(REPORT_RECIPIENTS)} "
+            f"(bcc {REPORT_BCC}, id={body.get('id')})"
+        )
+    except Exception as e:
+        log(f"  report email ERROR (sermon still live): {e}")
+
+
+def _maybe_email_cog_report(row: dict) -> None:
+    """Email the client report after a first successful publish, or say why not."""
+    if _auto_email_on():
+        email_cog_report(row["id"], row.get("title") or "", row.get("date") or "")
+    elif os.environ.get("COG_AUTO_EMAIL_REPORTS", "1") != "0":
+        log(f"  auto-email window closed (after {AUTO_EMAIL_UNTIL}); report NOT sent.")
 
 
 def _has_audio(row: dict) -> bool:
@@ -160,6 +274,7 @@ def main() -> int:
             log("  artifacts complete")
             _deploy(sid)
             log("  deploy+publish: ok")
+            _maybe_email_cog_report(r)
         except BatchNotFinished as e:
             failed += 1
             log(
@@ -181,6 +296,7 @@ def main() -> int:
             log(f"Resuming unpublished sermon {sid} — {r.get('title')}")
             _resume_publish(sid)
             log("  resume publish: ok")
+            _maybe_email_cog_report(r)
         except Exception as e:
             failed += 1
             log(f"  ERROR resuming {sid}: {e}")

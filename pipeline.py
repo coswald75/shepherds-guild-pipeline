@@ -39,6 +39,7 @@ import json
 import time
 import argparse
 import logging
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -417,8 +418,18 @@ def ensure_preacher(preacher_name: str, is_canonical: bool = False) -> str:
         log.info(f"Found existing preacher: {preacher_name} ({preacher_id})")
         return preacher_id
 
+    # slug is NOT NULL in the preachers table; derive kebab-case from name,
+    # de-duplicating with a numeric suffix if the slug already exists.
+    base_slug = re.sub(r"[^a-z0-9]+", "-", preacher_name.lower()).strip("-")
+    slug = base_slug
+    n = 2
+    while sb.table("preachers").select("id").eq("slug", slug).execute().data:
+        slug = f"{base_slug}-{n}"
+        n += 1
+
     result = sb.table("preachers").insert({
         "name": preacher_name,
+        "slug": slug,
         "is_canonical": is_canonical,
         "is_public": False
     }).execute()
@@ -549,7 +560,9 @@ def ingest_sermon(
             sb.table("quotations").insert({
                 "unit_id": unit_id,
                 "text": quote.get("text"),
-                "attribution": quote.get("attribution"),
+                # attribution is NOT NULL; PD texts often quote an unnamed
+                # source ("as he saith"), so fall back to "Unattributed".
+                "attribution": quote.get("attribution") or "Unattributed",
                 "source": quote.get("source"),
                 "function": sanitize_enum(
                     quote.get("function"),

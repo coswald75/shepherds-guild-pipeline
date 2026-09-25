@@ -47,10 +47,14 @@ export interface AuthContext {
   preacher_id: string;
   preacher_name: string;
   token_name: string | null;
-  scope?: "preacher" | "church" | "guild";
+  scope?: "preacher" | "church" | "guild" | "master";
   church_id?: string;
   church_name?: string;
   preacher_ids?: string[];
+  // True when the authenticated principal has admin/master access.
+  // Set by auth.ts when a bearer token resolves to Chris's preacher_id.
+  // Enables the search_references tool and other admin-only capabilities.
+  is_admin?: boolean;
 }
 
 export interface SermonUnitHit {
