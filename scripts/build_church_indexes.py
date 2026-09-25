@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import html
 import math
+import os
 import re
 import shutil
 import sys
@@ -37,7 +38,10 @@ from doctrinal_loci import (  # noqa: E402
     LOCUS_NAMES, LOCUS_SET, LOCUS_BLURB, locus_slug,
 )
 
-SERMON_STEWARD_REPO = Path("/Users/dad/shepherds-guild/sermon-steward")
+# SERMON_STEWARD_REPO is set in GitHub Actions. The Mac path remains the fallback.
+SERMON_STEWARD_REPO = Path(
+    os.environ.get("SERMON_STEWARD_REPO") or "/Users/dad/shepherds-guild/sermon-steward"
+)
 
 CHURCH_IDS = [
     "c121e66b-777d-4568-89d3-9ceea258061b",  # Providence

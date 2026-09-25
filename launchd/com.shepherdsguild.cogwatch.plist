@@ -5,15 +5,28 @@
     <key>Label</key>
     <string>com.shepherdsguild.cogwatch</string>
 
-    <!-- Check Cross of Grace for a newly-uploaded sermon at 4pm, 6pm, 8pm
-         (America/Chicago local time). If one has landed and isn't yet
+    <!-- Mac reference only. GitHub Actions does not load this file.
+         The Actions workflow comments stay at 4pm, 6pm, and 8pm.
+         TEMPORARY (set 2026-08-24): check Cross of Grace EVERY 2 HOURS, around
+         the clock (America/Chicago). Covers Ricky's after-midnight uploads that
+         the old 4/6/8pm schedule missed. If a sermon has landed and isn't yet
          processed, run the whole pipeline and publish it live. Idempotent:
-         no-ops when there's nothing new. -->
+         no-ops when there's nothing new. To revert to the 4/6/8pm cadence,
+         restore the three-entry schedule and reload. -->
     <key>StartCalendarInterval</key>
     <array>
+        <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
         <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
         <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
         <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
     </array>
 
     <key>ProgramArguments</key>

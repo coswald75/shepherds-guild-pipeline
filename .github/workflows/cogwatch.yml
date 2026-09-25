@@ -1,0 +1,172 @@
+# Cross of Grace upload check — 4:00pm, 6:00pm, and 8:00pm America/Chicago.
+#
+# NOTHING in this file is scheduled. The cron lines below are comments.
+# GitHub Actions cron is UTC and ignores daylight saving time.
+# America/Chicago is UTC-5 during CDT and UTC-6 during CST. When you enable
+# a schedule, uncomment exactly ONE of the two schedule blocks, and only
+# after the Mac launchd job com.shepherdsguild.cogwatch is unloaded.
+# The Mac job and this schedule must never both be live.
+#
+# CDT (UTC-5):
+# schedule:
+#   - cron: "0 21 * * *"  # 4:00pm CDT = 21:00 UTC
+#   - cron: "0 23 * * *"  # 6:00pm CDT = 23:00 UTC
+#   - cron: "0 1 * * *"   # 8:00pm CDT = 01:00 UTC the next calendar day
+#
+# CST (UTC-6), one hour later in UTC:
+# schedule:
+#   - cron: "0 22 * * *"  # 4:00pm CST = 22:00 UTC
+#   - cron: "0 0 * * *"   # 6:00pm CST = 00:00 UTC the next calendar day
+#   - cron: "0 2 * * *"   # 8:00pm CST = 02:00 UTC the next calendar day
+#
+# The script no-ops when nothing new has been uploaded. A dry run (the
+# default when you click Run workflow) does not start the script at all.
+# GitHub-hosted jobs cap at 6 hours. This one waits at most 5 hours for
+# Anthropic and then fails the run so you get an email, instead of being
+# killed with no explanation. Do not start a second batch while the first
+# is still running; the weekly catchup can resume a batch from Anthropic.
+
+name: Cross of Grace upload check
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Do not process sermons. Leave this checked until you mean to publish."
+        type: boolean
+        default: true
+
+concurrency:
+  group: sermon-pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  cogwatch:
+    name: Check Cross of Grace
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      ASSEMBLYAI_API_KEY: ${{ secrets.ASSEMBLYAI_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ vars.R2_BUCKET || secrets.R2_BUCKET }}
+      R2_PUBLIC_BASE: ${{ vars.R2_PUBLIC_BASE || secrets.R2_PUBLIC_BASE }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SERMON_STEWARD_REPO: ${{ github.workspace }}/sermon-steward
+      BATCH_MAX_WAIT_HOURS: "5"
+    steps:
+      - name: Check out the pipeline
+        uses: actions/checkout@v4
+
+      - name: Decide what this run will do
+        id: plan
+        env:
+          PLAN_KIND: cogwatch
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_JSON: ${{ toJSON(github.event) }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: python3 .github/scripts/plan_weekly_run.py
+
+      - name: Retry publish if the last run failed
+        id: retry
+        if: steps.plan.outputs.needs_publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          retry=false
+          if [ "${GITHUB_RUN_ATTEMPT}" != "1" ]; then
+            retry=true
+          else
+            conclusion="$(gh run list --workflow cogwatch.yml --limit 8 --json databaseId,conclusion --jq "first(.[] | select(.databaseId != ${GITHUB_RUN_ID} and .conclusion != null) | .conclusion)" || true)"
+            if [ "${conclusion}" = "failure" ]; then
+              retry=true
+            fi
+          fi
+          echo "retry=${retry}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check out sermon-steward
+        if: steps.plan.outputs.needs_publish == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: coswald75/sermon-steward
+          token: ${{ secrets.SERMON_STEWARD_PUSH_TOKEN }}
+          path: sermon-steward
+
+      - name: Set up Node
+        if: steps.plan.outputs.needs_publish == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install sermon-steward dependencies
+        if: steps.plan.outputs.needs_publish == 'true'
+        working-directory: sermon-steward
+        run: npm ci
+
+      - name: Install Chromium for share cards
+        if: steps.plan.outputs.needs_publish == 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Set git identity for sermon-steward commits
+        if: steps.plan.outputs.needs_publish == 'true'
+        working-directory: sermon-steward
+        run: |
+          git config user.name "Sermon Steward pipeline"
+          git config user.email "chris@sovgracekc.org"
+
+      - name: Watch Cross of Grace
+        env:
+          DRY_RUN: ${{ steps.plan.outputs.dry_run }}
+          PUBLISH_RETRY: ${{ steps.retry.outputs.retry }}
+        run: |
+          set -euo pipefail
+          if [ "${DRY_RUN}" = "true" ]; then
+            echo "Dry run: scripts/watch_cog_and_process.py was not started."
+            echo "Uncheck dry run to process a newly uploaded Cross of Grace sermon."
+            exit 0
+          fi
+          python scripts/watch_cog_and_process.py
+
+  alert:
+    name: Email Chris
+    needs: cogwatch
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pipeline
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Send the failure email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+        run: python scripts/check_stuck_sermons.py --workflow-failure --run-url "${RUN_URL}" --workflow-name "${WORKFLOW_NAME}"

@@ -7,7 +7,8 @@ sermonsteward.com. Pulls each sermon's metadata + audio URL +
 Haiku-generated artifacts from Supabase and emits a fully-stewarded
 HTML page styled to match growing-in-christ.html.
 
-Output dir: /Users/dad/shepherds-guild/sermon-steward/
+Output dir: $SERMON_STEWARD_REPO, or /Users/dad/shepherds-guild/sermon-steward
+on the Mac when that variable is unset.
 
 Pages include:
   - hero (title, date, primary text, audio player wired to Nucleus mp3)
@@ -41,7 +42,7 @@ SERMON_IDS = [
     "e98ccdec-74ff-4885-946e-fd8d92710662",  # Rescuing Womanhood
     "9772e967-ddfd-4f40-9540-c8e2b7a59a5d",  # Rescuing Manhood
 ]
-OUTPUT_DIR = Path("/Users/dad/shepherds-guild/sermon-steward")
+OUTPUT_DIR = Path(os.environ.get("SERMON_STEWARD_REPO") or "/Users/dad/shepherds-guild/sermon-steward")
 
 MONTHS = ("January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December")

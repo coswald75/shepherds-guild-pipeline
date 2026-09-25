@@ -72,7 +72,11 @@ log = logging.getLogger("deploy_sermon_pages")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_ROOT = REPO_ROOT / "output" / "sermon-pages"
-SS_REPO = Path("/Users/dad/shepherds-guild/sermon-steward").resolve()
+# SERMON_STEWARD_REPO is set in GitHub Actions to the sermon-steward checkout.
+# On the Mac, leave it unset and the historical path is used.
+SS_REPO = Path(
+    os.environ.get("SERMON_STEWARD_REPO") or "/Users/dad/shepherds-guild/sermon-steward"
+).resolve()
 
 # Church-slug → sermon-steward per-church passthrough directory.
 # Source of truth is eleventy.config.js's addPassthroughCopy() calls;
@@ -328,34 +332,39 @@ def commit_and_push(
     log.info(f"  pushed to origin/{branch}")
 
 
-def build_and_deploy(dry_run: bool, no_deploy: bool) -> None:
+def build_and_deploy(dry_run: bool, no_deploy: bool) -> bool:
     """Actually publish the site: build Eleventy → _site, then `wrangler deploy`.
 
     The git push alone does NOT make changes live — sermonsteward.com is a
     Cloudflare Worker whose git-connected build has proven unreliable — so we
     build and deploy directly. This is the step that guarantees the page is live.
+
+    Returns False when the build or the deploy did not succeed, so the caller
+    exits non-zero and the Actions failure email can fire. A dirty-tree refusal
+    still happens earlier, in ensure_ss_repo_clean.
     """
     if no_deploy:
         log.info("  --no-deploy set; skipping build + wrangler deploy (page NOT published)")
-        return
+        return True
     if dry_run:
         log.info("  WOULD build (eleventy) + wrangler deploy")
-        return
+        return True
     log.info("  building site (eleventy) …")
     b = subprocess.run(["npm", "run", "build"], cwd=str(SS_REPO), capture_output=True, text=True)
     if b.returncode != 0:
         log.error(f"  eleventy build failed — page NOT published: {b.stderr[-400:]}")
-        return
+        return False
     log.info("  publishing via wrangler deploy …")
     w = subprocess.run(["npx", "wrangler", "deploy"], cwd=str(SS_REPO), capture_output=True, text=True)
     out = (w.stdout or "") + (w.stderr or "")
     if w.returncode != 0:
         log.error(f"  wrangler deploy failed — page NOT published: {out[-400:]}")
-        return
+        return False
     for line in out.splitlines():
         if "Version ID" in line or "Deployed" in line or "Success!" in line:
             log.info(f"    {line.strip()}")
     log.info("  published live via wrangler deploy")
+    return True
 
 
 def main() -> int:
@@ -449,7 +458,8 @@ def main() -> int:
 
     # Publish for real: the git push above does not deploy the Cloudflare Worker.
     # This build + wrangler deploy is what makes the page(s) actually go live.
-    build_and_deploy(dry_run=args.dry_run, no_deploy=args.no_deploy)
+    if not build_and_deploy(dry_run=args.dry_run, no_deploy=args.no_deploy):
+        return 1
 
     log.info("Done.")
     return 0

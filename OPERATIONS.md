@@ -217,6 +217,11 @@ npx wrangler deploy
 | **cogwatch** | 4/6/8 PM daily | `scripts/watch_cog_and_process.py` — Cross of Grace end-to-end (transcribe → … → deploy). No-ops when nothing new |
 | **selfserve** | every 5 min | `scripts/selfserve_poller.py` — process pending self-serve jobs |
 
+These four jobs still run on the Mac. Weekly, catchup, and cogwatch also have
+GitHub Actions workflows, with the schedules **commented out** so nothing runs
+until you turn them on. See §12. The self-serve poller stays on the Mac (every
+5 minutes is too often for Actions).
+
 Both automated paths deploy end-to-end. The artifact step **retries** each type up
 to 3× with backoff (transient Postgres timeouts otherwise leave a sermon at 4/5).
 
@@ -358,10 +363,127 @@ draft the email (operator attaches the PDF).
 | `scripts/selfserve_ingest.py`, `selfserve_poller.py` | Self-serve CTA engine |
 | `web/upload-worker/`, `web/selfserve-worker/` | Cloudflare upload + self-serve workers |
 | `launchd/*.plist` | The four cron jobs (weekly, catchup, cogwatch, selfserve) |
+| `.github/workflows/weekly-ingest.yml` | Sunday submit + Monday catchup. Dispatch only; schedule is commented out |
+| `.github/workflows/cogwatch.yml` | Cross of Grace check. Dispatch only; schedule is commented out |
+| `.github/workflows/stuck-sermons.yml` | Read-only stuck-sermon email. Dispatch only; schedule is commented out |
+| `scripts/check_stuck_sermons.py` | The read-only stuck check and the Resend failure email |
 | `sermon-decomposition-spec-v3.md` | The decomposition spec (LLM system prompt) |
 | `env.template` | Template for the git-ignored `.env` |
 
 ---
+
+## 12. GitHub Actions (schedules are off)
+
+Weekly ingest, the Monday catchup, the Cross of Grace check, and the
+stuck-sermon email can run on GitHub Actions instead of the Mac. **None of
+them are scheduled.** Each workflow only runs when you click **Actions →
+the workflow → Run workflow**. The intended clock times are sitting in the
+workflow files as comments. GitHub's clock is UTC and does not move for
+daylight saving time, so each file has two commented options (CDT and CST).
+Uncomment one of them later, not both.
+
+The self-serve poller (every 5 minutes) stays on the Mac. Actions is a poor
+fit for a job that frequent. Its hardcoded Mac path is fixed, so it can run
+from this checkout, but this change does not schedule it. Worker deploys
+under `web/` are also unchanged.
+
+### Secrets to add
+
+Repo → **Settings → Secrets and variables → Actions → Secrets**. Names only.
+Paste the values from the Mac `.env` or your password manager. Do not put
+them in the repo.
+
+```
+ANTHROPIC_API_KEY
+VOYAGE_API_KEY
+ASSEMBLYAI_API_KEY
+SUPABASE_URL
+SUPABASE_KEY
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+RESEND_API_KEY
+RESEND_FROM
+CLOUDFLARE_API_TOKEN
+SERMON_STEWARD_PUSH_TOKEN
+```
+
+`SERMON_STEWARD_PUSH_TOKEN` is a fine-grained personal access token with
+**Contents: Read and write** on `coswald75/sermon-steward` only. The deploy
+step checks that repo out, commits the new pages, pushes to `main`, then
+runs `npm run build` and `npx wrangler deploy`. It still refuses to deploy
+if that checkout is dirty.
+
+### Variables (not secrets)
+
+These three are not passwords. Add them under **Variables** (a copy stored
+as a secret also works):
+
+```
+R2_BUCKET                  # sermon-steward-audio
+R2_PUBLIC_BASE             # https://sermons-cdn.sermonsteward.com
+CLOUDFLARE_ACCOUNT_ID
+```
+
+`RESEND_FROM` is a secret because it is the From address Resend will accept
+for the send-only key. The failure and stuck-sermon emails go to
+`chris@sovgracekc.org`.
+
+### Run a workflow by hand
+
+1. Open the repo on GitHub and click **Actions**.
+2. Click the workflow on the left: **Weekly ingest**, **Cross of Grace upload check**, or **Stuck sermon check**.
+3. Click **Run workflow**.
+4. Leave **dry run** checked the first time. Weekly ingest also defaults to `discover-dry-run`, which only lists new sermons and writes nothing.
+5. Open the run and read the log.
+
+Uncheck dry run only when you mean it. `weekly` submits decomposition batches.
+`catchup` finishes them (artifacts, render, deploy). The Cross of Grace
+workflow has no separate "list only" mode inside the script: a dry run does
+not start the script; a real run publishes if a new sermon is waiting, and
+does nothing if there isn't one.
+
+The Mac `cogwatch` plist is reference only (it currently fires every two
+hours). Actions does not load it. The commented Actions times stay at
+4pm, 6pm, and 8pm. After a Cross of Grace sermon is published, the watcher
+can email the PDF report to Ricky and Janel. That window closed on
+2026-09-23, so it logs and does not send. A publish retry of a sermon that
+already rendered does not email. Set `COG_AUTO_EMAIL_REPORTS=0` to keep it
+off if the date is ever extended.
+
+### Monday does not need Sunday's files
+
+Sunday's run writes `weekly_queue/pending_batches.json` and stops. That file
+is gitignored. On the Mac it is still there Monday morning. On GitHub the
+disk is wiped when the job ends, so Monday's `auto-process` does not depend
+on it.
+
+It asks Anthropic for batches from the last 8 days and asks Supabase which
+of those sermon rows are still unfinished (not decomposed, missing one of
+the 5 congregant resources, or never rendered). The local file is still
+read when it exists, and the two lists are combined, so a catchup that
+submits a new batch cannot forget Sunday's batch. The preacher's name comes
+from Supabase.
+
+Anthropic can take up to 24 hours. A GitHub-hosted job is killed at 6 hours,
+so these workflows wait at most 5 hours and then stop **without** calling
+that a failure. Run **catchup** again (the Monday 9am pass, once the
+schedule is on, or **Run workflow** yourself). It resumes the same batch.
+It does not submit a second one. If a batch is still unfinished the next
+morning, the stuck-sermon check emails you.
+
+### Cutover — do these in order
+
+The Mac jobs and the Actions schedules must **never** both be live. That
+processes every sermon twice and deploys the site twice.
+
+1. Add the secrets and the three variables above.
+2. Run each workflow by hand with dry run left on. Read the log.
+3. When you are ready, run **Weekly ingest** once for real (`weekly`, dry run off) and later `catchup`. Run **Cross of Grace upload check** with dry run off only when a real publish is acceptable.
+4. Unload the Mac jobs (`launchctl unload` — commands are in `launchd/README.md`). Confirm with `launchctl list | grep shepherdsguild` that weekly, catchup, and cogwatch are gone. Leave the self-serve job loaded.
+5. Only then uncomment **one** schedule block (CDT or CST) in each workflow file. Do not uncomment both.
+
+Until step 5, nothing runs unless you click Run workflow.
 
 *Generated as the living operations reference for the Sermon Steward pipeline. Keep
 it current as procedures change.*
