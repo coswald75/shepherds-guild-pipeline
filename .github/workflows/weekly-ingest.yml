@@ -50,11 +50,6 @@ on:
         description: "Stop after discover and write nothing. Leave this checked unless you mean to process sermons."
         type: boolean
         default: true
-  # Temporary branch exercise. This push is forced to discover-dry-run below.
-  # Remove this trigger after the check. It is not a schedule.
-  push:
-    branches:
-      - cursor/actions-dispatch-only-7654
 
 # One sermon pipeline at a time, including Cross of Grace. Queued, not cancelled,
 # so a long batch wait is not thrown away when the next clock time arrives.
@@ -97,14 +92,9 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_JSON: ${{ toJSON(github.event) }}
-          INPUT_MODE: ${{ github.event_name == 'push' && 'discover-dry-run' || inputs.mode }}
-          INPUT_DRY_RUN: ${{ github.event_name == 'push' && 'true' || inputs.dry_run }}
-        run: |
-          if [ "${EVENT_NAME}" = "push" ]; then
-            export EVENT_NAME=workflow_dispatch
-            export EVENT_JSON='{}'
-          fi
-          python3 .github/scripts/plan_weekly_run.py
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: python3 .github/scripts/plan_weekly_run.py
 
       - name: Retry publish if the last run failed
         id: retry
@@ -172,11 +162,6 @@ jobs:
         run: |
           set -euo pipefail
           cd "${GITHUB_WORKSPACE}"
-          echo "mode=${MODE} dry_run=${DRY_RUN}"
-          if [ "${MODE}" != "discover-dry-run" ] || [ "${DRY_RUN}" != "true" ]; then
-            echo "Refusing to run: this branch push must stay a discover dry run." >&2
-            exit 1
-          fi
           case "${MODE}" in
             discover-dry-run)
               python weekly_ingest.py discover --dry-run
@@ -205,7 +190,7 @@ jobs:
   alert:
     name: Email Chris
     needs: ingest
-    if: failure() && github.event_name != 'push'
+    if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

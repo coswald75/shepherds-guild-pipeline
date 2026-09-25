@@ -35,11 +35,6 @@ on:
         description: "Do not process sermons. Leave this checked until you mean to publish."
         type: boolean
         default: true
-  # Temporary branch exercise. This push is forced dry below.
-  # Remove this trigger after the check. It is not a schedule.
-  push:
-    branches:
-      - cursor/actions-dispatch-only-7654
 
 concurrency:
   group: sermon-pipeline
@@ -79,13 +74,8 @@ jobs:
           PLAN_KIND: cogwatch
           EVENT_NAME: ${{ github.event_name }}
           EVENT_JSON: ${{ toJSON(github.event) }}
-          INPUT_DRY_RUN: ${{ github.event_name == 'push' && 'true' || inputs.dry_run }}
-        run: |
-          if [ "${EVENT_NAME}" = "push" ]; then
-            export EVENT_NAME=workflow_dispatch
-            export EVENT_JSON='{}'
-          fi
-          python3 .github/scripts/plan_weekly_run.py
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: python3 .github/scripts/plan_weekly_run.py
 
       - name: Retry publish if the last run failed
         id: retry
@@ -151,11 +141,6 @@ jobs:
           PUBLISH_RETRY: ${{ steps.retry.outputs.retry }}
         run: |
           set -euo pipefail
-          echo "dry_run=${DRY_RUN}"
-          if [ "${DRY_RUN}" != "true" ]; then
-            echo "Refusing to run: this branch push must stay a dry run." >&2
-            exit 1
-          fi
           if [ "${DRY_RUN}" = "true" ]; then
             echo "Dry run: scripts/watch_cog_and_process.py was not started."
             echo "Uncheck dry run to process a newly uploaded Cross of Grace sermon."
@@ -166,7 +151,7 @@ jobs:
   alert:
     name: Email Chris
     needs: cogwatch
-    if: failure() && github.event_name != 'push'
+    if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
