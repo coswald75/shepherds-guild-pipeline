@@ -1,17 +1,24 @@
 # Stuck-sermon check. Read-only against Supabase. Emails Chris when a sermon
 # has been sitting partway through the pipeline for more than a day.
 #
-# NOTHING in this file is scheduled. The cron lines below are comments.
-# GitHub Actions cron is UTC and ignores daylight saving time.
-# America/Chicago is UTC-5 during CDT and UTC-6 during CST. When you enable
-# a schedule, uncomment exactly ONE line. A scheduled run sends the email.
-# A hand run prints instead, until you uncheck "Print instead of emailing".
+# The CDT schedule under `on:` is live. GitHub Actions owns this clock.
+# CST stays commented for the November switch (first Sunday in November).
+# Enable that CST block only after commenting out the live CDT schedule.
+# Never leave both CDT and CST live.
 #
-# Daily 8:00am America/Chicago:
-# CDT (UTC-5):
-# schedule:
-#   - cron: "0 13 * * *"  # 8:00am CDT = 13:00 UTC
-# CST (UTC-6):
+# GitHub Actions cron is UTC and ignores daylight saving time.
+# America/Chicago is UTC-5 during CDT and UTC-6 during CST.
+#
+# Mac launchd jobs com.shepherdsguild.weekly, com.shepherdsguild.catchup,
+# and com.shepherdsguild.cogwatch are unloaded (2026-09-25). Mac and GitHub
+# must never both be live for those three.
+#
+# A scheduled run sends the email. A hand run prints instead, until you
+# uncheck "Print instead of emailing".
+#
+# Daily 8:00am America/Chicago.
+# CDT (UTC-5) — live under `on.schedule`: 8:00am CDT = 13:00 UTC ("0 13 * * *")
+# CST (UTC-6). Commented until the November switch:
 # schedule:
 #   - cron: "0 14 * * *"  # 8:00am CST = 14:00 UTC
 
@@ -24,6 +31,8 @@ on:
         description: "Print stuck sermons instead of emailing. Uncheck to email Chris."
         type: boolean
         default: true
+  schedule:
+    - cron: "0 13 * * *"  # 8:00am CDT
 
 concurrency:
   group: stuck-sermons

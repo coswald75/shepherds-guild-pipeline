@@ -1,19 +1,23 @@
 # Cross of Grace upload check — 4:00pm, 6:00pm, and 8:00pm America/Chicago.
 #
-# NOTHING in this file is scheduled. The cron lines below are comments.
+# The CDT schedule under `on:` is live. GitHub Actions owns these clocks.
+# CST stays commented for the November switch (first Sunday in November).
+# Enable that CST block only after commenting out the live CDT schedule.
+# Never leave both CDT and CST live.
+#
 # GitHub Actions cron is UTC and ignores daylight saving time.
-# America/Chicago is UTC-5 during CDT and UTC-6 during CST. When you enable
-# a schedule, uncomment exactly ONE of the two schedule blocks, and only
-# after the Mac launchd job com.shepherdsguild.cogwatch is unloaded.
-# The Mac job and this schedule must never both be live.
+# America/Chicago is UTC-5 during CDT and UTC-6 during CST.
 #
-# CDT (UTC-5):
-# schedule:
-#   - cron: "0 21 * * *"  # 4:00pm CDT = 21:00 UTC
-#   - cron: "0 23 * * *"  # 6:00pm CDT = 23:00 UTC
-#   - cron: "0 1 * * *"   # 8:00pm CDT = 01:00 UTC the next calendar day
+# Mac launchd jobs com.shepherdsguild.weekly, com.shepherdsguild.catchup,
+# and com.shepherdsguild.cogwatch are unloaded (2026-09-25). Mac and GitHub
+# must never both be live for those three.
 #
-# CST (UTC-6), one hour later in UTC:
+# CDT (UTC-5) — live under `on.schedule`:
+#   4:00pm CDT = 21:00 UTC                 ("0 21 * * *")
+#   6:00pm CDT = 23:00 UTC                 ("0 23 * * *")
+#   8:00pm CDT = 01:00 UTC the next day    ("0 1 * * *")
+#
+# CST (UTC-6), one hour later in UTC. Commented until the November switch:
 # schedule:
 #   - cron: "0 22 * * *"  # 4:00pm CST = 22:00 UTC
 #   - cron: "0 0 * * *"   # 6:00pm CST = 00:00 UTC the next calendar day
@@ -35,6 +39,10 @@ on:
         description: "Do not process sermons. Leave this checked until you mean to publish."
         type: boolean
         default: true
+  schedule:
+    - cron: "0 21 * * *"  # 4:00pm CDT
+    - cron: "0 23 * * *"  # 6:00pm CDT
+    - cron: "0 1 * * *"   # 8:00pm CDT
 
 concurrency:
   group: sermon-pipeline
