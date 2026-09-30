@@ -14,8 +14,8 @@ sermon page, plus three things the live page doesn't carry:
      point-by-point approach, not one-article-per-sermon), plus ONE pitch
      written out as a full sample article in the preacher's own voice.
 
-Then it appends the six congregant resources (small-group, daily readings,
-prayer, family, couples, memory verse) as polished sections.
+Then it appends the five congregant resources (small-group, daily readings,
+family, couples, memory verse) as polished sections.
 
 Delivery is manual by design: this script only WRITES the PDF (and a sibling
 HTML). Chris previews, downloads, and sends.
@@ -75,7 +75,6 @@ ARTIFACT_LABELS = {
     "small_group_questions": "Small-Group Discussion",
     "daily_readings": "Daily Readings",
     "memory_verse": "Memory Verse",
-    "prayer_prompt": "Prayer",
     "family_card": "Family Conversation",
     "couples_guide": "For Couples",
 }
@@ -537,10 +536,6 @@ def render_resource(atype: str, body: dict) -> str:
         return (f'<div class="verse">{esc(body.get("full_text"))}<br>'
                 f'<strong>— {esc(body.get("reference"))}</strong></div>'
                 + (f'<p>{esc(body.get("why_this_verse"))}</p>' if body.get("why_this_verse") else ""))
-    if atype == "prayer_prompt":
-        h = f'<h4>{esc(body["title"])}</h4>' if body.get("title") else ""
-        paras = "".join(f"<p>{esc(p)}</p>" for p in str(body.get("prayer_text", "")).split("\n\n") if p.strip())
-        return h + paras
     if atype == "family_card":
         h = f'<h4>{esc(body["title"])}</h4>' if body.get("title") else ""
         out = [h, f"<p>{esc(body.get('prompt'))}</p>"]

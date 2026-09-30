@@ -11,7 +11,11 @@
  *
  * Routes:
  *   GET  /                → landing page (HTML)
- *   POST /api/prepare     → JSON {name, church, email, filename, type, size}
+ *   GET  /<code>          → same page for a regional cohort (codes in COHORTS);
+ *                           church becomes required and every upload is tagged
+ *                           with the cohort (sealed in the signed ticket)
+ *   POST /api/prepare     → JSON {name, church, email, title, date, series?,
+ *                                 cohort?, filename, type, size}
  *                           → {uploadUrl, ticket, contentType}
  *   POST /api/complete    → JSON {ticket} → verify object in R2, insert job
  *
@@ -20,6 +24,7 @@
  *   env.R2_PUBLIC_BASE         https://sermons-cdn.sermonsteward.com
  *   env.SUPABASE_URL / SUPABASE_SERVICE_KEY
  *   env.MAX_UPLOAD_MB / RATE_PER_DAY
+ *   env.COHORTS                JSON {code: {id, label}} (optional; defaults in lib.js)
  *   env.R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
  *     (secrets — used only to mint the presigned PUT; never sent to the browser)
  */
@@ -27,6 +32,9 @@
 import {
   maxUploadBytes,
   validateFields,
+  validateSermonMeta,
+  parseCohorts,
+  resolveCohort,
   selfServeKey,
   presignR2Put,
   signTicket,
@@ -39,9 +47,11 @@ export default {
     try {
       const url = new URL(request.url);
       if (request.method === "GET" && url.pathname === "/") {
-        return new Response(PAGE_HTML, {
-          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-        });
+        return htmlPage(renderPage(null));
+      }
+      if (request.method === "GET" && !url.pathname.startsWith("/api/")) {
+        const cohort = resolveCohort(parseCohorts(env.COHORTS), url.pathname);
+        if (cohort) return htmlPage(renderPage(cohort));
       }
       if (request.method === "POST" && url.pathname === "/api/prepare") {
         return await handlePrepare(request, env);
@@ -58,6 +68,12 @@ export default {
 };
 
 // ───────────────────────────────────────────────────────────────────────────
+
+function htmlPage(html) {
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+  });
+}
 
 function maxMb(env) {
   return env.MAX_UPLOAD_MB || "200";
@@ -80,6 +96,9 @@ async function handlePrepare(request, env) {
   const name = (body.name || "").toString().trim();
   const church = (body.church || "").toString().trim() || null;
   const email = (body.email || "").toString().trim().toLowerCase();
+  const title = (body.title || "").toString().trim();
+  const date = (body.date || "").toString().trim();
+  const series = (body.series || "").toString().trim() || null;
   const filename = (body.filename || "").toString();
   const type = (body.type || "").toString();
   const size = Number(body.size);
@@ -87,6 +106,18 @@ async function handlePrepare(request, env) {
 
   const fieldErr = validateFields({ name, email, filename, type, size, maxBytes: limit });
   if (fieldErr) return json({ ok: false, error: fieldErr }, 400);
+  const metaErr = validateSermonMeta({ title, date, series });
+  if (metaErr) return json({ ok: false, error: metaErr }, 400);
+
+  // Regional cohort: only known codes; church is required so the sermon files
+  // under the right church. The cohort id is sealed into the signed ticket.
+  let cohortId = null;
+  if (body.cohort) {
+    const cohort = resolveCohort(parseCohorts(env.COHORTS), body.cohort);
+    if (!cohort) return json({ ok: false, error: "This upload link isn't recognized." }, 400);
+    if (!church) return json({ ok: false, error: "Please enter your church." }, 400);
+    cohortId = cohort.id;
+  }
 
   const rateErr = await checkRateLimit(env, email);
   if (rateErr) return rateErr;
@@ -116,6 +147,10 @@ async function handlePrepare(request, env) {
     name,
     church,
     email,
+    title,
+    date,
+    series,
+    cohort: cohortId,
     key,
     exp: Date.now() + PRESIGN_EXPIRES_SEC * 1000,
   });
@@ -158,6 +193,10 @@ async function handleComplete(request, env) {
         email: payload.email,
         audio_key: payload.key,
         audio_url: audioUrl,
+        sermon_title: payload.title || null,
+        sermon_date: payload.date || null,
+        series_name: payload.series || null,
+        cohort: payload.cohort || null,
         status: "pending",
       }),
     });
@@ -206,6 +245,21 @@ function json(data, status = 200) {
 // ───────────────────────────────────────────────────────────────────────────
 // Landing page — matches the sermonsteward.com home aesthetic.
 // ───────────────────────────────────────────────────────────────────────────
+
+function renderPage(cohort) {
+  const tag = cohort
+    ? `Free for ${esc(cohort.label)} pastors · one sermon`
+    : "Free · one sermon · no account needed";
+  return PAGE_HTML
+    .replaceAll("__TAG__", tag)
+    .replaceAll("__COHORT_CODE__", cohort ? esc(cohort.code) : "")
+    .replaceAll("__CHURCH_LABEL__", cohort ? "Church" : 'Church <span class="opt">(optional)</span>')
+    .replaceAll("__CHURCH_REQUIRED__", cohort ? " required" : "");
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 const PAGE_HTML = `<!doctype html>
 <html lang="en">
@@ -272,7 +326,7 @@ const PAGE_HTML = `<!doctype html>
   .cta-card .sub { margin:0 0 22px; color:var(--ink-soft); font-size:15px; }
   label { display:block; font-weight:600; font-size:14px; margin:14px 0 6px; }
   label .opt { font-weight:400; color:var(--ink-faint); }
-  input[type=text], input[type=email] { width:100%; padding:12px 14px; border:1px solid var(--rule);
+  input[type=text], input[type=email], input[type=date] { width:100%; padding:12px 14px; border:1px solid var(--rule);
     border-radius:9px; font-size:16px; font-family:inherit; background:#fff; }
   input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
   #drop { margin-top:6px; border:2px dashed var(--rule); border-radius:11px; padding:26px 16px; text-align:center;
@@ -302,7 +356,7 @@ const PAGE_HTML = `<!doctype html>
 
 <div class="wrap">
   <div class="hero">
-    <div class="tag">Free · one sermon · no account needed</div>
+    <div class="tag">__TAG__</div>
     <h1>See everything in your sermon<br><span class="accent">you didn't have time to write down.</span></h1>
     <p class="deck">Upload one sermon. We'll send back a transcript, discussion questions,
       writing prompts, and a full report &mdash; usually within about 15 minutes.</p>
@@ -317,8 +371,8 @@ const PAGE_HTML = `<!doctype html>
       <p>Concepts from each point of the sermon to explore further in your own reading and writing.</p></div>
     <div class="feature"><div class="ic">🔎</div><h3>What we noticed</h3>
       <p>The doctrinal threads, themes, and notable moments our analysis surfaced in your message.</p></div>
-    <div class="feature"><div class="ic">🙏</div><h3>Resources for your people</h3>
-      <p>A prayer, a family conversation prompt, daily readings, and a memory verse &mdash; all from the sermon.</p></div>
+    <div class="feature"><div class="ic">👪</div><h3>Resources for your people</h3>
+      <p>Daily readings, a family conversation prompt, a guide for couples, and a memory verse &mdash; all from the sermon.</p></div>
     <div class="feature"><div class="ic">📄</div><h3>A sample article</h3>
       <p>One writing prompt drafted into a full sample article, written in your own voice.</p></div>
   </div>
@@ -327,12 +381,19 @@ const PAGE_HTML = `<!doctype html>
     <h2>Try it with one sermon</h2>
     <p class="sub">Drop in an MP3 and we'll email your report.</p>
     <form id="form">
-      <label for="name">Your name</label>
+      <input type="hidden" id="cohort" name="cohort" value="__COHORT_CODE__">
+      <label for="name">Preacher name</label>
       <input type="text" id="name" name="name" required placeholder="e.g. Pastor John Smith">
-      <label for="church">Church <span class="opt">(optional)</span></label>
-      <input type="text" id="church" name="church" placeholder="e.g. Grace Community Church">
+      <label for="church">__CHURCH_LABEL__</label>
+      <input type="text" id="church" name="church"__CHURCH_REQUIRED__ placeholder="e.g. Grace Community Church">
       <label for="email">Email</label>
       <input type="email" id="email" name="email" required placeholder="you@church.org">
+      <label for="title">Sermon title</label>
+      <input type="text" id="title" name="title" required maxlength="200" placeholder="e.g. Productive Problem Solving">
+      <label for="date">Date preached</label>
+      <input type="date" id="date" name="date" required>
+      <label for="series">Series <span class="opt">(optional)</span></label>
+      <input type="text" id="series" name="series" maxlength="200" placeholder="Leave blank if this sermon isn't part of a series">
       <label>Sermon audio (MP3)</label>
       <div id="drop">
         <div>Drop an MP3 here, or <a href="#" id="browse">click to browse</a></div>
@@ -406,6 +467,10 @@ const PAGE_HTML = `<!doctype html>
       name: $("name").value,
       church: $("church").value,
       email: $("email").value,
+      title: $("title").value,
+      date: $("date").value,
+      series: $("series").value,
+      cohort: $("cohort").value,
       filename: file.name,
       type: file.type,
       size: file.size
@@ -428,7 +493,7 @@ const PAGE_HTML = `<!doctype html>
     }).then(function(done){
       $("progress").classList.remove("show");
       if (done && done.okHttp && done.data.ok){
-        $("form").reset(); $("file-info").textContent = ""; dz.classList.remove("has-file");
+        $("form").reset(); $("cohort").value = "__COHORT_CODE__"; $("file-info").textContent = ""; dz.classList.remove("has-file");
         showStatus("ok", "Thanks! We're studying your sermon now — your report will arrive by email in about 10–15 minutes.");
       } else {
         $("btn").disabled = false;

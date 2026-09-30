@@ -16,6 +16,9 @@ R2_BUCKET = "sermon-steward-audio"
 SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
 MAX_UPLOAD_MB = "200"      # advertised + enforced max (decimal MB)
 RATE_PER_DAY = "3"          # max submissions per email per rolling 24h
+# Regional upload links: try.sermonsteward.com/<code>. code → {id stored on
+# self_serve_jobs.cohort, label shown on the page}. Add a region by adding a key.
+COHORTS = '{"mw":{"id":"sg-mountain-west","label":"Sovereign Grace Mountain West"}}'
 
 # R2 bucket binding — same public bucket the sermon pages stream from.
 # Used to HEAD/delete after the browser PUTs the MP3 via a presigned URL.

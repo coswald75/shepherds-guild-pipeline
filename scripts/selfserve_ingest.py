@@ -6,19 +6,25 @@ report" landing-page CTA.
 Given a prospect (name / church / email) and an audio file or URL, this runs the
 WHOLE pipeline synchronously (so it's near-real-time, not the 1–2 hr batch):
 
-    transcribe (AssemblyAI) → decompose → embed → ingest → 6 artifacts
+    transcribe (AssemblyAI) → decompose → embed → ingest → 5 artifacts
         → PDF report → email the report via Resend
 
-It also creates the prospect's Supabase records (a church + preacher, both
-auto_publish=false / is_public=false so they never leak into the cron or the
-customer dashboards) and a `self_serve_jobs` row that doubles as the lead record
-and the job-status tracker.
+It also creates (or, for a regional cohort upload, reuses) the prospect's
+Supabase records (a church + preacher, both auto_publish=false / is_public=false
+so they never leak into the cron or the customer dashboards) and a
+`self_serve_jobs` row that doubles as the lead record and the job-status tracker.
+
+The sermon title and preached date come from the upload form
+(self_serve_jobs.sermon_title / sermon_date) and override whatever the model
+reads from the transcript. A series name is stored only when the pastor typed
+one (self_serve_jobs.series_name); the model's guess is discarded.
 
 Usage
 -----
   # New job from a local MP3 (what the test + a queued upload look like):
   python3 scripts/selfserve_ingest.py --name "Jane Doe" --church "Grace Chapel" \
-      --email "jane@example.com" --audio-file "/path/to/sermon.mp3"
+      --email "jane@example.com" --title "Sermon Title" --date 2026-09-27 \
+      --audio-file "/path/to/sermon.mp3"
 
   # Audio already in R2:
   python3 scripts/selfserve_ingest.py --name ... --church ... --email ... \
@@ -81,10 +87,61 @@ def set_status(sb, job_id: str, status: str, **fields):
 
 # ── prospect records ─────────────────────────────────────────────────────────
 
-def ensure_prospect(sb, name: str, church_name: Optional[str]) -> tuple[str, str]:
-    """Create a fresh prospect church + preacher. auto_publish/is_public stay
-    false so they never enter the cron or customer-facing aggregates. Returns
-    (church_id, preacher_id)."""
+def norm_name(s: Optional[str]) -> str:
+    """Case/punctuation-insensitive key for matching church and preacher names
+    ("Grace Church, Denver" == "grace church denver")."""
+    return slugify(s or "")
+
+
+def find_prospect(sb, name: str, church_name: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """Find an existing PROSPECT church (brand sermon_steward, auto_publish=false,
+    is_public=false) whose name matches, and a preacher in it whose name matches.
+
+    Live customer churches (auto_publish or is_public true) are never matched:
+    attaching a self-serve sermon to one could let the customer cron or index
+    builders publish it. Returns (church_id|None, preacher_id|None)."""
+    key = norm_name(church_name)
+    if not key:
+        return None, None
+    rows = (sb.table("churches").select("id,name,auto_publish,is_public")
+            .eq("brand", "sermon_steward").eq("auto_publish", False).eq("is_public", False)
+            .execute().data or [])
+    matches = [r for r in rows if norm_name(r.get("name")) == key]
+    if not matches:
+        return None, None
+    church_id = matches[0]["id"]
+    preachers = (sb.table("preachers").select("id,name").eq("church_id", church_id)
+                 .execute().data or [])
+    pkey = norm_name(name)
+    for p in preachers:
+        if norm_name(p.get("name")) == pkey:
+            return church_id, p["id"]
+    return church_id, None
+
+
+def ensure_prospect(sb, name: str, church_name: Optional[str],
+                    match_existing: bool = False) -> tuple[str, str]:
+    """Return (church_id, preacher_id) for this prospect.
+
+    With match_existing (regional cohort uploads) an existing prospect church and
+    preacher with the same names are reused, so repeat uploads file together.
+    Otherwise — or when nothing matches — fresh records are created.
+    auto_publish/is_public stay false so they never enter the cron or
+    customer-facing aggregates."""
+    if match_existing:
+        church_id, preacher_id = find_prospect(sb, name, church_name)
+        if church_id and preacher_id:
+            log.info(f"  prospect (matched): church={church_id[:8]} preacher={preacher_id[:8]}")
+            return church_id, preacher_id
+        if church_id:
+            suffix = uuid.uuid4().hex[:6]
+            preacher = sb.table("preachers").insert({
+                "name": name.strip(), "slug": f"{slugify(name) or 'self-serve-preacher'}-{suffix}",
+                "church_id": church_id, "is_public": False, "is_canonical": False,
+            }).execute().data[0]
+            log.info(f"  prospect (matched church, new preacher): church={church_id[:8]} preacher={preacher['id'][:8]}")
+            return church_id, preacher["id"]
+
     # Prospect slugs must be globally unique (preachers.slug has a unique
     # constraint, and the name may already exist), so suffix with a short token.
     suffix = uuid.uuid4().hex[:6]
@@ -135,7 +192,7 @@ def transcribe(audio_path_or_url: str) -> str:
 # ── artifacts (subprocess to the proven CLI, with one retry + verify) ────────
 
 def generate_artifacts(sermon_id: str) -> list[str]:
-    """Generate all 6 artifact types, retrying once. Returns the list still
+    """Generate all 5 artifact types, retrying once. Returns the list still
     missing after retries (empty == complete)."""
     for attempt in (1, 2):
         present = _present_artifacts(sermon_id)
@@ -172,26 +229,28 @@ def generate_report(sermon_id: str) -> Path:
 
 # ── email (Resend) ───────────────────────────────────────────────────────────
 
-def email_template(name: str, title: str) -> tuple[str, str]:
+def email_template(name: str, title: str, cohort_label: Optional[str] = None) -> tuple[str, str]:
     first = name.split()[0] if name else "there"
     subject = f"Your Sermon Steward report — {title}"
+    free_line = (f"<p>This report is free as part of the {cohort_label} offer.</p>\n"
+                 if cohort_label else "")
     body = f"""<div style="font-family:Georgia,serif;font-size:15px;color:#1a1a2e;line-height:1.55;max-width:560px">
 <p>{first},</p>
-<p>Thank you for trying the Shepherd's Guild. We took the sermon you uploaded
+<p>Thank you for trying Sermon Steward. We took the sermon you uploaded
 &mdash; <strong>&ldquo;{title}&rdquo;</strong> &mdash; transcribed it, studied it,
 and turned it into the report attached as a PDF.</p>
-<p>Inside you'll find:</p>
+{free_line}<p>Inside you'll find:</p>
 <ul>
   <li>A plain-English <strong>summary</strong> of the sermon.</li>
   <li><strong>What we noticed</strong> &mdash; the doctrinal threads, themes, and a few editorial notes.</li>
   <li><strong>Writing prompts, one per point</strong> &mdash; concepts from each main point to explore in your own reading and writing.</li>
   <li>A <strong>sample article in your own voice</strong>, drafted from one of those prompts.</li>
-  <li><strong>Resources for your people</strong> &mdash; small-group questions, a family prompt, a prayer, daily readings, and a memory verse.</li>
+  <li><strong>Resources for your people</strong> &mdash; small-group questions, daily readings, a family prompt, a guide for couples, and a memory verse.</li>
 </ul>
 <p>If this is useful, the best thanks is a word to a friend &mdash; do you know any
 other pastors who'd love to see their preaching stewarded this way? I'd be glad
 to make them one too.</p>
-<p>Grateful,<br>Chris<br><span style="color:#6f6f80">The Shepherd's Guild &middot; sermonsteward.com</span></p>
+<p>Grateful,<br>Chris<br><span style="color:#6f6f80">Sermon Steward &middot; sermonsteward.com</span></p>
 </div>"""
     return subject, body
 
@@ -213,6 +272,40 @@ def send_email(to: str, subject: str, html: str, pdf_path: Path) -> bool:
     return True
 
 
+# ── form metadata + cohorts ──────────────────────────────────────────────────
+
+# self_serve_jobs.cohort id → wording used in the report email. Keep in sync
+# with COHORTS in web/selfserve-worker/wrangler.toml.
+COHORT_LABELS = {
+    "sg-mountain-west": "Sovereign Grace Mountain West",
+}
+
+
+def cohort_label(cohort: Optional[str]) -> Optional[str]:
+    if not cohort:
+        return None
+    return COHORT_LABELS.get(cohort, cohort)
+
+
+def apply_form_metadata(decomp: dict, title: Optional[str], sdate: Optional[str],
+                        series: Optional[str]) -> dict:
+    """Make the pastor's form entries authoritative over the model's reading.
+
+    - title / date from the form replace the decomposition's values;
+    - series is kept ONLY if the pastor typed one — the model's guess is
+      dropped (along with its series_position) so we never invent a series."""
+    if title:
+        decomp["title"] = title
+    if sdate:
+        decomp["date"] = str(sdate)[:10]
+    if series:
+        decomp["series_name"] = series
+    else:
+        decomp["series_name"] = None
+        decomp["series_position"] = None
+    return decomp
+
+
 # ── the orchestrator ─────────────────────────────────────────────────────────
 
 def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
@@ -220,13 +313,18 @@ def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
     sb = get_supabase()
     job = sb.table("self_serve_jobs").select("*").eq("id", job_id).single().execute().data
     name, church_name, email = job["name"], job.get("church_name"), job["email"]
+    form_title = (job.get("sermon_title") or "").strip() or None
+    form_date = (job.get("sermon_date") or None)
+    form_series = (job.get("series_name") or "").strip() or None
+    cohort = job.get("cohort") or None
 
     try:
         # 1. prospect records (idempotent-ish: reuse if already created)
         if job.get("preacher_id"):
             preacher_id, church_id = job["preacher_id"], job["church_id"]
         else:
-            church_id, preacher_id = ensure_prospect(sb, name, church_name)
+            church_id, preacher_id = ensure_prospect(sb, name, church_name,
+                                                     match_existing=bool(cohort))
             set_status(sb, job_id, "pending", church_id=church_id, preacher_id=preacher_id)
 
         # 2. transcribe
@@ -244,12 +342,13 @@ def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
         decomp = None
         for attempt in (1, 2, 3):
             try:
-                decomp = decompose_sermon(transcript, name)
+                decomp = decompose_sermon(transcript, name, known_title=form_title)
                 break
             except Exception as de:
                 log.warning(f"  decompose attempt {attempt} failed: {de}")
                 if attempt == 3:
                     raise
+        apply_form_metadata(decomp, form_title, form_date, form_series)
         units = decomp.get("units", [])
         log.info(f"  {len(units)} units; embedding …")
         embeddings = embed_units(units)
@@ -260,7 +359,8 @@ def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
         sdate = decomp.get("date") or date_cls.today().isoformat()
         slug = f"{slugify(title)}-{sdate}"
         sb.table("sermons").update({
-            "slug": slug, "date": sdate, "upload_source": "self_serve",
+            "slug": slug, "title": title, "date": sdate, "upload_source": "self_serve",
+            "series_name": form_series, "series_position": decomp.get("series_position"),
             "audio_url": job.get("audio_url"), "hosted_audio_url": job.get("audio_url"),
             "decomposed_at": datetime.utcnow().isoformat() + "Z",
         }).eq("id", sermon_id).execute()
@@ -284,7 +384,7 @@ def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
         # 6. email
         emailed_at = None
         if not no_email:
-            subject, html = email_template(name, title)
+            subject, html = email_template(name, title, cohort_label(cohort))
             if send_email(email, subject, html, pdf):
                 emailed_at = datetime.utcnow().isoformat() + "Z"
 
@@ -306,6 +406,10 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--job", help="process an existing self_serve_jobs id")
     ap.add_argument("--name"); ap.add_argument("--church"); ap.add_argument("--email")
+    ap.add_argument("--title", help="sermon title (authoritative)")
+    ap.add_argument("--date", help="date preached, YYYY-MM-DD (authoritative)")
+    ap.add_argument("--series", help="series name, only if the sermon is part of one")
+    ap.add_argument("--cohort", help="regional cohort id, e.g. sg-mountain-west")
     ap.add_argument("--audio-file"); ap.add_argument("--audio-url")
     ap.add_argument("--no-email", action="store_true")
     args = ap.parse_args()
@@ -326,6 +430,8 @@ def main() -> int:
         job = sb.table("self_serve_jobs").insert({
             "name": args.name, "church_name": args.church, "email": args.email,
             "audio_url": audio_url, "status": "pending",
+            "sermon_title": args.title, "sermon_date": args.date,
+            "series_name": args.series, "cohort": args.cohort,
         }).execute().data[0]
         job_id = job["id"]
         log.info(f"created job {job_id}")

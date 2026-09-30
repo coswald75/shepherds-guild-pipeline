@@ -194,3 +194,61 @@ export async function verifyTicket(secret, ticket) {
     return null;
   }
 }
+
+// ── Sermon metadata (title / date / optional series) ─────────────────────────
+
+export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const MAX_TITLE_LEN = 200;
+
+/** Validate the pastor-supplied sermon title + preached date (YYYY-MM-DD).
+ *  `today` is injectable for tests. Returns an error string or null. */
+export function validateSermonMeta({ title, date, series, today = new Date() }) {
+  const t = (title || "").toString().trim();
+  if (!t) return "Please enter the sermon title.";
+  if (t.length > MAX_TITLE_LEN) return "Please shorten the sermon title.";
+  const d = (date || "").toString().trim();
+  if (!DATE_RE.test(d)) return "Please enter the date the sermon was preached.";
+  const parsed = new Date(`${d}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== d) {
+    return "Please enter the date the sermon was preached.";
+  }
+  // Allow a day of slack for time zones; reject far-future and implausible dates.
+  const limit = new Date(today.getTime() + 36 * 3600 * 1000);
+  if (parsed > limit) return "The sermon date can't be in the future.";
+  if (parsed.getUTCFullYear() < 1900) return "Please check the sermon date.";
+  if ((series || "").toString().trim().length > MAX_TITLE_LEN) return "Please shorten the series name.";
+  return null;
+}
+
+// ── Regional cohorts (/<code> upload links) ─────────────────────────────────
+
+/** Default cohort map; override with the COHORTS var (JSON) in wrangler.toml.
+ *  code (URL path) → { id (stored on self_serve_jobs.cohort), label (shown on the page) } */
+export const DEFAULT_COHORTS = {
+  mw: { id: "sg-mountain-west", label: "Sovereign Grace Mountain West" },
+};
+
+export const COHORT_CODE_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
+
+export function parseCohorts(raw) {
+  if (!raw) return DEFAULT_COHORTS;
+  try {
+    const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const out = {};
+    for (const [code, v] of Object.entries(obj || {})) {
+      const c = code.toLowerCase();
+      if (!COHORT_CODE_RE.test(c) || !v || !v.id) continue;
+      out[c] = { id: String(v.id), label: String(v.label || v.id) };
+    }
+    return out;
+  } catch {
+    return DEFAULT_COHORTS;
+  }
+}
+
+/** Resolve a cohort code (from the URL path or the form) → cohort or null. */
+export function resolveCohort(cohorts, code) {
+  const c = (code || "").toString().trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+  if (!c || !COHORT_CODE_RE.test(c)) return null;
+  return Object.prototype.hasOwnProperty.call(cohorts, c) ? { code: c, ...cohorts[c] } : null;
+}

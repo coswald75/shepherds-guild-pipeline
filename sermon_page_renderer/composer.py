@@ -327,11 +327,7 @@ def compose(sermon_id: str) -> dict:
             if t["key"] != tile_key:
                 continue
             t["anchor"] = artifact_anchor[artifact_type]
-            if artifact_type == "prayer_prompt":
-                t["title"] = body.get("title") or "Weekly prayer prompt"
-                preview = (body.get("prayer_text") or "").split("\n\n")[0][:140].rstrip()
-                t["desc"] = preview + "…" if preview else t["desc"]
-            elif artifact_type == "memory_verse":
+            if artifact_type == "memory_verse":
                 t["title"] = body.get("reference") or t["title"]
                 t["desc"] = body.get("why_this_verse") or t["desc"]
             elif artifact_type == "small_group_questions":

@@ -619,7 +619,7 @@
     line-height: 1.5;
   }
 
-  /* ────────── Expanded artifact cards (prayer / discussion / etc.) ────────── */
+  /* ────────── Expanded artifact cards (discussion / etc.) ────────── */
   .artifact-card {
     background: var(--paper-raised);
     border: 1px solid var(--rule);
@@ -646,14 +646,6 @@
     margin: 0 0 16px;
     letter-spacing: -0.005em;
   }
-  .artifact-prayer p {
-    font-family: "Source Serif Pro", Georgia, serif;
-    font-size: 17px;
-    line-height: 1.65;
-    color: var(--ink);
-    margin: 0 0 1em;
-  }
-  .artifact-prayer p:last-child { margin-bottom: 0; }
   .artifact-status {
     font-family: "Inter", sans-serif;
     font-size: 11px;
@@ -1236,7 +1228,7 @@
     <!-- ═══════════ Discuss / apply ═══════════ -->
     <section class="page-section">
       <div class="section-eyebrow ui">Take it further</div>
-      <h2 class="section-title-h2">Discuss · apply · pray</h2>
+      <h2 class="section-title-h2">Discuss · apply</h2>
 
       <div class="apply-grid">
         {% for tile in apply_tiles %}
@@ -1250,18 +1242,7 @@
 
       {% for section in artifact_sections %}
 
-      {% if section.type == 'prayer_prompt' %}
-      <div class="artifact-card" id="{{ section.anchor }}">
-        <div class="artifact-eyebrow ui">Pray together this week</div>
-        <h3 class="artifact-title">{{ section.body.title }}</h3>
-        <div class="artifact-prayer">
-          {% for para in section.body.prayer_text.split('\n\n') if para.strip() %}
-          <p>{{ para }}</p>
-          {% endfor %}
-        </div>
-              </div>
-
-      {% elif section.type == 'small_group_questions' %}
+      {% if section.type == 'small_group_questions' %}
       <div class="artifact-card" id="{{ section.anchor }}">
         <div class="artifact-eyebrow ui">Small-group discussion</div>
         <h3 class="artifact-title">{{ section.body.questions | length }} questions for your group this week</h3>
