@@ -7,7 +7,7 @@ sermonsteward.com. For each preacher we've picked, pulls the sermon
 + all six artifacts (already generated via Haiku) from Supabase and
 emits a fully-stewarded HTML page styled to match growing-in-christ.html.
 
-These pages have the complete Discuss · apply · pray surface stack
+These pages have the complete Discuss · apply surface stack
 populated from the artifacts table — unlike the Ricky simplified
 samples, which still show "forthcoming" placeholders.
 
@@ -98,10 +98,6 @@ def render_daily_readings(body: dict) -> str:
     return out
 
 
-def render_prayer(body: dict) -> str:
-    text = (body.get("prayer_text") or "").replace("\n\n", "</p><p>").replace("\n", "<br>")
-    return f'<blockquote class="prayer-quote"><p>{text}</p></blockquote>'
-
 
 def render_memory(body: dict) -> str:
     ref = h(body.get("reference",""))
@@ -133,7 +129,6 @@ def render_couples(body: dict) -> str:
 RENDERERS = {
     "small_group_questions": ("Small-group leader brief", "Questions for midweek", render_small_group, True),  # wide
     "daily_readings":        ("Daily readings",          "Five-day reading plan", render_daily_readings, True),
-    "prayer_prompt":         ("Weekly prayer",           lambda b: b.get("title","A prayer from this sermon"), render_prayer, False),
     "memory_verse":          ("Memorize",                lambda b: b.get("reference","Memory verse"), render_memory, False),
     "family_card":           ("Family table",            lambda b: b.get("title","Conversation for the table"), render_family, False),
     "couples_guide":         ("Couples",                 lambda b: b.get("title","Three questions over coffee"), render_couples, False),
@@ -221,7 +216,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   .section-title-h2 {{ font-size:28px; font-weight:600; line-height:1.18; margin:0 0 14px; letter-spacing:-0.01em; }}
   .section-lede {{ color:var(--ink-soft); margin:0 0 24px; font-size:17px; line-height:1.6; }}
 
-  /* Discuss/apply/pray cards */
+  /* Discuss/apply cards */
   .discuss-grid {{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:8px; }}
   .discuss-card {{ background:var(--paper-raised); border:1px solid var(--rule);
     border-radius:12px; padding:26px 28px 24px; color:inherit; }}
@@ -249,10 +244,6 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   .daily-ref {{ font-family:"Inter",sans-serif; font-size:12px; color:var(--ink-faint); margin-left:8px; }}
   .daily-question {{ margin-top:4px; color:var(--ink-soft); }}
 
-  .prayer-quote {{ font-family:inherit; font-size:16.5px; line-height:1.62; color:var(--ink);
-    border-left:3px solid var(--accent); padding:4px 0 4px 18px; margin:4px 0 0; font-style:italic; }}
-  .prayer-quote p {{ margin:0 0 12px; color:var(--ink); }}
-  .prayer-quote p:last-child {{ margin-bottom:0; }}
 
   .memorize-quote {{ font-size:19px; line-height:1.55; color:var(--ink); font-style:italic;
     border-left:3px solid var(--accent); padding:4px 0 4px 18px; margin:0; }}
@@ -304,15 +295,15 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   <div class="facts-strip">
     <div class="fact"><div class="fact-label">Primary text</div><div class="fact-value">{primary_text}</div></div>
     <div class="fact"><div class="fact-label">Preacher</div><div class="fact-value">{preacher}</div></div>
-    <div class="fact"><div class="fact-label">Surfaces</div><div class="fact-value">6 stewarded</div></div>
+    <div class="fact"><div class="fact-label">Surfaces</div><div class="fact-value">5 stewarded</div></div>
   </div>
 
   {abstract_section}
 
   <section class="page-section">
     <div class="section-eyebrow">Take it further</div>
-    <h2 class="section-title-h2">Discuss · apply · pray</h2>
-    <p class="section-lede">Six surfaces drawn from this sermon — small-group leader brief, daily reading plan, weekly prayer, memorize, family table, couples — generated automatically by Sermon Steward.</p>
+    <h2 class="section-title-h2">Discuss · apply</h2>
+    <p class="section-lede">Five surfaces drawn from this sermon — small-group leader brief, daily reading plan, memorize, family table, couples — generated automatically by Sermon Steward.</p>
     <div class="discuss-grid">
 {discuss_cards}
     </div>

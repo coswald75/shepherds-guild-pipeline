@@ -7,9 +7,9 @@ so we can iterate on prompt + voice quickly. Batch submission via the
 Anthropic Batch API is V2 once voice is calibrated.
 
 Usage:
-  python generate_artifacts.py generate <sermon_id> --type prayer_prompt
+  python generate_artifacts.py generate <sermon_id> --type small_group_questions
   python generate_artifacts.py generate <sermon_id>                # all 6 (later)
-  python generate_artifacts.py preview <sermon_id> --type prayer_prompt
+  python generate_artifacts.py preview <sermon_id> --type small_group_questions
       # render + print, do not write
 
 Environment:
@@ -43,7 +43,6 @@ PROMPTS_DIR = REPO_ROOT / "sermon_artifacts" / "prompts"
 ARTIFACT_TYPES = (
     "small_group_questions",
     "daily_readings",
-    "prayer_prompt",
     "family_card",
     "couples_guide",
     "memory_verse",
@@ -53,7 +52,6 @@ ARTIFACT_TYPES = (
 PROMPT_FILES = {
     "small_group_questions": "small_group.md",
     "daily_readings": "daily_readings.md",
-    "prayer_prompt": "prayer.md",
     "family_card": "family.md",
     "couples_guide": "couples.md",
     "memory_verse": "memory.md",
@@ -430,8 +428,6 @@ def generate_one(sermon_id: str, artifact_type: str, *, model: str, write: bool)
 
 def _flatten_body(body: dict | list, artifact_type: str) -> str:
     """Turn the structured artifact body into plain text for preview / search."""
-    if artifact_type == "prayer_prompt":
-        return f"{body.get('title','')}\n\n{body.get('prayer_text','')}".strip()
     if artifact_type == "memory_verse":
         return (
             f"{body.get('reference','')}\n\n{body.get('full_text','')}\n\n"

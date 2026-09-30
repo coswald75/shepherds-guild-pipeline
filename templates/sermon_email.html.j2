@@ -311,22 +311,11 @@
       <!-- ───────── 10. Take it further — section header ───────── -->
       <tr><td class="px-32" style="padding:36px 32px 6px; border-top:1px solid #e2dcce;">
         <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#2d5a4a; margin-bottom:8px;">Take it further</div>
-        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 6px; letter-spacing:-0.005em;">Discuss · apply · pray this week</h2>
+        <h2 style="font-family:'Source Serif Pro',Georgia,serif; font-size:22px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 6px; letter-spacing:-0.005em;">Discuss · apply this week</h2>
       </td></tr>
 
       {% set art_by_type = artifacts %}
 
-      <!-- ───────── 11. Prayer ───────── -->
-      {% if art_by_type.prayer_prompt %}
-      <tr><td class="px-32" style="padding:24px 32px 6px;">
-        <div style="font-family:'Inter','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#2d5a4a; margin-bottom:10px;">Pray with us this week</div>
-        <h3 style="font-family:'Source Serif Pro',Georgia,serif; font-size:20px; line-height:1.25; font-weight:600; color:#1a1a2e; margin:0 0 14px;">{{ art_by_type.prayer_prompt.body.title }}</h3>
-        {% for para in art_by_type.prayer_prompt.body.prayer_text.split('\n\n') if para.strip() %}
-        <p style="margin:0 0 14px; font-family:'Source Serif Pro',Georgia,serif; font-size:16px; line-height:1.65; color:#1a1a2e;">{{ para }}</p>
-        {% endfor %}
-      </td></tr>
-      <tr><td class="px-32" style="padding:6px 32px 0;"><hr style="border:0; border-top:1px solid #ede7d8; margin:0;"></td></tr>
-      {% endif %}
 
       <!-- ───────── 12. Daily readings ───────── -->
       {% if art_by_type.daily_readings %}

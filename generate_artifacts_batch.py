@@ -27,7 +27,7 @@ Usage:
   # Just generate one specific artifact type for the batch:
   python generate_artifacts_batch.py submit \
       --sermon-ids id1 \
-      --types prayer_prompt,small_group_questions
+      --types small_group_questions,daily_readings
 
   # Check status:
   python generate_artifacts_batch.py status msgbatch_01HK...
@@ -466,7 +466,7 @@ def main() -> int:
     p_submit.add_argument(
         "--types",
         default=",".join(ga.ARTIFACT_TYPES),
-        help=f"Comma-separated artifact types. Default: all 6 ({','.join(ga.ARTIFACT_TYPES)})",
+        help=f"Comma-separated artifact types. Default: all ({','.join(ga.ARTIFACT_TYPES)})",
     )
     p_submit.add_argument("--model", default=DEFAULT_MODEL, help=f"Model id (default {DEFAULT_MODEL})")
     p_submit.add_argument("--force", action="store_true", help="Re-submit pairs that already exist in sermon_artifacts")

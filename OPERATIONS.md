@@ -190,6 +190,15 @@ npx wrangler deploy
    `scripts/selfserve_ingest.py` → emails the report via Resend. **A git push
    does not publish this Worker** — deploy from `web/selfserve-worker/` with
    `npx wrangler deploy`.
+   The form requires preacher name, email, **sermon title and date preached**
+   (series optional); those override the model's reading, and no series is
+   stored unless the pastor typed one. **Regional links:** `try.sermonsteward.com/<code>`
+   for codes in `COHORTS` (wrangler.toml; `mw` = Sovereign Grace Mountain West)
+   make church required and tag the job `self_serve_jobs.cohort` (sealed in the
+   signed upload ticket). Cohort uploads reuse an existing *prospect* church +
+   preacher with the same names; live customer churches are never matched.
+   Add a region: add a key to `COHORTS` and a label to `COHORT_LABELS` in
+   `scripts/selfserve_ingest.py`, then redeploy the Worker.
 
 ### The pipeline stages (per sermon)
 

@@ -154,7 +154,7 @@ class TestSermonPageStructure:
 
     def test_apply_tiles(self, rendered_html: str):
         # All six placeholder tiles per Q10
-        for label in ["Small groups", "Daily readings", "Prayer",
+        for label in ["Small groups", "Daily readings",
                       "Family table", "Couples", "Memorize"]:
             assert label in rendered_html, f"missing tile: {label}"
 
