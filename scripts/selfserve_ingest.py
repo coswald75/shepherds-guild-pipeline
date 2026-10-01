@@ -277,7 +277,7 @@ def send_email(to: str, subject: str, html: str, pdf_path: Path) -> bool:
 # self_serve_jobs.cohort id → wording used in the report email. Keep in sync
 # with COHORTS in web/selfserve-worker/wrangler.toml.
 COHORT_LABELS = {
-    "sg-mountain-west": "Sovereign Grace Mountain West",
+    "sg-mountain-west": "Sovereign Grace Midwest",
 }
 
 

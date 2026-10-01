@@ -39,7 +39,7 @@ def test_email_says_sermon_steward_and_no_prayer():
 
 def test_email_cohort_line():
     _, html = ssi.email_template("Pat", "T", ssi.cohort_label("sg-mountain-west"))
-    assert "free as part of the Sovereign Grace Mountain West offer" in html
+    assert "free as part of the Sovereign Grace Midwest offer" in html
 
 
 def test_norm_name():
