@@ -193,7 +193,7 @@ npx wrangler deploy
    The form requires preacher name, email, **sermon title and date preached**
    (series optional); those override the model's reading, and no series is
    stored unless the pastor typed one. **Regional links:** `try.sermonsteward.com/<code>`
-   for codes in `COHORTS` (wrangler.toml; `mw` = Sovereign Grace Mountain West)
+   for codes in `COHORTS` (wrangler.toml; `mw` = Sovereign Grace Midwest, i.e. the MW/NW region; internal id stays `sg-mountain-west`)
    make church required and tag the job `self_serve_jobs.cohort` (sealed in the
    signed upload ticket). Cohort uploads reuse an existing *prospect* church +
    preacher with the same names; live customer churches are never matched.

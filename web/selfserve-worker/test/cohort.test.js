@@ -75,7 +75,7 @@ describe("landing pages", () => {
     const res = await worker.fetch(new Request(`${BASE}/mw`), makeEnv());
     assert.equal(res.status, 200);
     const html = await res.text();
-    assert.match(html, /Free for Sovereign Grace Mountain West pastors/);
+    assert.match(html, /Free for Sovereign Grace Midwest pastors/);
     assert.match(html, /id="cohort" name="cohort" value="mw"/);
     assert.match(html, /id="church" name="church" required/);
     assert.doesNotMatch(html, /__[A-Z_]+__/);

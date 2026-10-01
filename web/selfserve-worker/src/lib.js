@@ -225,7 +225,7 @@ export function validateSermonMeta({ title, date, series, today = new Date() }) 
 /** Default cohort map; override with the COHORTS var (JSON) in wrangler.toml.
  *  code (URL path) → { id (stored on self_serve_jobs.cohort), label (shown on the page) } */
 export const DEFAULT_COHORTS = {
-  mw: { id: "sg-mountain-west", label: "Sovereign Grace Mountain West" },
+  mw: { id: "sg-mountain-west", label: "Sovereign Grace Midwest" },
 };
 
 export const COHORT_CODE_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
