@@ -1,0 +1,16 @@
+{
+  "id": "fixture-nicene-son",
+  "title": "The Son and the Creed",
+  "contributor": "Fixture Preacher",
+  "description": "T1 fixture in sermonindex shape. Original test copy; no secrets.",
+  "transcript": "I imagine most of us have seen a company manifesto: a page that tries to say what the organization believes. The Nicene Creed is not a marketing page, but it is a public attempt to say what the churches would confess together about Jesus after a long and bitter argument.\n\nThe Creed was written to give biblical answers to the questions of its day. That is not quite the same thing as a summary of the whole Bible. It is focused on Father, Son, and Spirit because that is where the fourth century was burning. Arius, as later writers report him, taught that the Son was a created being. Other teachers refused that. John 1 sat in the middle of the fight: the Word was with God and the Word was God.\n\nWe believe in one Lord Jesus Christ, the only Son of God, eternally begotten of the Father, God from God, light from light, true God from true God, begotten not made, of one being with the Father. Those lines are fences. They keep us from a smaller Christ. They do not replace the Gospel of John.\n\nNow look at John 1:18. No one has ever seen God. The only Son, who is himself God and is in the closest relationship with the Father, has made him known. The Creed is interested in essence. John is interested in revelation. Both matter. If you only have essence, you may win an argument at the door and still not know the Father. If you only have warm feelings about Jesus and will not say he is God, you do not have John's Christ either.\n\nThe law came through Moses. Grace and truth came through Jesus Christ. The Word that was inscribed on stone has now become flesh. The point of knowing the Father through the Son is that we would do the works the Father gives. That is as far as T1 needs to go: keep the transcript, chunk it, make it searchable, and leave Sonnet for a later promote.",
+  "topics": ["Christology", "Nicene Creed"],
+  "bibleReferences": [{"text": "John 1:1-18"}],
+  "duration": 720,
+  "audioUrl": null,
+  "views": null,
+  "_source": {
+    "method": "t1-fixture",
+    "source_url": "fixtures/t1/sermonindex-nicene.json"
+  }
+}

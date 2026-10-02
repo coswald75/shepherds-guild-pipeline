@@ -1,0 +1,56 @@
+Title: The Word Became Flesh
+Preacher: Fixture Preacher
+
+This fixture is original test copy with neither headings nor first-second-finally
+markers. The T1 chapterer should fall back to paragraph windows and still
+emit character offsets so a later audit dashboard can jump into the source.
+
+In the beginning was the Word, and the Word was with God, and the Word was
+God. John does not start with a manger. He starts with eternity. The church
+has spent centuries learning not to say less than that sentence. The Son is
+not a creature who happened to be unusually obedient. The Word was God, and
+the Word became flesh and dwelt among us. That movement — from eternal speech
+to a particular human life — is the scandal and the comfort of Christmas
+preaching in every century.
+
+Creeds try to protect that confession when the questions of the day threaten
+it. They are not replacements for Scripture. They are emergency fences. The
+Nicene fathers were answering Arius, not writing a systematic theology
+textbook for their own amusement. When we recite “God from God, light from
+light, true God from true God, begotten not made,” we are refusing a smaller
+Jesus. We are also refusing to pretend that fourth-century Greek substance
+language is the same thing as John’s own emphasis.
+
+John’s own emphasis is revelation. No one has ever seen God. The only Son,
+who is himself God and is at the Father’s side, has made him known. The point
+is not that we can diagram the inner life of God with geometric precision.
+The point is that we can know the Father because the Son has shown him.
+Philip says, show us the Father and it will be enough. Jesus answers, whoever
+has seen me has seen the Father. Trinitarian theology that never arrives at
+that sentence has taken a wrong turn.
+
+Israel already knew that God speaks. The law came through Moses, words on
+stone, a gift that showed the people what their God is like. The tragedy of
+the Old Testament is not that the law was harsh. The tragedy is that the
+firstborn son abandoned the word. The prophets promised a fresh word, a
+clearer unveiling of glory. John says that word has become a person. Grace
+and truth are no longer only inscribed. They walk, eat, wash feet, and go to
+a cross.
+
+This is why orphan language matters. If we do not know the Father we are lost
+in the world, however religious our vocabulary. The Son’s work is to bring us
+home and then to send us to do the Father’s works. Jesus tells the disciples
+they will do greater works — not a promise of celebrity miracles, but a
+promise that the knowledge of the Father will bear fruit in obedience among
+the nations. Abstract speculation about essence can wait. The T1 index needs
+this plain prose chunked so “Word became flesh,” “Nicene,” and “greater
+works” can be found without paying for a decompose.
+
+Pastoral application is ordinary. Read John 1 slowly. Refuse a Jesus who is
+only an example. Refuse a theology that never becomes prayer. Ask whether
+your picture of the Father looks like the Son. If it looks like a crank, or
+like an indifferent manager, you are not looking at Jesus. The light shines
+in the darkness, and the darkness has not overcome it. That is enough light
+to walk by until a later tier adds rhetorical functions, doctrinal loci, and
+citation graphs. For unpaid bulk ingest, this windowed text is the whole
+point: durable id, offsets, and a keyword handle on the sermon.

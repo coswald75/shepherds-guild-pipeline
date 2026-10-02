@@ -1,0 +1,37 @@
+{
+  "id": "fixture-sidecar-timestamps",
+  "title": "Redemption with Timestamps",
+  "contributor": "Fixture Preacher",
+  "description": "Simulates T0 AssemblyAI-style chapters already attached. T1 should reuse them and not call any API.",
+  "transcript": "We begin with the need. All have sinned and fall short of the glory of God. Redemption means a price paid to buy someone out of bondage. Guilt is not only a feeling. It is a debt. Heart slave-masters grow wherever we try to justify ourselves by work, romance, or reputation.\n\nGod presented Christ as a propitiation through his blood. This is not pagan appeasement. The Father and the Son are one God. God bears the cost of forgiveness himself. Love that will not oppose evil is indifference.\n\nJustification is more than pardon. Pardon says you may go. Justification says you may come. Faith receives this status. It does not earn it. When this sermon is product-backed, promote it to T2 decompose.",
+  "chapters": [
+    {
+      "headline": "The need for redemption",
+      "gist": "Guilt and slave-masters",
+      "summary": "We begin with the need. All have sinned and fall short of the glory of God. Redemption means a price paid to buy someone out of bondage. Guilt is not only a feeling. It is a debt. Heart slave-masters grow wherever we try to justify ourselves by work, romance, or reputation.",
+      "start": 0,
+      "end": 180000
+    },
+    {
+      "headline": "Propitiation at the cross",
+      "gist": "God bears the cost",
+      "summary": "God presented Christ as a propitiation through his blood. This is not pagan appeasement. The Father and the Son are one God. God bears the cost of forgiveness himself. Love that will not oppose evil is indifference.",
+      "start": 180000,
+      "end": 360000
+    },
+    {
+      "headline": "Justification as welcome",
+      "gist": "You may come",
+      "summary": "Justification is more than pardon. Pardon says you may go. Justification says you may come. Faith receives this status. It does not earn it. When this sermon is product-backed, promote it to T2 decompose.",
+      "start": 360000,
+      "end": 480000
+    }
+  ],
+  "bibleReferences": [{"text": "Romans 3:22-26"}],
+  "duration": 480,
+  "audioUrl": null,
+  "_source": {
+    "method": "t1-fixture-sidecar",
+    "note": "Chapters mimic AssemblyAI auto_chapters fields (headline, gist, summary, start, end in ms)."
+  }
+}

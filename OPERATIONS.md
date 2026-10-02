@@ -200,6 +200,21 @@ npx wrangler deploy
    Add a region: add a key to `COHORTS` and a label to `COHORT_LABELS` in
    `scripts/selfserve_ingest.py`, then redeploy the Worker.
 
+### T1 cheap structure (opt-in POC — not the weekly default)
+
+For unpaid bulk (free public libraries, long church-site corpora, a future
+Sermon Audit horizon) there is a **separate** entrypoint that stops after
+cheap structure. It does **not** change `weekly_ingest.py` or `pipeline.py`.
+
+```
+python t1_ingest.py batch fixtures/t1
+```
+
+T1: local chapters/chunks + keyword index + **provisional preaching-style
+labels** (heuristics, **$0**) when source text already exists. Optional Voyage
+`--embed`. Promote to T2 is a stub that prints the existing
+`pipeline.py decompose` command. Details, label set, and cost model: `t1-README.md`.
+
 ### The pipeline stages (per sermon)
 
 1. **Transcribe** — AssemblyAI, from the hosted audio URL (skipped if a transcript
