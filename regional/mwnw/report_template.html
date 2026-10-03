@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<style>
+  :root { --ink:#1a1a2e; --ink-soft:#3d3d52; --ink-faint:#6f6f80; --line:#e4e0d8; --panel:#f8f5ef;
+          --accent:#2d5a4a; --accent-soft:#efeae1; }
+  @page { size: Letter; margin: 0.75in 0.75in 0.8in; }
+  * { box-sizing:border-box; }
+  body { color:var(--ink); margin:0; font-family:"Source Serif Pro","Iowan Old Style",Charter,Georgia,serif; font-size:11.2pt; line-height:1.5; }
+  .ui { font-family:"Inter",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+  h1 { font-size:25pt; line-height:1.15; margin:6pt 0 4pt; }
+  h2 { font-size:14.5pt; margin:0; padding:0 0 5pt; border-bottom:2px solid var(--accent); color:var(--accent); }
+  h3 { font-size:12.2pt; margin:13pt 0 3pt; } h4 { font-size:11pt; margin:9pt 0 2pt; color:var(--ink-soft); }
+  p { margin:0 0 8pt; } section { margin:0 0 18pt; } .body { margin-top:9pt; }
+  .brand { font-family:Inter,Helvetica,sans-serif; font-size:8.5pt; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  .region { font-family:Inter,Helvetica,sans-serif; font-size:9pt; color:var(--ink-faint); margin-top:2pt; }
+  .meta { font-family:Inter,Helvetica,sans-serif; color:var(--ink-faint); font-size:10pt; }
+  .meta strong { color:var(--ink-soft); }
+  .cover { border-bottom:1px solid var(--line); padding-bottom:12pt; margin-bottom:14pt; }
+  .glance { display:flex; gap:8pt; margin:12pt 0 0; font-family:Inter,Helvetica,sans-serif; }
+  .glance div { flex:1; background:var(--panel); border-radius:6px; padding:7pt 9pt; }
+  .glance b { display:block; font-size:14pt; color:var(--ink); } .glance span { font-size:8pt; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.6px; }
+  .thesis { border-left:4px solid var(--accent); background:var(--panel); padding:10pt 13pt; margin:0 0 16pt; border-radius:0 6px 6px 0; }
+  .thesis .k { font-family:Inter,Helvetica,sans-serif; font-size:8pt; letter-spacing:1px; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  .thesis p { margin:3pt 0 0; font-size:12pt; }
+  .lead { font-size:12pt; color:var(--ink-soft); }
+  .chip { display:inline-block; font-family:Inter,Helvetica,sans-serif; font-size:8.8pt; background:var(--accent-soft); color:var(--ink-soft); border-radius:20px; padding:2pt 9pt; margin:0 4pt 4pt 0; }
+  .loci li { margin-bottom:5pt; } .loci b { color:var(--accent); } .notes li { margin-bottom:4pt; color:var(--ink-soft); }
+  .line { font-size:12pt; font-style:italic; margin:0 0 8pt; padding-left:12pt; border-left:3px solid var(--accent-soft); }
+  .pitch { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:6px; padding:9pt 12pt; margin:0 0 8pt; break-inside:avoid; }
+  .pitch .hl { font-weight:600; } .pitch .src { font-family:Inter,Helvetica,sans-serif; font-size:8.3pt; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-faint); margin-top:4pt; }
+  .sample { border:1px solid var(--line); border-radius:6px; padding:13pt 15pt; }
+  .tag { font-family:Inter,Helvetica,sans-serif; font-size:8.3pt; letter-spacing:1px; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  .resource { break-inside:avoid; margin-bottom:13pt; }
+  .qa { margin:0 0 8pt; } .qa .q { font-weight:600; } .qa .f { color:var(--ink-soft); font-size:10.5pt; margin-left:10pt; }
+  .qa .anchor, .anchor { font-family:Inter,Helvetica,sans-serif; font-size:8.3pt; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.5px; }
+  .day { margin-bottom:7pt; } .day .d { font-weight:600; } .day .p { color:var(--accent); font-size:10pt; }
+  .verse { background:var(--panel); border-radius:6px; padding:10pt 12pt; font-style:italic; }
+  .links { background:var(--panel); border-radius:8px; padding:11pt 14pt; font-family:Inter,Helvetica,sans-serif; font-size:9.8pt; break-inside:avoid; }
+  .links a { color:var(--accent); font-weight:600; text-decoration:none; word-break:break-all; }
+  .links div { margin:3pt 0; }
+  .muted { color:var(--ink-faint); font-family:Inter,Helvetica,sans-serif; font-size:9.8pt; }
+  .page-break { page-break-before:always; }
+  .footer { margin-top:20pt; padding-top:8pt; border-top:1px solid var(--line); font-family:Inter,Helvetica,sans-serif; font-size:8.3pt; color:var(--ink-faint); }
+  .todo { background:#fff3cd; color:#7a5a00; padding:0 3pt; border-radius:3px; }
+</style></head>
+<body>
+  <div class="cover">
+    <div class="brand">Sermon Steward · Sermon Report</div>
+    <div class="region">{{ region }} · Week of {{ week_h }}</div>
+    <h1>{{ sermon.title }}</h1>
+    <div class="meta"><strong>{{ preacher }}</strong> · {{ church.church }}, {{ church.city }}, {{ church.state }} · {{ date_h }}
+      {% if sermon.series_name %}<br>Series: {{ sermon.series_name }}{% endif %}</div>
+    <div class="glance">
+      <div><b>{{ sermon.primary_text or '—' }}</b><span>Primary text</span></div>
+      <div><b>{{ glance.minutes or '—' }} min</b><span>Sermon length</span></div>
+      <div><b>{{ glance.refs }}</b><span>Scripture references</span></div>
+      <div><b>{{ glance.units }}</b><span>Sections we mapped</span></div>
+    </div>
+  </div>
+
+  {% if thesis %}<div class="thesis"><div class="k">The sermon in one sentence</div><p>{{ thesis }}</p></div>{% endif %}
+
+  <section><h2>Summary</h2><div class="body"><p class="lead">{{ analysis.summary }}</p></div></section>
+
+  <section class="links" style="margin-bottom:18pt">
+    <div><span class="tag">Your sermon page</span><br><a href="{{ page_url }}">{{ page_url }}</a></div>
+    <div style="margin-top:7pt"><span class="tag">This week across the region</span><br>
+      <a href="{{ dashboard_url }}">{{ dashboard_url }}</a><br>Eight Sovereign Grace churches, one Sunday: Scripture, themes, and How We Said It.</div>
+  </section>
+
+  <section><h2>What We Noticed</h2><div class="body">
+    <h3>Doctrinal loci</h3>
+    <ul class="loci">{% for l in analysis.doctrinal_loci %}<li><b>{{ l.locus }}</b> — {{ l.note }}</li>{% endfor %}</ul>
+    <h3>Themes</h3>
+    <div>{% for t in analysis.themes %}<span class="chip">{{ t }}</span>{% endfor %}</div>
+    {% if analysis.observations %}<h3>Editor notes</h3><ul class="notes">{% for o in analysis.observations %}<li>{{ o }}</li>{% endfor %}</ul>{% endif %}
+  </div></section>
+
+  {% if lines %}<section><h2>Lines Worth Repeating</h2><div class="body">
+    <p class="muted">In your own words, from the transcript. These also appear on this week's How We Said It page.</p>
+    {% for l in lines %}<p class="line">“{{ l }}”</p>{% endfor %}
+  </div></section>{% endif %}
+
+  <section><h2>Writing Prompts</h2><div class="body">
+    <p class="muted">Concepts from each main point you could explore further in your own reading and writing.</p>
+    {% for p in analysis.article_pitches %}<div class="pitch"><div class="hl">{{ loop.index }}. {{ p.headline }}</div><div>{{ p.angle }}</div><div class="src">From: {{ p.source_point }}</div></div>{% endfor %}
+  </div></section>
+
+  {% if sample %}<section><h2>Sample Article</h2><div class="body"><div class="sample">
+    <div class="tag">Draft from writing prompt #1 · for your editing</div><h3>{{ sample.title }}</h3>{{ sample_html|safe }}
+  </div></div></section>{% endif %}
+
+  <div class="page-break"></div>
+  <section><h2>Congregation Resources</h2><div class="body">
+    <p class="muted">The same resources published on your sermon page.</p>
+    {% for b in resources %}<div class="resource"><h3>{{ b.label }}</h3>{{ b.html|safe }}</div>{% endfor %}
+  </div></section>
+
+
+  <div class="footer">
+    Generated by Sermon Steward · {{ generated }} · sermonsteward.com. Doctrinal loci, summaries and prompts are machine-assisted analysis for your review.<br>
+    Questions, or something we got wrong? Reply to this email, or use “Suggest a change” on your sermon page.
+  </div>
+</body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.mwnw.status</string>
+    <!-- Monday 21:00 (Studio local time; the installer checks it is Central):
+         READY / MISSING per church, emailed to Chris (MWNW_ALERT_TO) via Resend. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>21</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PIPE__/.venv-mwnw/bin/python</string>
+        <string>-m</string>
+        <string>regional.mwnw</string>
+        <string>status</string>
+        <string>--alert</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__PIPE__</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__PIPE__/.venv-mwnw/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>TZ</key>
+        <string>America/Chicago</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__PIPE__/logs/launchd-mwnw-status.out</string>
+    <key>StandardErrorPath</key>
+    <string>__PIPE__/logs/launchd-mwnw-status.err</string>
+</dict>
+</plist>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shepherdsguild.mwnw.tick</string>
+    <!-- Every 15 min. `tick` is a no-op outside Sun 11:00 CT .. Tue 08:00 CT.
+         Inside the window it spawns one independent process per church that is
+         not READY yet (per-church lock + throttle, so a late church never blocks others). -->
+    <key>StartInterval</key>
+    <integer>900</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PIPE__/.venv-mwnw/bin/python</string>
+        <string>-m</string>
+        <string>regional.mwnw</string>
+        <string>tick</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__PIPE__</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__PIPE__/.venv-mwnw/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>TZ</key>
+        <string>America/Chicago</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__PIPE__/logs/launchd-mwnw-tick.out</string>
+    <key>StandardErrorPath</key>
+    <string>__PIPE__/logs/launchd-mwnw-tick.err</string>
+</dict>
+</plist>

@@ -1,0 +1,6 @@
+# MWNW launch runner (Mac Studio). Installed into a SEPARATE venv: .venv-mwnw
+-r requirements.txt
+requests>=2.31
+yt-dlp[default]>=2025.10.22
+deno>=2.0          # PyPI wheel ships the deno binary; yt-dlp needs a JS runtime for YouTube
+imageio-ffmpeg>=0.5  # ffmpeg fallback (no Homebrew on the Studio)
