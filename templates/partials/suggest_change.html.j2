@@ -1,0 +1,125 @@
+<!-- ═══════════ Suggest a change (LLM-written items only; submissions go to a review queue, never auto-applied) ═══════════ -->
+<button type="button" class="ssg-page-btn ui" id="ssg-page-btn" aria-haspopup="dialog">✎ Suggest a change</button>
+<div class="ssg-overlay" id="ssg-overlay" hidden>
+  <form class="ssg-dialog ui" id="ssg-form" role="dialog" aria-modal="true" aria-labelledby="ssg-h">
+    <button type="button" class="ssg-x" id="ssg-x" aria-label="Close">×</button>
+    <h3 id="ssg-h">Suggest a change</h3>
+    <p class="ssg-note">Pastors and church staff: if we worded something in a way you wouldn't, tell us. Sermon Steward reviews every suggestion; nothing changes on this page automatically.</p>
+    <label>What you're changing
+      <select id="ssg-item"></select>
+    </label>
+    <label>It currently says
+      <textarea id="ssg-current" rows="3" readonly></textarea>
+    </label>
+    <label>I want it to say…
+      <textarea id="ssg-new" rows="4" required maxlength="4000"></textarea>
+    </label>
+    <div class="ssg-row">
+      <label>Your name <span>(optional)</span><input id="ssg-name" maxlength="120" autocomplete="name"></label>
+      <label>Email <span>(optional, if you'd like a reply)</span><input id="ssg-email" type="email" maxlength="200" autocomplete="email"></label>
+    </div>
+    <label class="ssg-hp" aria-hidden="true">Website<input id="ssg-website" tabindex="-1" autocomplete="off"></label>
+    <div class="ssg-actions"><span id="ssg-msg" role="status"></span><button type="submit" id="ssg-send">Send suggestion</button></div>
+  </form>
+</div>
+<style>
+  .ssg-target { position: relative; }
+  .ssg-pencil { position:absolute; right:-30px; top:0; width:24px; height:24px; border-radius:50%; border:1px solid var(--rule,#e4e0d8);
+    background:#fff; color:var(--accent,#2d5a4a); font-size:13px; line-height:22px; text-align:center; cursor:pointer; opacity:0; transition:opacity .15s; padding:0; }
+  .ssg-target:hover > .ssg-pencil, .ssg-pencil:focus { opacity:1; }
+  @media (hover:none), (max-width:820px) { .ssg-pencil { position:static; display:inline-block; opacity:.55; margin-left:6px; width:22px; height:22px; line-height:20px; vertical-align:middle; } }
+  .ssg-page-btn { position:fixed; left:18px; bottom:18px; z-index:60; background:#fff; color:var(--accent,#2d5a4a); border:1px solid var(--accent,#2d5a4a);
+    border-radius:22px; padding:9px 15px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .ssg-overlay { position:fixed; inset:0; background:rgba(20,20,30,.45); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .ssg-overlay[hidden] { display:none; }
+  .ssg-dialog { background:#fff; border-radius:12px; max-width:560px; width:100%; max-height:92vh; overflow:auto; padding:20px 22px; position:relative; font-size:14px; color:#1a1a2e; }
+  .ssg-dialog h3 { margin:0 0 6px; font-family:Georgia,serif; font-size:20px; }
+  .ssg-note { color:#6f6f80; font-size:13px; margin:0 0 12px; }
+  .ssg-dialog label { display:block; font-weight:600; margin:10px 0 0; }
+  .ssg-dialog label span { font-weight:400; color:#8a8a99; }
+  .ssg-dialog select, .ssg-dialog textarea, .ssg-dialog input { display:block; width:100%; margin-top:4px; font:inherit; font-weight:400; padding:8px 10px; border:1px solid #d9d4ca; border-radius:8px; box-sizing:border-box; }
+  .ssg-dialog textarea[readonly] { background:#f8f5ef; color:#3d3d52; }
+  .ssg-row { display:flex; gap:10px; } .ssg-row label { flex:1; }
+  .ssg-hp { position:absolute !important; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .ssg-actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; }
+  .ssg-actions button { background:var(--accent,#2d5a4a); color:#fff; border:0; border-radius:8px; padding:9px 16px; font:inherit; font-weight:600; cursor:pointer; }
+  .ssg-actions button:disabled { opacity:.6; }
+  #ssg-msg { color:#6f6f80; font-size:13px; } #ssg-msg.err { color:#9b1c1c; } #ssg-msg.ok { color:#1d6b40; }
+  .ssg-x { position:absolute; right:12px; top:8px; border:0; background:none; font-size:24px; color:#8a8a99; cursor:pointer; }
+  @media (max-width:560px) { .ssg-row { flex-direction:column; gap:0; } .ssg-page-btn { left:12px; bottom:12px; } }
+  @media print { .ssg-page-btn, .ssg-pencil, .ssg-overlay { display:none !important; } }
+</style>
+<script id="ssg-script" data-sermon-id="{{ sermon.id if sermon is defined and sermon.id else '' }}">
+(function () {
+  "use strict";
+  if (window.__ssgLoaded) return; window.__ssgLoaded = true;
+  var API = "https://twbunmbzyqcqzgffdrib.supabase.co/functions/v1/sermon-suggest";
+  var SLUG = (location.pathname.split("/").pop() || "").replace(/\.html$/, "");
+  // Model-written items only. Never the transcript, quotations, or Scripture text.
+  var RULES = [
+    [".thesis-hero", function () { return "Thesis"; }],
+    [".artifact-card .artifact-title", function (el, c) { return c + " · title"; }],
+    [".artifact-card .artifact-intro", function (el, c) { return c + " · introduction"; }],
+    [".artifact-card .artifact-question-text", function (el, c, i) { return c + " · question " + i; }],
+    [".artifact-card .artifact-question-follow", function (el, c, i) { return c + " · follow-up " + i; }],
+    [".artifact-card .artifact-day-text", function (el, c) { var d = el.closest(".artifact-day"); var n = d && d.querySelector(".artifact-day-name"); return c + " · " + (n ? n.textContent.trim() : "day"); }],
+    [".artifact-card .artifact-framing p", function (el, c) { return c + " · for the parent"; }],
+    [".artifact-card .artifact-family-prompt", function (el, c) { return c + " · prompt"; }],
+    [".artifact-card .artifact-verse-why", function (el, c) { return c + " · why this verse"; }],
+    [".outline-card li", function (el, c, i) { var l = el.closest(".outline-card").querySelector(".outline-card-label"); return (l ? l.firstChild.textContent.trim() : "Outline") + " · item " + i; }]
+  ];
+  var items = [];
+  function text(el) {
+    var c = el.cloneNode(true);
+    c.querySelectorAll(".ssg-pencil,.thesis-label,.ill-type,.artifact-question-anchor").forEach(function (x) { x.remove(); });
+    return c.textContent.replace(/\s+/g, " ").trim();
+  }
+  RULES.forEach(function (r) {
+    var counters = {};
+    document.querySelectorAll(r[0]).forEach(function (el) {
+      var card = el.closest(".artifact-card,.outline-card"); var key = card ? (card.id || card.className) : "page";
+      counters[key] = (counters[key] || 0) + 1;
+      var eb = el.closest(".artifact-card"); eb = eb && eb.querySelector(".artifact-eyebrow");
+      var label = r[1](el, eb ? eb.textContent.trim() : "Sermon", counters[key]);
+      var loc = (card && card.id ? card.id : r[0].replace(/[^a-z-]+/gi, "-")) + "#" + counters[key];
+      var it = { el: el, label: label, loc: loc };
+      items.push(it);
+      var b = document.createElement("button"); b.type = "button"; b.className = "ssg-pencil"; b.title = "Suggest a change"; b.setAttribute("aria-label", "Suggest a change to " + label); b.textContent = "✎";
+      b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); open(it); });
+      el.classList.add("ssg-target"); el.appendChild(b);
+    });
+  });
+  if (!items.length) { var pb = document.getElementById("ssg-page-btn"); if (pb) pb.remove(); return; }
+  var $ = function (id) { return document.getElementById(id); };
+  var sel = $("ssg-item"), t0 = 0;
+  items.forEach(function (it, i) { var o = document.createElement("option"); o.value = i; o.textContent = it.label; sel.appendChild(o); });
+  function fill() { $("ssg-current").value = text(items[sel.value].el); }
+  sel.addEventListener("change", fill);
+  function open(it) {
+    sel.value = it ? items.indexOf(it) : 0; fill(); $("ssg-new").value = it ? text(it.el) : "";
+    $("ssg-msg").textContent = ""; $("ssg-msg").className = ""; $("ssg-send").disabled = false;
+    $("ssg-overlay").hidden = false; t0 = Date.now(); setTimeout(function () { $("ssg-new").focus(); }, 30);
+  }
+  function close() { $("ssg-overlay").hidden = true; }
+  $("ssg-page-btn").addEventListener("click", function () { open(null); });
+  $("ssg-x").addEventListener("click", close);
+  $("ssg-overlay").addEventListener("click", function (e) { if (e.target === this) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  $("ssg-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var it = items[sel.value], msg = $("ssg-msg"), btn = $("ssg-send");
+    var body = { sermon_slug: SLUG, sermon_id: document.getElementById("ssg-script").dataset.sermonId || null, item_location: it.loc, item_label: it.label,
+      current_text: text(it.el), suggested_text: $("ssg-new").value.trim(), name: $("ssg-name").value.trim(), email: $("ssg-email").value.trim(),
+      website: $("ssg-website").value, elapsed_ms: Date.now() - t0, page_path: location.pathname };
+    if (body.suggested_text.length < 2 || body.suggested_text === body.current_text) { msg.className = "err"; msg.textContent = "Change the wording first."; return; }
+    btn.disabled = true; msg.className = ""; msg.textContent = "Sending…";
+    fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (x.ok && x.j.ok) { msg.className = "ok"; msg.textContent = "Thank you. We'll review it."; setTimeout(close, 1600); }
+        else { msg.className = "err"; msg.textContent = (x.j && x.j.error) || "Couldn't send. Please try again."; btn.disabled = false; }
+      })
+      .catch(function () { msg.className = "err"; msg.textContent = "Couldn't send. Please try again."; btn.disabled = false; });
+  });
+})();
+</script>
