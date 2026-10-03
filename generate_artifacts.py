@@ -141,14 +141,14 @@ def _build_sermon_facts(sermon_id: str) -> tuple[dict, str]:
         or []
     )
 
-    citations = (
-        sb.table("citations")
-        .select("tier, reference, units!inner(sermon_id)")
-        .eq("units.sermon_id", sermon_id)
-        .execute()
-        .data
-        or []
-    )
+    # Avoid PostgREST nested-filter join on units!inner(sermon_id) — that path
+    # times out (57014) on large unit sets. Fetch unit ids then citations by FK.
+    unit_uuids = [r["id"] for r in (sb.table("units").select("id").eq("sermon_id", sermon_id).execute().data or [])]
+    citations = []
+    for i in range(0, len(unit_uuids), 50):  # chunk IN filters to stay under URL limits
+        citations.extend(
+            sb.table("citations").select("tier, reference").in_("unit_id", unit_uuids[i:i + 50]).execute().data or []
+        )
 
     # Aggregate loci across units
     loci_counts: dict[str, int] = {}
