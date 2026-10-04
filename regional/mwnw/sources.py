@@ -63,6 +63,7 @@ def podcast(church: dict, week: str) -> dict | None:
                     preacher=_feed_preacher(it, church),
                     description=re.sub(r"<[^>]+>", " ", it.findtext("description") or "")[:600],
                     page_url=(it.findtext("link") or "").strip() or None, score=score,
+                    guid=(it.findtext("guid") or "").strip() or None,
                     duration=(it.findtext(f"{ITUNES}duration") or "").strip() or None)
         if best is None or score > best["score"]: best = cand
     return best
@@ -183,7 +184,11 @@ FINDERS = {"podcast": podcast, "youtube": youtube, "gracelife": gracelife, "pipe
 def find(church: dict, week: str, run: str) -> tuple[dict | None, list[str]]:
     """Try the church's sources for this run in order. Returns (candidate, notes)."""
     notes = []
-    for kind in church["sources"].get(run, []):
+    kinds = list(church["sources"].get(run, []))
+    import os
+    if church.get("self_ingest_env") and os.environ.get(church["self_ingest_env"]) == "1" and "podcast" not in kinds:
+        kinds.append("podcast")   # only after the DB lookup found nothing
+    for kind in kinds:
         try:
             c = FINDERS[kind](church, week)
         except Exception as e:  # noqa: BLE001

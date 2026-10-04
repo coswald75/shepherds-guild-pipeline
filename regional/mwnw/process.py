@@ -189,15 +189,31 @@ def run_church(st: State, church: dict, run: str, *, dry: bool = False, max_spen
         if not dec.get("series_name"): dec["series_position"] = None
         c["normalized"] = normalize(dec)
         pid = preacher_for(church, meta["preacher"], dry=False)
+        # Last-moment dedup: if anything (e.g. the iMac pipeline) created this church's sermon for
+        # this date, or a row already owns this feed item's guid, do NOT ingest a second copy.
+        ex = existing_sermon(church, week)
+        if not ex and src.get("guid"):
+            g = sb().table("sermons").select("id,title,slug,preacher_id").eq("podcast_guid", src["guid"]).limit(1).execute().data
+            ex = g[0] if g else None
+        if ex:
+            c.update(sermon_id=ex["id"], title=ex["title"], slug=ex["slug"], reused_existing=True)
+            note(f"another job created {ex['id']} meanwhile; reusing it, not ingesting a duplicate")
+            _finish(st, church, c, dry, note); return c
         from pipeline import embed_units, ingest_sermon
         emb = embed_units(dec.get("units", []))
         sid = ingest_sermon(dec, pid, emb, raw_transcript=tx)
         title = dec.get("title") or meta.get("title") or "Sermon"
         slug = f"{slugify(title)}-{week}"
         audio = src.get("audio_url")
-        sb().table("sermons").update({"slug": slug, "title": title, "date": week, "is_public": False, "unlisted": True,
-                                      "audio_duration_seconds": int(c["sermon_minutes"] * 60), "audio_url": audio, "hosted_audio_url": audio,
-                                      "decomposed_at": datetime.now(timezone.utc).isoformat()}).eq("id", sid).execute()
+        patch = {"slug": slug, "title": title, "date": week, "is_public": False, "unlisted": True,
+                 "audio_duration_seconds": int(c["sermon_minutes"] * 60), "audio_url": audio, "hosted_audio_url": audio,
+                 "decomposed_at": datetime.now(timezone.utc).isoformat()}
+        if church.get("public"):
+            # Providence: make the row look exactly like the iMac pipeline's own (normal listing,
+            # host_sync, feed guid). hosted_audio_url left empty so the iMac's RSS sync mirrors it to R2.
+            patch.update(unlisted=False, upload_source="host_sync", hosted_audio_url=None)
+        if src.get("guid"): patch["podcast_guid"] = src["guid"]
+        sb().table("sermons").update(patch).eq("id", sid).execute()
         (REPO / "output" / f"{sid}_decomposed.json").write_text(json.dumps(dec, indent=2, ensure_ascii=False))
         c.update(sermon_id=sid, slug=slug, title=title, preacher=meta["preacher"], preacher_id=pid,
                  decomp_cost=dec.get("_pipeline", {}).get("processing_cost_usd"), units=len(dec.get("units", [])))
@@ -220,11 +236,12 @@ def _finish(st, church, c, dry, note):
     row = sb().table("sermons").select("title,slug,date,preacher_id,preachers(name)").eq("id", sid).single().execute().data
     c.update(title=row["title"], slug=row["slug"], preacher=(row.get("preachers") or {}).get("name"))
     have = sorted({r["artifact_type"] for r in sb().table("sermon_artifacts").select("artifact_type").eq("sermon_id", sid).execute().data})
-    if len(set(have) & set(ART_TYPES)) < 5 and not dry and church["key"] != "prov":
+    imac_owns = church["key"] == "prov" and (c.get("source") or {}).get("kind") == "pipeline"
+    if len(set(have) & set(ART_TYPES)) < 5 and not dry and not imac_owns:
         have = _gen_artifacts(sid, church["key"])
     c["artifacts"] = have
     if len(set(have) & set(ART_TYPES)) < 5:
-        c["status"] = "MISSING"; c["reason"] = f"only {len(have)}/5 congregation resources" + (" (Providence: wait for the iMac catchup run)" if church["key"] == "prov" else "")
+        c["status"] = "MISSING"; c["reason"] = f"only {len(have)}/5 congregation resources" + (" (Providence: wait for the iMac catchup run)" if imac_owns else "")
         st.save(); return
     from . import report_pdf
     try:
