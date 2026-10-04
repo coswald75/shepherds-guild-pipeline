@@ -41,6 +41,12 @@ CHURCHES = [
     dict(key="prov", dir="ProvidenceLenexa", church="Providence Community Church", city="Lenexa", state="KS",
          site="https://sovgracekc.org/", default_preacher="Chris Oswald",
          church_id="c121e66b-777d-4568-89d3-9ceea258061b", public=True,
+         podcast="https://sermons.sovgracekc.org/feed/",
+         # Normally the iMac pipeline ingests Providence ("pipeline" = DB lookup only). For a run
+         # that can't wait, MWNW_PROV_SELF_INGEST=1 lets this runner ingest it from the same feed,
+         # writing the same podcast_guid the iMac's RSS sync keys on (unique index) and setting
+         # decomposed_at, so the iMac sees it as done and never re-inserts or re-decomposes it.
+         self_ingest_env="MWNW_PROV_SELF_INGEST",
          sources={"sunday": ["pipeline"], "monday": ["pipeline"]}),
     dict(key="gl", dir="GraceLifeHastings", old_dir="GraceLifeHastings", church="Grace Life Church",
          city="Hastings", state="NE", site="https://www.gracelifene.org/", default_preacher="Chad Haygood",
