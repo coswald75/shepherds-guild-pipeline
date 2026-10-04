@@ -1,6 +1,9 @@
 """Shared plumbing: paths, per-week state, retries, HTTP, alerts, spend tracking."""
 from __future__ import annotations
 import json, logging, os, sys, time, functools, fcntl, contextlib
+# yt-dlp / deno / ffmpeg live next to this venv's python; make sure child processes find them
+# even when launched without the venv's bin on PATH.
+os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", "")
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
