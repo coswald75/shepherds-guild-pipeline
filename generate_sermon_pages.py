@@ -105,6 +105,9 @@ def render_one(
         log.warning(f"  social share card generation failed for {sermon_id}: {exc}")
 
     context = compose(sermon_id)
+    # "Suggest a change" is opt-in per render (MWNW launch pages); off for normal renders.
+    if os.environ.get("SS_SUGGEST_CHANGE") == "1":
+        context["suggest_change"] = True
     html = render_sermon_page(context)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
