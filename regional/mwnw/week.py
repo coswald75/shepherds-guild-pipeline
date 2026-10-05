@@ -24,6 +24,7 @@ REGION = f"/SGchurch/{config.REGION}"
 TRY = "https://try.sermonsteward.com/mw"
 FREE = "Free for Sovereign Grace Midwest/Northwest churches for at least the next year."
 ORDER = ["prov", "cog", "ccc", "gl", "ercsf", "ercb", "star", "clf"]
+# cog = Chaska only. Ricky / El Paso = cogep / CoGElPaso (SovereignGrace dashboard), never this key.
 SHORT = {"prov": "Providence · Lenexa", "cog": "Cross of Grace · Chaska", "ccc": "Cornerstone · Burnsville", "gl": "Grace Life · Hastings",
          "ercsf": "Emmaus Rd · Sioux Falls", "ercb": "Emmaus Rd · Bozeman", "star": "Center Church · Star", "clf": "Covenant Life · Roseburg"}
 h = lambda s: html.escape(str(s) if s is not None else "", quote=True)  # noqa: E731

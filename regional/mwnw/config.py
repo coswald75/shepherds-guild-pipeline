@@ -22,7 +22,9 @@ SITE = "https://sermonsteward.com"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
 
 CHURCHES = [
-    dict(key="cog", dir="CrossOfGraceChaska", old_dir="CrossOfGraceChaska", church="Cross of Grace Church",
+    dict(key="cog", dir="CrossOfGraceChaska", old_dir="CrossOfGraceChaska",
+         # Chaska only — Ricky / El Paso is cogep / CoGElPaso (not in this MWNW list).
+         church="Cross of Grace Church Chaska",
          city="Chaska", state="MN", site="https://crossgrace.org/", default_preacher="Dan Birkholz",
          church_id="382b4e46-06eb-4989-a567-ad53e5dda454",
          podcast="https://publishing.planningcenteronline.com/393613/podcast_feeds/27836.xml",
