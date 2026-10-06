@@ -19,6 +19,7 @@ from pathlib import Path
 from . import config
 from .util import load_all, week_dir, week_slug, log, REPO
 from .media import HAIKU, cl
+from .titles import clean_title  # title rule: no scripture in sermon titles (ref shown on its own line)
 
 REGION = f"/SGchurch/{config.REGION}"
 TRY = "https://try.sermonsteward.com/mw"
@@ -48,7 +49,10 @@ def pages(week, site: Path):
     from sermon_page_renderer import queries as q, composer
     from sermon_page_renderer.template_engine import render_sermon_page
     try:
-        from scripts.generate_og_card import generate_og_card
+        import scripts.generate_og_card as _og
+        _ls = _og.load_sermon
+        _og.load_sermon = lambda sb_, sid_: {**_ls(sb_, sid_), "title": clean_title(_ls(sb_, sid_).get("title"))}  # title rule on share cards too
+        generate_og_card = _og.generate_og_card
     except Exception:  # noqa: BLE001
         generate_og_card = None
     raw = q.get_sermon; dash = f"{REGION}/{week_slug(week)}/"; out = {}
@@ -56,7 +60,7 @@ def pages(week, site: Path):
         if ch.get("public"): continue
         sid = c["sermon_id"]; base = f"SGchurch/{ch['dir']}"
         def fake(s, _ch=ch, _b=base):
-            r = dict(raw(s)); p = dict(r.get("preachers") or {}); cc = dict(p.get("churches") or {})
+            r = dict(raw(s)); r["title"] = clean_title(r.get("title")); p = dict(r.get("preachers") or {}); cc = dict(p.get("churches") or {})
             cc.update(url_slug=_b, domain="sermonsteward.com", brand_color=cc.get("brand_color") or "#2d5a4a"); p["churches"] = cc; r["preachers"] = p; return r
         q.get_sermon = fake
         try:
@@ -136,7 +140,7 @@ def metrics(week):
         app = [u["application_specificity"] for u in units if u["rhetorical_function"] == "application" or u["application_specificity"]]
         t2 = [x["reference"] for x in cits if x["tier"] == 2]; pt = s.get("primary_text") or ""; b = book(pt)
         rows.append(dict(key=ch["key"], church=ch["church"], city=ch["city"], state=ch["state"], preacher=(s.get("preachers") or {}).get("name"),
-            site=ch["site"], path=page_path(ch, s["slug"]), sid=sid, title=s["title"], date=s["date"], primary_text=pt, book=b,
+            site=ch["site"], path=page_path(ch, s["slug"]), sid=sid, title=clean_title(s["title"]), date=s["date"], primary_text=pt, book=b,
             testament="OT" if b.split()[-1:] and b.split()[-1] in OT else "NT", sermon_type=s.get("sermon_type"), tone=s.get("tone") or [],
             method=s.get("hermeneutical_method") or [], thesis=s.get("main_thesis"), minutes=mins, words=words, wpm=round(words / mins) if mins else None,
             units=len(units), rf_words={k: round(100 * v / tot, 1) for k, v in rfw.items()}, application_pct=round(100 * rfw.get("application", 0) / tot, 1),
@@ -214,7 +218,7 @@ def dashboard(week, R, site: Path, n_total=8):
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 {css}</style></head><body>
-<header><div class="wrap"><a class="wordmark" href="/">Sermon Steward<i>.</i></a><a class="btn sm" href="{TRY}">Try it free: Bigfoot Region</a></div></header>
+<header><div class="wrap"><a class="wordmark" href="/">Sermon Steward<i>.</i></a>{"" if config.REGION == "SovereignGrace" else f'<a class="btn sm" href="{TRY}">Try it free: Bigfoot Region</a>'}</div></header>
 <main class="wrap">
 <section class="hero">
   <div class="tag">Sovereign Grace Midwest/Northwest · Sunday, {date_h}</div>
@@ -237,7 +241,7 @@ def dashboard(week, R, site: Path, n_total=8):
 <div class="legend">{legend}</div>
 <div class="grid"><!-- region:hwsi-tile --><!-- /region:hwsi-tile -->{cards}</div>
 
-<h2>The region side by side</h2>
+<h2>{"Sovereign Grace sermons side by side" if config.REGION == "SovereignGrace" else "The region side by side"}</h2>
 <p class="sub">Every number below comes from the transcripts and from Sermon Steward's sermon breakdown, which splits each sermon into segments and tags each one. Derived figures are marked <b>(derived)</b>, and the method notes at the bottom explain each one.</p>
 
 <div class="panel"><h3>The texts this Sunday</h3><p class="q">Main preaching text for each sermon. {books.get('OT',0)} Old Testament and {books.get('NT',0)} New Testament.</p>
@@ -353,7 +357,7 @@ def week_json(week, R, Q, site: Path):
     sermons = []
     for r in R:
         ch = config.BY_KEY[r["key"]]
-        sermons.append({"key": r["key"], "church": r["church"], "city": r["city"], "state": r["state"], "preacher": r["preacher"], "title": r["title"],
+        sermons.append({"key": r["key"], "church": r["church"], "city": r["city"], "state": r["state"], "preacher": r["preacher"], "title": r["title"], "ref": r.get("primary_text") or None,
                         "url": r["path"], "lines": Q.get(r["key"], {}).get("lines", []), "external": Q.get(r["key"], {}).get("external", []), "short": SHORT[r["key"]]})
     pool = [(s, l) for s in sermons for l in s["lines"] if 40 <= len(l["text"]) <= 120]
     feat = None
