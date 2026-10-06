@@ -20,6 +20,7 @@ from . import config
 from .util import load_all, week_dir, week_slug, log, REPO
 from .media import HAIKU, cl
 from .titles import clean_title  # title rule: no scripture in sermon titles (ref shown on its own line)
+from .quotefilter import why_excluded, bible_person  # Gimme da quotes: no Scripture, no remarks about an author
 
 REGION = f"/SGchurch/{config.REGION}"
 TRY = "https://try.sermonsteward.com/mw"
@@ -69,6 +70,7 @@ def pages(week, site: Path):
         except Exception as e:  # noqa: BLE001
             card = None; log.warning(f"og card failed {ch['key']}: {e}")
         ctx = composer.compose(sid); ctx["suggest_change"] = True
+        ctx["quotations"] = [x for x in ctx.get("quotations") or [] if not bible_person(x.get("attribution"))]  # no Scripture in the card
         page = render_sermon_page(ctx); q.get_sermon = raw
         row = raw(sid); slug = row["slug"]; loc = f"{ch['city']}, {ch['state']}"
         src = c.get("source") or {}
@@ -129,6 +131,7 @@ def metrics(week):
             cits += S.table("citations").select("tier,reference").in_("unit_id", chn).execute().data
             bts += S.table("bt_moves").select("type").in_("unit_id", chn).execute().data
             quots += S.table("quotations").select("attribution").in_("unit_id", chn).execute().data
+        quots = [q for q in quots if not bible_person(q.get("attribution"))]  # Scripture tagged as a quotation isn't one
         tx = s.get("raw_transcript") or ""; words = len(re.findall(r"[A-Za-z0-9']+", tx))
         mins = c.get("sermon_minutes") or (round(s["audio_duration_seconds"] / 60, 1) if s.get("audio_duration_seconds") else None)
         uw = lambda u: len(re.findall(r"[A-Za-z0-9']+", u.get("content") or ""))  # noqa: E731
@@ -327,7 +330,8 @@ Return ONLY JSON: [{{"unit": <unit number>, "text": "<exact line>"}}, ...]
         cands = [{"text": q["text"], "author": q["attribution"], "work": q["source"]} for q in led]
         m2 = cl().messages.create(model=HAIKU, max_tokens=3000, messages=[{"role": "user", "content": f"""Below is a sermon transcript by {r['preacher']}, in numbered units.
 List EVERY place the preacher quotes or recites words from a NON-BIBLICAL source: authors, theologians, pastors, hymns/songs, creeds/catechisms, historical figures, articles, films, etc.
-Exclude Bible verses entirely. Exclude the preacher paraphrasing someone in his own words unless he is clearly reciting their words.
+Exclude Bible verses entirely, even when he doesn't name the reference or quotes the biblical writer (Paul, Jesus, Moses...) as the "author". Exclude the preacher paraphrasing someone in his own words unless he is clearly reciting their words.
+Also exclude: his own narration or retelling of a story, film, or scene; lines he invents or imagines someone saying (including parodies of songs); and statements ABOUT an author rather than the author's words (e.g. "Calvin wrote a commentary on every book", "it took Piper 8 years to preach Romans").
 For each, copy the quoted words EXACTLY as they appear in the transcript, give the author and work ONLY if the preacher names them in the transcript (as said; else null; never guess), and "as_said": how he referred to the source if unnamed (e.g. "one commentator"), else null.
 Return ONLY JSON: [{{"unit": <n>, "text": "<exact quoted words>", "author": <name or null>, "work": <title or null>, "as_said": <phrase or null>}}]  (return [] if none)
 
@@ -345,6 +349,8 @@ Return ONLY JSON: [{{"unit": <n>, "text": "<exact quoted words>", "author": <nam
                 return bool(toks) and toks[-1].lower() in win
             au = c.get("author") if named(c.get("author")) else None
             wk = c.get("work") if (au and named(c.get("work"))) else None
+            why = "Scripture (biblical author)" if bible_person(c.get("author")) else why_excluded({"text": q, "author": au, "work": c.get("work"), "attributed": bool(au)}, raw, pos)
+            if why: log.info(f"quotes {r['key']}: dropped {q[:60]!r} ({why})"); continue
             unit = next((u["unit_index"] for u in units if q in norm(u["content"])), None)
             seen.append(q)
             ext.append({"text": q, "author": au, "work": wk, "attributed": bool(au), "as_said": None if au else (c.get("as_said") or "someone he quoted"),
