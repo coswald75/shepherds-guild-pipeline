@@ -8,6 +8,7 @@ double-processed). New rows are private: sermons.is_public=False, unlisted=True.
 dry=True does everything that costs nothing or is cached, and stops before any paid model call or
 DB write (no AssemblyAI, no decomposition, no ingest)."""
 from __future__ import annotations
+import re
 import json, re, time, uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,7 +165,10 @@ def run_church(st: State, church: dict, run: str, *, dry: bool = False, max_spen
         except Exception as e: m = {"preacher": None, "basis": f"identify failed: {e}"}  # noqa: E701
         cut = c.get("cut") or {}
         mp = m.get("preacher")
-        if mp and len(mp.split()) == 1:   # "Pastor Jeff" -> only trust a first name if it matches the lead pastor
+        # Strip a leading honorific so "Pastor Jeff" collapses to "Jeff" before matching.
+        if mp:
+            mp = re.sub(r"^(?:Pastor|Rev\.?|Reverend)\s+", "", mp, flags=re.I).strip() or mp
+        if mp and len(mp.split()) == 1:   # bare first name → only keep if it matches the lead pastor's first name
             mp = church["default_preacher"] if (church["default_preacher"] or "").split()[0].lower() == mp.lower() else None
         m["preacher"] = mp
         preacher = mp or cut.get("preacher") or src.get("preacher") or church["default_preacher"]
