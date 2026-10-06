@@ -25,6 +25,7 @@ REGION = f"/SGchurch/{config.REGION}"
 TRY = "https://try.sermonsteward.com/mw"
 FREE = "Free for Sovereign Grace Midwest/Northwest churches for at least the next year."
 ORDER = ["prov", "cog", "ccc", "gl", "ercsf", "ercb", "star", "clf"]
+# cog = Chaska only. Ricky / El Paso = cogep / CoGElPaso (SovereignGrace dashboard), never this key.
 SHORT = {"prov": "Providence · Lenexa", "cog": "Cross of Grace · Chaska", "ccc": "Cornerstone · Burnsville", "gl": "Grace Life · Hastings",
          "ercsf": "Emmaus Rd · Sioux Falls", "ercb": "Emmaus Rd · Bozeman", "star": "Center Church · Star", "clf": "Covenant Life · Roseburg"}
 h = lambda s: html.escape(str(s) if s is not None else "", quote=True)  # noqa: E731
@@ -100,12 +101,12 @@ def church_index(site: Path, ch: dict):
         items.append((f.stem[-10:], (t.group(1).split("·")[0].split("|")[0].strip() if t else f.stem), f.name))
     lis = "".join(f'<li><a href="sermons/{h(n)}">{h(t)}</a> <span>{h(datetime.date.fromisoformat(dt).strftime("%B %-d, %Y")) if re.match(r"\d{4}-\d\d-\d\d", dt) else ""}</span></li>' for dt, t, n in items)
     (d / "index.html").write_text(f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow"><title>{h(ch['church'])} · {h(ch['city'])} · Sermon Steward</title>
+<meta name="robots" content="noindex, nofollow"><title>{h(ch.get('index_name') or ch['church'])} · {h(ch['city'])} · Sermon Steward</title>
 <style>body{{margin:0;background:#fbf8f1;color:#1a1a1a;font-family:Inter,system-ui,sans-serif}} .w{{max-width:760px;margin:0 auto;padding:40px 24px}}
 h1{{font-family:'Source Serif 4',Georgia,serif;font-size:2.2rem;margin:6px 0}} .k{{font-size:13px;font-weight:700;color:#c4452f;letter-spacing:.06em;text-transform:uppercase}}
 ul{{list-style:none;padding:0}} li{{background:#fff;border:1px solid #e6e1d3;border-radius:12px;padding:14px 16px;margin:10px 0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}}
 li a{{font-family:'Source Serif 4',Georgia,serif;font-size:1.2rem;color:#1a1a1a;font-weight:600}} li span{{color:#828282;font-size:14px}} a{{color:#c4452f}}</style></head>
-<body><div class="w"><div class="k">Sovereign Grace Midwest/Northwest</div><h1>{h(ch['church'])}</h1><p>{h(ch['city'])}, {h(ch['state'])} · <a href="{h(ch['site'])}" rel="noopener">Church website</a> · <a href="{REGION}/">This week across the region</a></p>
+<body><div class="w"><div class="k">Sovereign Grace Midwest/Northwest</div><h1>{h(ch.get('index_name') or ch['church'])}</h1><p>{h(ch['city'])}, {h(ch['state'])} · <a href="{h(ch['site'])}" rel="noopener">Church website</a> · <a href="{REGION}/">This week across the region</a></p>
 <ul>{lis}</ul><p style="color:#828282;font-size:13px">Stewarded by Sermon Steward. Sermons belong to the church and preacher.</p></div></body></html>""")
 
 
