@@ -15,6 +15,7 @@ from datetime import date, datetime
 from pathlib import Path
 from jinja2 import Template
 from . import config
+from .titles import clean_title
 from .util import week_dir, week_slug, log
 
 import generate_sermon_report as gsr  # scripts/ is on sys.path (util)
@@ -59,6 +60,7 @@ def build(week: str, church: dict, sid: str, *, dry: bool = False, sample_articl
     d = week_dir(week) / church["key"]; d.mkdir(exist_ok=True)
     sb = gsr._supabase()
     sermon = gsr.load_sermon(sb, sid); units = gsr.load_units(sb, sid)
+    sermon = dict(sermon); sermon["title"] = clean_title(sermon.get("title"))  # no scripture in titles; slug/filename unchanged
     artifacts = gsr.load_artifacts(sb, sid); decomp = gsr.load_decomposed(sid)
     preacher = (sermon.get("preachers") or {}).get("name") or "—"
     facts = gsr.build_facts(sermon, units, decomp)
