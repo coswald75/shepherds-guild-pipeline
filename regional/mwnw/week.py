@@ -240,7 +240,7 @@ def dashboard(week, R, site: Path, n_total=8):
 <h2>The pulpits</h2>
 <p class="sub">Each card opens that church's stewarded sermon page. <b>People</b> view: reading plan, discussion questions, family and couples guides, memory verse. <b>Preacher</b> view: outline, homiletic analysis, and the full transcript. The color bar shows how the sermon's words split across exposition, theology, application, and illustration.</p>
 <div class="legend">{legend}</div>
-<div class="grid"><!-- region:hwsi-tile --><!-- /region:hwsi-tile -->{cards}</div>
+<div class="grid"><!-- region:hwsi-tile --><!-- /region:hwsi-tile -->{cards}</div><!-- region:hwsi-below --><!-- /region:hwsi-below -->
 
 <h2>{"Sovereign Grace sermons side by side" if config.REGION == "SovereignGrace" else "The region side by side"}</h2>
 <p class="sub">Every number below comes from the transcripts and from Sermon Steward's sermon breakdown, which splits each sermon into segments and tags each one. Derived figures are marked <b>(derived)</b>, and the method notes at the bottom explain each one.</p>
