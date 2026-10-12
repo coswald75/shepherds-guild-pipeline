@@ -638,6 +638,17 @@ def deploy_rendered(sermon_ids: list[str]) -> None:
     live — hence every one needing a manual deploy. Called from finish_batch."""
     if not sermon_ids:
         return
+    # Safety gate (2026-10-12, Studio port): deploy_sermon_pages.py rebuilds
+    # every church's browse indexes from local data, which on the Studio
+    # diverged from prod (e.g. Providence Romans 205 -> 180, and it rewrites
+    # Cross of Grace indexes too). Until that is scoped, scheduled runs stop
+    # at render. Set SS_AUTO_DEPLOY=true to restore the old behaviour.
+    if os.environ.get("SS_AUTO_DEPLOY") != "true":
+        log.warning(
+            f"  [stage 8] DEPLOY SKIPPED (SS_AUTO_DEPLOY!=true): {len(sermon_ids)} "
+            f"rendered page(s) need a manual, scoped deploy: {','.join(sermon_ids)}"
+        )
+        return
     cmd = [sys.executable, str(REPO_ROOT / "scripts" / "deploy_sermon_pages.py"),
            "--sermon-ids", ",".join(sermon_ids)]
     log.info(f"  [stage 8] publishing {len(sermon_ids)} page(s) live …")
