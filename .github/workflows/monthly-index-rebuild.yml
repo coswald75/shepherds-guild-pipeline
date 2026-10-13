@@ -1,0 +1,90 @@
+# Monthly full rebuild of each church's sermon listings (main list, Scripture,
+# doctrine, series). Commits to sermon-steward main (which auto-deploys) only
+# when no listing of that church lost a sermon. A shrink fails the run so the
+# failure email reaches Chris, and that church's listings are left as they were.
+#
+# GitHub Actions cron is UTC and ignores daylight saving time.
+# 1st of the month, 4:00am CDT = 09:00 UTC. After the November switch the
+# same cron runs at 3:00am CST, which is fine for this job.
+#
+# A hand run defaults to dry run: it rebuilds and reports, but commits nothing.
+
+name: Monthly listing rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Rebuild and report only. Uncheck to commit and deploy."
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 9 1 * *"
+
+concurrency:
+  group: sermon-pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Rebuild ${{ matrix.church.slug }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        church:
+          - { slug: providence-community-church, dir: ProvidenceLenexa }
+          - { slug: cross-of-grace-church, dir: CoGElPaso }
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SERMON_STEWARD_REPO: ${{ github.workspace }}/sermon-steward
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: python -m pip install -r requirements.txt
+
+      - name: Check out sermon-steward
+        uses: actions/checkout@v4
+        with:
+          repository: coswald75/sermon-steward
+          token: ${{ secrets.SERMON_STEWARD_PUSH_TOKEN }}
+          path: sermon-steward
+
+      - name: Rebuild listings (refuses to shrink)
+        run: python scripts/build_church_indexes.py --no-shrink --church-slug "${{ matrix.church.slug }}"
+
+      - name: Commit if anything changed
+        working-directory: sermon-steward
+        env:
+          DIR: ${{ matrix.church.dir }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          outside="$(git status --porcelain --untracked-files=all | grep -v " ${DIR}/" || true)"
+          if [ -n "${outside}" ]; then
+            echo "Refusing: changes outside ${DIR}/:"; echo "${outside}"; exit 1
+          fi
+          if [ -z "$(git status --porcelain -- "${DIR}")" ]; then
+            echo "No listing changes for ${DIR}."; exit 0
+          fi
+          git diff --stat -- "${DIR}" | tail -1
+          if [ "${DRY_RUN}" = "true" ]; then
+            echo "Dry run: not committing."; exit 0
+          fi
+          git config user.name "Sermon Steward pipeline"
+          git config user.email "chris@sovgracekc.org"
+          git add -- "${DIR}"
+          git commit -m "Monthly listing rebuild: ${DIR} ($(date -u +%Y-%m))"
+          git push origin HEAD:main
