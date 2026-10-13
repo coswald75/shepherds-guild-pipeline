@@ -14,6 +14,7 @@ dashboard: /SGchurch/MidwestNorthwest/<M-D-YY>/index.html in the live 9-27-26 de
            region markers that scripts/sg-region/build.mjs fills. Churches that are MISSING are left out.
 """
 from __future__ import annotations
+from .scripture import is_scripture
 import argparse, collections, datetime, glob, html, json, os, re, shutil, subprocess
 from pathlib import Path
 from . import config
@@ -341,6 +342,8 @@ Return ONLY JSON: [{{"unit": <n>, "text": "<exact quoted words>", "author": <nam
                 return bool(toks) and toks[-1].lower() in win
             au = c.get("author") if named(c.get("author")) else None
             wk = c.get("work") if (au and named(c.get("work"))) else None
+            why = is_scripture(q, au or c.get("author"), wk or c.get("work"))
+            if why: log.info(f"quotes {r['key']}: dropped Scripture ({why}): {q[:60]}"); seen.append(q); continue
             unit = next((u["unit_index"] for u in units if q in norm(u["content"])), None)
             seen.append(q)
             ext.append({"text": q, "author": au, "work": wk, "attributed": bool(au), "as_said": None if au else (c.get("as_said") or "someone he quoted"),
