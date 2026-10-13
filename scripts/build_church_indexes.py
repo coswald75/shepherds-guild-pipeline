@@ -13,6 +13,7 @@ Surfaces emitted per church:
 
 from __future__ import annotations
 
+import argparse
 import html
 import math
 import os
@@ -677,6 +678,7 @@ def _gather_books_for_church(
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
         .not_.is_("slug", "null")
+        .order("id")
         .execute().data or []
     )
 
@@ -702,6 +704,7 @@ def _gather_books_for_church(
                 sb.table("units")
                 .select("id, sermon_id")
                 .in_("sermon_id", sermon_ids[i:i + CHUNK])
+                .order("id")
                 .range(offset, offset + 999)
                 .execute().data or []
             )
@@ -724,6 +727,7 @@ def _gather_books_for_church(
                 .select("unit_id, reference")
                 .in_("unit_id", all_unit_ids[i:i + UCHUNK])
                 .not_.is_("reference", "null")
+                .order("id")
                 .range(offset, offset + 999)
                 .execute().data or []
             )
@@ -1126,6 +1130,7 @@ def _gather_loci_for_church(
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
         .not_.is_("slug", "null")
+        .order("id")
         .execute().data or []
     )
     sermons = [s for s in sermons if (sermons_dir / f"{s['slug']}.html").exists()]
@@ -1142,6 +1147,7 @@ def _gather_loci_for_church(
                 sb.table("units")
                 .select("sermon_id, doctrinal_loci")
                 .in_("sermon_id", sermon_ids[i:i + CHUNK])
+                .order("id")
                 .range(offset, offset + 999)
                 .execute().data or []
             )
@@ -1314,18 +1320,79 @@ def _render_doctrine_surface(
     return pages_written
 
 
-def main() -> int:
+# ── Shrink guard ─────────────────────────────────────────────────────────
+# A listing is a directory of index.html pages (main list, each book, each
+# locus, each series). Its sermon set is every sermon page linked from it.
+_SERMON_LINK = re.compile(
+    r'href="[^"]*?/sermons/([a-z0-9-]+-\d{4}-\d{2}-\d{2})(?:\.html)?/?"'
+)
+
+
+def _listing_key(rel: str) -> str:
+    rel = re.sub(r"(^|/)page/\d+/index\.html$", "", rel)
+    rel = re.sub(r"(^|/)index\.html$", "", rel)
+    return rel or "/"
+
+
+def snapshot_listings(url_slug: str) -> dict[str, set[str]]:
+    """Map listing key -> set of sermon slugs, read from the HTML on disk."""
+    root = SERMON_STEWARD_REPO / url_slug / "sermons"
+    out: dict[str, set[str]] = defaultdict(set)
+    if not root.exists():
+        return out
+    for f in root.rglob("index.html"):
+        key = _listing_key(str(f.relative_to(root)))
+        out[key].update(_SERMON_LINK.findall(f.read_text(encoding="utf-8", errors="replace")))
+    return out
+
+
+def shrunk_listings(before: dict[str, set[str]], after: dict[str, set[str]]) -> dict[str, list[str]]:
+    """Listings that lost at least one sermon, with the lost slugs."""
+    return {k: sorted(v - after.get(k, set())) for k, v in before.items() if v - after.get(k, set())}
+
+
+def _parse_args(argv=None):
+    ap = argparse.ArgumentParser(description="Rebuild per-church sermon listings.")
+    ap.add_argument("--church-slug", action="append", default=[],
+                    help="Only rebuild this church (churches.slug). Repeatable. Default: all.")
+    ap.add_argument("--no-shrink", action="store_true",
+                    help="If any listing of a church would lose a sermon, put that church's "
+                         "folder back exactly as it was and exit 3.")
+    return ap.parse_args(argv)
+
+
+def main(argv=None) -> int:
+    args = _parse_args(argv)
     sb = q.get_supabase()
 
     # Single query: pull churches with their sermons + artifact-bundle counts.
     churches = (
         sb.table("churches")
-        .select("id, name, url_slug, address")
+        .select("id, name, slug, url_slug, address")
         .in_("id", CHURCH_IDS)
         .execute()
         .data
         or []
     )
+    if args.church_slug:
+        wanted = set(args.church_slug)
+        unknown = wanted - {c.get("slug") for c in churches}
+        if unknown:
+            print(f"Unknown church slug(s): {', '.join(sorted(unknown))}", file=sys.stderr)
+            return 2
+        churches = [c for c in churches if c.get("slug") in wanted]
+
+    # Snapshot each church's folder so a shrinking rebuild can be undone.
+    backups: dict[str, tuple[dict[str, set[str]], Path | None]] = {}
+    if args.no_shrink:
+        import tempfile
+        tmp = Path(tempfile.mkdtemp(prefix="index-backup-"))
+        for c in churches:
+            src = SERMON_STEWARD_REPO / c["url_slug"] / "sermons"
+            dst = tmp / c["url_slug"]
+            if src.exists():
+                shutil.copytree(src, dst)
+            backups[c["url_slug"]] = (snapshot_listings(c["url_slug"]), dst if src.exists() else None)
 
     # For each church, pull its preachers' sermons with full 6-artifact bundles.
     preachers = (
@@ -1353,6 +1420,7 @@ def main() -> int:
             .not_.is_("slug", "null")
             .order("date", desc=True)
             .order("title")
+            .order("id")
             .execute()
             .data
             or []
@@ -1535,6 +1603,31 @@ def main() -> int:
             f"{series_pages} pages)"
         )
 
+    if args.no_shrink:
+        refused = False
+        for c in churches:
+            before, backup = backups[c["url_slug"]]
+            lost = shrunk_listings(before, snapshot_listings(c["url_slug"]))
+            if not lost:
+                print(f"{c['url_slug']}: no listing lost a sermon.")
+                continue
+            refused = True
+            print(f"{c['url_slug']}: {len(lost)} listing(s) would lose sermons; "
+                  "restoring the previous folder.", file=sys.stderr)
+            for k, slugs in sorted(lost.items()):
+                print(f"  {k}: -{len(slugs)} ({', '.join(slugs[:5])}{' …' if len(slugs) > 5 else ''})",
+                      file=sys.stderr)
+            target = SERMON_STEWARD_REPO / c["url_slug"] / "sermons"
+            # Only listing directories are rebuilt; sermon pages (*.html/*.png at
+            # the top of sermons/) are left alone.
+            for sub in ("page", "scripture", "doctrine", "series"):
+                shutil.rmtree(target / sub, ignore_errors=True)
+                if backup and (backup / sub).exists():
+                    shutil.copytree(backup / sub, target / sub)
+            if backup and (backup / "index.html").exists():
+                shutil.copy2(backup / "index.html", target / "index.html")
+        if refused:
+            return 3
     return 0
 
 
