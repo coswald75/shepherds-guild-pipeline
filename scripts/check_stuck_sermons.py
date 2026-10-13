@@ -16,6 +16,10 @@ and any of these is true, and the relevant timestamp is at least a day old:
   * it is decomposed, but last_rendered_at is empty, so the page was never
     rendered and therefore was not published
 
+Only sermons dated within the last STUCK_LOOKBACK_DAYS days (default 30) are
+checked, so older archive rows are ignored. Sermons with publish_hold set are
+skipped. They are never meant to be published.
+
 --workflow-failure sends a short note about a failed Actions run instead of
 querying Supabase. The run link is the --run-url argument.
 """
@@ -35,6 +39,15 @@ CHRIS_EMAIL = "chris@sovgracekc.org"
 RESEND_URL = "https://api.resend.com/emails"
 STUCK_AFTER = timedelta(hours=24)
 EXPECTED_ARTIFACTS = 5
+DEFAULT_LOOKBACK_DAYS = 30
+
+
+def _lookback_days() -> int:
+    raw = (os.environ.get("STUCK_LOOKBACK_DAYS") or "").strip()
+    try:
+        return int(raw) if raw else DEFAULT_LOOKBACK_DAYS
+    except ValueError:
+        return DEFAULT_LOOKBACK_DAYS
 _SECRET_RE = re.compile(r"(re_[A-Za-z0-9]+|Bearer\s+\S+)")
 
 
@@ -124,6 +137,7 @@ def _page(query, page_size: int = 1000) -> list[dict]:
 def find_stuck(now: datetime | None = None) -> list[str]:
     """Return plain-language lines for stalled sermons. Read-only."""
     now = now or datetime.now(timezone.utc)
+    since = (now - timedelta(days=_lookback_days())).date().isoformat()
     sb = _supabase()
     churches = sb.table("churches").select("id, name").eq("auto_publish", True).execute().data or []
     if not churches:
@@ -145,9 +159,11 @@ def find_stuck(now: datetime | None = None) -> list[str]:
         sermons.extend(_page(
             sb.table("sermons").select(
                 "id, title, date, created_at, audio_url, hosted_audio_url, "
-                "decomposed_at, last_rendered_at, preacher_id"
-            ).in_("preacher_id", chunk)
+                "decomposed_at, last_rendered_at, preacher_id, publish_hold"
+            ).in_("preacher_id", chunk).gte("date", since)
         ))
+    # publish_hold rows are never meant to be published, so they are not stuck.
+    sermons = [s for s in sermons if not s.get("publish_hold")]
 
     decomposed_ids = [s["id"] for s in sermons if s.get("decomposed_at")]
     artifacts: dict[str, set[str]] = {sid: set() for sid in decomposed_ids}

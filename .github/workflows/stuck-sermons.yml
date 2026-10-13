@@ -64,6 +64,8 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          # Days back to check; empty means the script default (30).
+          STUCK_LOOKBACK_DAYS: ${{ vars.STUCK_LOOKBACK_DAYS }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
