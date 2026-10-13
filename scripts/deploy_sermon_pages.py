@@ -289,15 +289,35 @@ def copy_and_collect(sermons: list[dict], dry_run: bool) -> tuple[list[Path], li
     return paths_touched, skipped
 
 
-def rebuild_church_indexes(dry_run: bool) -> None:
-    """Re-run build_church_indexes.py so the listings reflect the new pages."""
-    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "build_church_indexes.py")]
+def published_church_slugs(sermons: list[dict], paths_touched: list[Path]) -> list[str]:
+    """Church slugs whose folder received a copied page in this run."""
+    touched = {str(p.relative_to(SS_REPO)).split("/", 1)[0] for p in paths_touched}
+    slugs = set()
+    for s in sermons:
+        slug = s["preachers"]["churches"]["slug"]
+        if CHURCH_DIR.get(slug) in touched:
+            slugs.add(slug)
+    return sorted(slugs)
+
+
+def rebuild_church_indexes(dry_run: bool, church_slugs: list[str]) -> None:
+    """Rebuild listings for the churches just published, and only those.
+
+    --no-shrink makes the builder put a church's listings back as they were if
+    any listing would lose a sermon (exit 3). A new sermon only ever adds.
+    """
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "build_church_indexes.py"), "--no-shrink"]
+    for slug in church_slugs:
+        cmd += ["--church-slug", slug]
     if dry_run:
         log.info(f"  WOULD RUN   {' '.join(cmd)}")
         return
-    log.info(f"  rebuilding church index pages …")
+    log.info(f"  rebuilding index pages for {', '.join(church_slugs)} …")
     r = subprocess.run(cmd, cwd=REPO_ROOT)
-    if r.returncode != 0:
+    if r.returncode == 3:
+        log.warning("  a listing would have lost sermons; previous listings kept "
+                    "(the new page is published, but may be missing from lists until the monthly rebuild)")
+    elif r.returncode != 0:
         log.warning(f"  build_church_indexes.py exited with {r.returncode} — continuing")
 
 
@@ -308,6 +328,7 @@ def commit_and_push(
     dry_run: bool,
     no_commit: bool,
     no_push: bool,
+    church_dirs: list[str],
 ) -> None:
     if dry_run or no_commit:
         log.info(f"  WOULD commit {len(paths_touched)} paths and {'push' if not no_push else 'skip push'}")
@@ -315,9 +336,18 @@ def commit_and_push(
     rels = sorted({str(p.relative_to(SS_REPO)) for p in paths_touched})
     # Also include index/listing pages that build_church_indexes might have touched.
     # Pass through to git add: tell it to pick up any modifications in the church dirs.
-    add_args = ["add", *rels]
-    for d in CHURCH_DIR.values():
-        add_args.append(d)
+    # Refuse if anything changed outside the folders of the churches published.
+    status = _git(["status", "--porcelain", "--untracked-files=all"], cwd=SS_REPO).stdout
+    outside = [
+        line[3:] for line in status.splitlines()
+        if line.strip() and not any(line[3:].strip('"').startswith(d + "/") for d in church_dirs)
+    ]
+    if outside:
+        raise RuntimeError(
+            f"refusing to commit: {len(outside)} change(s) outside {', '.join(church_dirs)}: "
+            + ", ".join(outside[:10])
+        )
+    add_args = ["add", *rels, *church_dirs]
     _git(add_args, cwd=SS_REPO, check=False)
     status = _git(["status", "--porcelain"], cwd=SS_REPO).stdout
     if not status.strip():
@@ -441,7 +471,9 @@ def main() -> int:
         log.info("No files were copied; nothing to commit. (indexes left untouched)")
         return 0
 
-    rebuild_church_indexes(dry_run=args.dry_run)
+    church_slugs = published_church_slugs(sermons, paths_touched)
+    church_dirs = [CHURCH_DIR[s] for s in church_slugs]
+    rebuild_church_indexes(dry_run=args.dry_run, church_slugs=church_slugs)
 
     message = args.message or (
         f"Deploy {len(paths_touched)} sermon page(s) — "
@@ -454,6 +486,7 @@ def main() -> int:
         dry_run=args.dry_run,
         no_commit=args.no_commit,
         no_push=args.no_push,
+        church_dirs=church_dirs,
     )
 
     # Publish for real: the git push above does not deploy the Cloudflare Worker.
