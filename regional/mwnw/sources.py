@@ -146,7 +146,8 @@ def youtube(church: dict, week: str) -> dict | None:
 # ── Grace Life (WordPress resource pages; the resource feed has no enclosures) ──
 def gracelife(church: dict, week: str) -> dict | None:
     d, lo, hi = sunday_window(week)
-    tok = f"{d.month}-{d.day}-{d.strftime('%y')}"
+    # Grace Life has named files both ways: Chad-Haygood-9-27-26.mp3 and Chad-Haygood-2026-10-18.mp3.
+    toks = (f"{d.month}-{d.day}-{d.strftime('%y')}", d.isoformat())
     listing = http_get(church["gracelife"]).text
     links = []
     for href in re.findall(r'href="(https://www\.gracelifene\.org/resource/[a-z0-9-]+/)"', listing):
@@ -155,7 +156,7 @@ def gracelife(church: dict, week: str) -> dict | None:
     for href in links[:8]:
         page = http_get(href).text
         mp3s = re.findall(r'https://[^"\'\s<>]+\.mp3', page)
-        hit = next((u for u in mp3s if re.search(rf"(?<!\d){re.escape(tok)}(?!\d)", u)), None)
+        hit = next((u for u in mp3s if any(re.search(rf"(?<!\d){re.escape(t)}(?!\d)", u) for t in toks)), None)
         if not hit: continue
         t = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S) or re.search(r"<title>(.*?)</title>", page, re.S)
         title = htmlmod.unescape(re.sub(r"<[^>]+>", "", t.group(1))).split("|")[0].split(" – ")[0].strip() if t else None
