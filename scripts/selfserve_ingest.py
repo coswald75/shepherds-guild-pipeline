@@ -42,12 +42,14 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html as html_lib
 import json
 import logging
 import os
 import re
 import subprocess
 import sys
+import textwrap
 import uuid
 from datetime import date as date_cls, datetime
 from pathlib import Path
@@ -229,16 +231,50 @@ def generate_report(sermon_id: str) -> Path:
 
 # ── email (Resend) ───────────────────────────────────────────────────────────
 
-def email_template(name: str, title: str, cohort_label: Optional[str] = None) -> tuple[str, str]:
-    first = name.split()[0] if name else "there"
+# Leading honorifics skipped when greeting by first name, so "Pastor John Smith"
+# gets "John," rather than "Pastor,".
+_TITLE_WORDS = {"pastor", "pr", "ps", "rev", "reverend", "revd", "dr", "doctor",
+                "elder", "bishop", "minister", "father", "fr", "brother", "bro",
+                "mr", "mrs", "ms", "miss", "the"}
+
+# Where replies to the report email go (Reply-To) and the address named in the
+# PDF's closing line. Override with SELFSERVE_REPLY_TO in .env.
+DEFAULT_REPLY_TO = "chris@sovgracekc.org"
+
+
+def reply_to_address() -> str:
+    return (os.environ.get("SELFSERVE_REPLY_TO") or DEFAULT_REPLY_TO).strip()
+
+
+def greeting_name(name: Optional[str]) -> str:
+    """First name for the greeting, skipping leading titles (Pastor, Rev., Dr. …).
+    Falls back to the full name if every word is a title, or "there" if blank."""
+    words = (name or "").split()
+    if not words:
+        return "there"
+    rest = list(words)
+    while rest and rest[0].strip(".,").lower() in _TITLE_WORDS:
+        rest.pop(0)
+    return rest[0].strip(",") if rest else " ".join(words)
+
+
+def email_template(name: str, title: str, cohort_label: Optional[str] = None,
+                   has_transcript: bool = True) -> tuple[str, str]:
+    esc = lambda v: html_lib.escape(str(v or ""), quote=True)  # noqa: E731
+    first = esc(greeting_name(name))
     subject = f"Your Sermon Steward report — {title}"
-    free_line = (f"<p>This report is free as part of the {cohort_label} offer.</p>\n"
+    free_line = (f"<p>This report is free as part of the {esc(cohort_label)} offer.</p>\n"
                  if cohort_label else "")
+    attached = ("the report attached as a PDF, along with the full transcript as a text file"
+                if has_transcript else "the report attached as a PDF")
+    transcript_li = ("  <li>The full <strong>transcript</strong> of the sermon, as a plain-text file "
+                     "you can read, search, or paste into any AI tool.</li>\n"
+                     if has_transcript else "")
     body = f"""<div style="font-family:Georgia,serif;font-size:15px;color:#1a1a2e;line-height:1.55;max-width:560px">
 <p>{first},</p>
 <p>Thank you for trying Sermon Steward. We took the sermon you uploaded
-&mdash; <strong>&ldquo;{title}&rdquo;</strong> &mdash; transcribed it, studied it,
-and turned it into the report attached as a PDF.</p>
+&mdash; <strong>&ldquo;{esc(title)}&rdquo;</strong> &mdash; transcribed it, studied it,
+and turned it into {attached}.</p>
 {free_line}<p>Inside you'll find:</p>
 <ul>
   <li>A plain-English <strong>summary</strong> of the sermon.</li>
@@ -246,7 +282,8 @@ and turned it into the report attached as a PDF.</p>
   <li><strong>Writing prompts, one per point</strong> &mdash; concepts from each main point to explore in your own reading and writing.</li>
   <li>A <strong>sample article in your own voice</strong>, drafted from one of those prompts.</li>
   <li><strong>Resources for your people</strong> &mdash; small-group questions, daily readings, a family prompt, a guide for couples, and a memory verse.</li>
-</ul>
+{transcript_li}</ul>
+<p><strong>Questions, or want this every Sunday? Just reply to this email &mdash; it comes straight to me.</strong></p>
 <p>If this is useful, the best thanks is a word to a friend &mdash; do you know any
 other pastors who'd love to see their preaching stewarded this way? I'd be glad
 to make them one too.</p>
@@ -255,20 +292,76 @@ to make them one too.</p>
     return subject, body
 
 
-def send_email(to: str, subject: str, html: str, pdf_path: Path) -> bool:
+# ── transcript attachment ────────────────────────────────────────────────────
+
+_SENT_SPLIT = re.compile(r"(?:(?<=[.!?])|(?<=[.!?][\"”’']))\s+(?=[\"“‘'(]?[A-Z0-9])")
+
+
+def format_transcript_txt(transcript: str, title: str, sdate: Optional[str],
+                          preacher: Optional[str], church: Optional[str]) -> str:
+    """Plain-text transcript: a short header, then the text broken into readable
+    paragraphs (~5 sentences / ~700 chars) wrapped at 78 columns."""
+    text = re.sub(r"\s+", " ", (transcript or "").replace("\x00", "")).strip()
+    sentences = [x for x in _SENT_SPLIT.split(text) if x.strip()]
+    paras, cur = [], []
+    for sent in sentences:
+        cur.append(sent.strip())
+        if len(cur) >= 5 or sum(len(c) for c in cur) >= 700:
+            paras.append(" ".join(cur)); cur = []
+    if cur:
+        paras.append(" ".join(cur))
+    try:
+        date_h = datetime.strptime(str(sdate)[:10], "%Y-%m-%d").strftime("%B %-d, %Y") if sdate else ""
+    except Exception:
+        date_h = str(sdate or "")
+    byline = " · ".join(x for x in (preacher, church, date_h) if x)
+    header = [title or "Sermon transcript"]
+    if byline:
+        header.append(byline)
+    header.append("Transcript by Sermon Steward (automatic speech-to-text; may contain small errors)")
+    rule = "=" * 78
+    body = "\n\n".join(textwrap.fill(p, width=78) for p in paras)
+    return "\n".join(header) + "\n" + rule + "\n\n" + body + "\n"
+
+
+def write_transcript_txt(pdf_path: Path, transcript: str, title: str, sdate: Optional[str],
+                         preacher: Optional[str], church: Optional[str]) -> Optional[Path]:
+    """Write <report-slug>-transcript.txt beside the PDF. Best-effort: a failure
+    here must never block the report email."""
+    try:
+        txt = format_transcript_txt(transcript, title, sdate, preacher, church)
+        out = pdf_path.with_name(f"{pdf_path.stem}-transcript.txt")
+        out.write_text(txt, encoding="utf-8")
+        return out
+    except Exception as e:  # pragma: no cover
+        log.warning(f"  transcript .txt not written (continuing): {e}")
+        return None
+
+
+def send_email(to: str, subject: str, html: str, pdf_path: Path,
+               extra_files: Optional[list[Path]] = None) -> bool:
     key = os.environ.get("RESEND_API_KEY")
     sender = os.environ.get("RESEND_FROM", "Sermon Steward <reports@sermonsteward.com>")
     if not key:
         log.warning("  RESEND_API_KEY not set — email NOT sent (report still generated)")
         return False
-    pdf_b64 = base64.b64encode(pdf_path.read_bytes()).decode()
+    attachments = [{"filename": pdf_path.name,
+                    "content": base64.b64encode(pdf_path.read_bytes()).decode()}]
+    for f in extra_files or []:
+        if f and f.exists():
+            attachments.append({"filename": f.name,
+                                "content": base64.b64encode(f.read_bytes()).decode()})
+    payload = {"from": sender, "to": [to], "subject": subject, "html": html,
+               "attachments": attachments}
+    reply_to = reply_to_address()
+    if reply_to:
+        payload["reply_to"] = reply_to
     r = requests.post("https://api.resend.com/emails",
                       headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                      json={"from": sender, "to": [to], "subject": subject, "html": html,
-                            "attachments": [{"filename": pdf_path.name, "content": pdf_b64}]})
+                      json=payload)
     if r.status_code >= 300:
         raise RuntimeError(f"Resend {r.status_code}: {r.text[:300]}")
-    log.info(f"  email sent to {to} (id={r.json().get('id')})")
+    log.info(f"  email sent to {to} (id={r.json().get('id')}, attachments={len(attachments)})")
     return True
 
 
@@ -381,11 +474,18 @@ def run_job(job_id: str, audio_source: str, no_email: bool = False) -> dict:
         pdf = generate_report(sermon_id)
         log.info(f"  report → {pdf}")
 
+        # 5b. transcript as a plain .txt beside the PDF (the try page promises
+        #     "AI-ready transcripts")
+        txt = write_transcript_txt(pdf, transcript, title, sdate, name, church_name)
+        if txt:
+            log.info(f"  transcript → {txt} ({txt.stat().st_size:,} bytes)")
+
         # 6. email
         emailed_at = None
         if not no_email:
-            subject, html = email_template(name, title, cohort_label(cohort))
-            if send_email(email, subject, html, pdf):
+            subject, html = email_template(name, title, cohort_label(cohort),
+                                           has_transcript=bool(txt))
+            if send_email(email, subject, html, pdf, extra_files=[txt] if txt else None):
                 emailed_at = datetime.utcnow().isoformat() + "Z"
 
         set_status(sb, job_id, "done", sermon_id=sermon_id,
