@@ -3,6 +3,7 @@
 
 # Pipeline output (reproducible from scripts + Supabase has the data)
 output/
+t1_output/
 
 # Python
 __pycache__/

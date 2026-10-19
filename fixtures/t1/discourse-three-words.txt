@@ -1,0 +1,39 @@
+Title: Three Gospel Words
+Preacher: Fixture Preacher
+
+This fixture is original test copy. It has no markdown headings. It signals
+movements the way many oral sermons do: first, second, finally. The T1
+chapterer should split on those discourse markers and record character
+offsets.
+
+We are looking at a short stretch of Romans that the Reformers treated as a
+doorway into the gospel. Paul is not stacking slogans. He is naming the
+rescue God has accomplished in Christ and the status that rescue confers.
+Before the three words, remember the problem: all have sinned and fall short
+of the glory of God. The need is not cosmetic. The need is redemption.
+
+First, we need redemption. Redemption is an old marketplace word. It means a
+price is paid to buy someone out of bondage. Paul is not talking only about
+money. He is talking about guilt and the false masters we serve to quiet that
+guilt. Career, romance, reputation — good gifts become slaveholders when they
+have to justify our existence. If a boss can fire you, that is one kind of
+power. If a master can beat you without remainder, that is another. Many of
+us are polite on Sunday and still owned by something that has no boundaries.
+Redemption says someone from outside has paid the debt we could not pay.
+
+Second, God presented Christ as a propitiation. Older English used that word;
+newer translations say sacrifice of atonement. The point is the same. God’s
+settled opposition to evil is not crankiness. Love that will not be angry at
+what destroys the beloved is indifference, and indifference is not holy.
+Forgiveness always costs someone. Either the wrongdoer pays or the injured
+party bears the loss. At the cross God does not send a third party to soothe
+an irritable deity. God himself, in the Son, bears the cost. That is why the
+grammar matters: God presented Christ. The Trinity keeps this from becoming
+pagan appeasement.
+
+Finally, the result is justification. Forgiveness says you may go; you are no
+longer liable. Justification says you may come; you are welcome. It is a
+status with rights attached, not merely a vacated penalty. Faith does not
+earn that status. Faith receives it. Works of the law cannot purchase it.
+The T1 path stops here: three searchable chunks, no Sonnet unit graph. When
+a product event funds T2, promote this file through pipeline.py decompose.

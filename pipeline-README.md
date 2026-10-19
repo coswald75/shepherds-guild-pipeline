@@ -98,3 +98,17 @@ For the full Guild Hall (330 sermons): ~$100-135
 2. Review the JSON — check rhetorical function assignments, citation tier accuracy, BT moves
 3. If quality is good, run `ingest` command to embed and write to database
 4. If quality needs work, adjust the spec or transcript and re-decompose
+
+## T1 cheap structure (opt-in POC)
+
+Unpaid bulk ingest (public libraries, long church corpora, future Sermon Audit)
+should **not** run this T2 decompose by default. Use the separate T1 path:
+
+```bash
+python t1_ingest.py batch fixtures/t1
+```
+
+That writes chapters, a keyword index, and **provisional preaching-style
+labels** (heuristics, $0) to `t1_output/`. It does **not** call Anthropic.
+Weekly/paid ingest is unchanged. Cost model, style axes, promote stub, and
+why AssemblyAI chaptering is not the default chunker: **`t1-README.md`**.

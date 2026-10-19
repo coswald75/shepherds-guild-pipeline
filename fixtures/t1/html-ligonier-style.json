@@ -1,0 +1,11 @@
+{
+  "id": "fixture-html-headings",
+  "title": "The Sign of Jonah",
+  "contributor": "Fixture Preacher",
+  "description": "HTML transcript shaped like a Ligonier scrape. Tests T1 html-to-text + heading chunks.",
+  "transcript": "<p>Let us open Luke 11. This fixture is original test copy with Ligonier-like markup.</p><h4>Receiving a Greater Blessing</h4><p>A woman blessed the womb that bore Jesus. He answered that those who hear the word of God and keep it are more blessed. Privilege is not faith. Obedience is the test of hearing.</p><h4>A Generation that Demanded a Sign</h4><p>This generation seeks a sign. No sign will be given except the sign of Jonah. The Ninevites repented. The queen of the South came for wisdom. A greater than Jonah and Solomon is here.</p><h4>The Light of the World</h4><p>No one lights a lamp and hides it. If your eye is good, your body is full of light. Take heed that the light in you is not darkness. Christ is the light; without him the whole life is dark.</p>",
+  "topics": ["Luke", "Signs"],
+  "bibleReferences": [{"text": "Luke 11:27-36"}],
+  "duration": 300,
+  "sourceUrl": "https://example.invalid/sermons/sign-of-jonah-fixture"
+}

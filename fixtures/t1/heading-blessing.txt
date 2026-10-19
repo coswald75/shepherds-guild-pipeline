@@ -1,0 +1,43 @@
+Title: Hearing and Keeping the Word
+Preacher: Fixture Preacher
+
+The congregation has just heard Luke 11:27–36. This fixture is original test
+copy for the T1 ingest path. It uses markdown headings the way Ligonier-style
+transcripts mark movements, so the local chapterer can split without an API.
+
+## A greater blessing than Mary
+
+A woman in the crowd blessed the mother of Jesus. Our Lord did not deny her
+honor. He redirected the blessing. Blessed rather are those who hear the word
+of God and keep it. Hearing without keeping is a kind of unbelief. Keeping
+without hearing is a kind of zeal without knowledge. The church is formed by
+both: the ear that receives Scripture and the life that obeys it.
+
+This is not a small pastoral aside. It is the hinge of the passage. Privilege
+of proximity to Jesus is not the same as faith. Mary’s blessedness is real,
+and still Jesus says there is a blessedness offered to every hearer who
+receives the word and does it.
+
+## An evil generation seeks a sign
+
+Jesus calls his generation evil because it demands a sign after signs have
+already been given. The demand sounds pious. It is often unbelief wearing a
+lab coat. If God would only prove himself on my terms, then I would believe.
+The Ninevites repented at the preaching of Jonah. The queen of the South
+traveled to hear Solomon’s wisdom. A greater than Jonah and Solomon is here.
+
+The sign of Jonah is not a parlor trick. It is death and resurrection. God
+has already given the public, historical sign the church proclaims every
+Sunday. To keep asking for a private miracle is to ignore the empty tomb.
+
+## Light on a lampstand
+
+No one lights a lamp and hides it. The eye is the lamp of the body. If the
+eye is clear, the whole body is full of light. If the eye is dark, how great
+is that darkness. Jesus is not giving an optometry lecture. He is talking
+about perception of the kingdom. A generation can stand in daylight and still
+walk in the dark if it refuses the word.
+
+Take heed, then, that the light in you is not darkness. The T1 index only
+needs this movement labeled so a later search for “sign of Jonah” or
+“lampstand” can find the right span. Deep doctrinal loci wait for T2.
