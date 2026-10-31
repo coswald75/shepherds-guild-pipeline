@@ -90,10 +90,67 @@ const RPC_METHOD_NOT_FOUND = -32601;
 const RPC_INVALID_PARAMS = -32602;
 const RPC_INTERNAL_ERROR = -32603;
 
+
+// ─── Per-church private connector keys ──────────────────────────────────
+// Private church corpora require a long, unguessable key in the connector
+// URL: /p/<slug>/<key>, /c/<church-slug>/<key>, or ?key=<key>. Keys live
+// only in Worker secrets (never in the repo). A protected path whose secret
+// is unset fails closed (503) rather than falling back to public access.
+// Guild Hall (/g) and historical preachers stay public.
+const PROTECTED_SCOPES: Record<string, string> = {
+  "p/chris-oswald": "MCP_KEY_PROVIDENCE",
+  "c/providence-community-church": "MCP_KEY_PROVIDENCE",
+  "p/ricky-alcantar": "MCP_KEY_CROSS_OF_GRACE",
+  "c/cross-of-grace-church": "MCP_KEY_CROSS_OF_GRACE",
+};
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  let diff = ab.length ^ bb.length;
+  const n = Math.max(ab.length, bb.length);
+  for (let i = 0; i < n; i++) diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
+  return diff === 0;
+}
+
+function keyGateResponse(status: number, message: string): Response {
+  return jsonResponse(
+    { jsonrpc: "2.0", id: null, error: { code: -32001, message } },
+    status,
+  );
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
-    const pathname = url.pathname;
+    let pathname = url.pathname;
+
+    // Strip an optional trailing key segment (/p/<slug>/<key>,
+    // /c/<slug>/<key>) and enforce per-church keys before any routing.
+    {
+      const m = pathname.match(/^\/(p|c)\/([a-z0-9-]+)(?:\/([A-Za-z0-9_-]+))?\/?$/);
+      if (m) {
+        const scope = `${m[1]}/${m[2]}`;
+        const providedKey = m[3] ?? url.searchParams.get("key") ?? "";
+        pathname = `/${scope}`;
+        const secretName = PROTECTED_SCOPES[scope];
+        if (secretName && req.method !== "OPTIONS") {
+          const expected = (env as unknown as Record<string, string | undefined>)[secretName];
+          if (!expected) {
+            return keyGateResponse(503, "This private connector is not configured yet. Contact Sermon Steward.");
+          }
+          if (!providedKey) {
+            return keyGateResponse(401, "This church's Sermon Steward connector now requires a private key. Your new connector link was sent to you by email — remove the old connector and add the new link.");
+          }
+          if (!timingSafeEqualStr(providedKey, expected)) {
+            return keyGateResponse(401, "Invalid connector key. Use the private connector link sent to you by email.");
+          }
+        } else if (m[3]) {
+          return keyGateResponse(404, "Not found");
+        }
+      }
+    }
 
     // ─── CORS preflight ────────────────────────────────────────────────────
     if (req.method === "OPTIONS") {
@@ -171,7 +228,8 @@ export default {
           `connector in Claude Desktop, Claude.ai, or ChatGPT.\n\n` +
           `Public per-preacher endpoints:\n` +
           `  https://corpus-mcp.chris-386.workers.dev/p/<preacher-slug>\n` +
-          `  (example: /p/chris-oswald, /p/ricky-alcantar, /p/charles-spurgeon)\n\n` +
+          `  (example: /p/charles-spurgeon; church corpora use private\n` +
+          `  keyed links sent by email)\n\n` +
           `Public church-wide endpoints (all preachers at one church):\n` +
           `  https://corpus-mcp.chris-386.workers.dev/c/<church-slug>\n` +
           `  (example: /c/cross-of-grace-church)\n` +
@@ -199,7 +257,7 @@ export default {
         `Sermon Steward MCP — scoped to /p/${slug}\n\n` +
           `Add this URL as a Model Context Protocol connector in\n` +
           `Claude Desktop, Cowork, or ChatGPT to query this preacher's\n` +
-          `corpus. No auth required — sermon material is public.\n\n` +
+          `corpus.\n\n` +
           `Discovery + per-pastor pages:\n` +
           `  https://sermonsteward.com/pastors/${slug}\n`,
         { status: 200, headers: { "Content-Type": "text/plain" } },
@@ -218,8 +276,7 @@ export default {
         `Sermon Steward MCP — scoped to /c/${slug}\n\n` +
           `Whole-church corpus: every sermon from every preacher at this\n` +
           `church flows through here, properly attributed. Add this URL as\n` +
-          `an MCP connector in Claude Desktop, Cowork, or ChatGPT. No\n` +
-          `auth required — sermon material is public.\n\n` +
+          `an MCP connector in Claude Desktop, Cowork, or ChatGPT.\n\n` +
           (churchSpeakerFilter
             ? `Currently filtered to speaker: ${churchSpeakerFilter}\n\n`
             : `Add ?speaker=<preacher-slug> to narrow to one preacher\n` +
