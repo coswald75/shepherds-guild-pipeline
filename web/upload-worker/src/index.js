@@ -1,3 +1,5 @@
+import { presignR2UploadPart } from "./presign.js";
+
 /**
  * Sermon Steward — upload Worker
  * ─────────────────────────────────────────────────────────────────────────
@@ -82,6 +84,13 @@ async function route(request, env) {
   }
   if (action === "upload-part" && request.method === "PUT") {
     return handleUploadPart(request, env, church, url);
+  }
+  // Direct browser → R2 upload with presigned UploadPart URLs (preferred).
+  if (action === "direct-init" && request.method === "POST") {
+    return handleDirectInit(request, env, church);
+  }
+  if (action === "direct-abort" && request.method === "POST") {
+    return handleDirectAbort(request, env, church);
   }
   if (action === "upload-complete" && request.method === "POST") {
     return handleUploadComplete(request, env, church);
@@ -230,6 +239,57 @@ async function handleUploadComplete(request, env, church) {
   return jsonResponse({
     ok: true, sermon_id: sermon.id, hosted_audio_url: hostedUrl, sermon_slug: meta.sermonSlug,
   });
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Direct-to-R2 upload. The Worker opens an R2 multipart upload (binding),
+// signs one short-lived UploadPart URL per 50 MB part, and the browser PUTs
+// the parts straight to R2. upload-complete (above) then finishes the upload
+// and inserts the same tech_upload sermons row. Needs bucket CORS for this
+// origin with ETag exposed, and R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY secrets.
+// ───────────────────────────────────────────────────────────────────────────
+
+const DIRECT_PART_SIZE = 50 * 1024 * 1024;
+const DIRECT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+
+async function handleDirectInit(request, env, church) {
+  if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_ACCOUNT_ID) {
+    return jsonError(503, "Direct upload not configured");
+  }
+  const body = await request.json();
+  const meta = readMeta(body);
+  if (meta.error) return jsonError(400, meta.error);
+  const size = Number(body.size);
+  if (!(size > 0 && size <= DIRECT_MAX_BYTES)) return jsonError(400, "File size must be between 1 byte and 2 GB");
+  const key = `${church.slug}/${meta.sermonSlug}.mp3`;
+  const mpu = await env.AUDIO_BUCKET.createMultipartUpload(key, {
+    httpMetadata: {
+      contentType: meta.contentType,
+      cacheControl: "public, max-age=31536000, immutable",
+    },
+    customMetadata: { uploadedBy: "sermon-steward-upload", churchSlug: church.slug },
+  });
+  const count = Math.ceil(size / DIRECT_PART_SIZE);
+  const urls = [];
+  for (let i = 1; i <= count; i++) {
+    urls.push(await presignR2UploadPart({
+      accountId: env.R2_ACCOUNT_ID,
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      bucket: env.R2_BUCKET || "sermon-steward-audio",
+      key: mpu.key,
+      uploadId: mpu.uploadId,
+      partNumber: i,
+    }));
+  }
+  return jsonResponse({ key: mpu.key, upload_id: mpu.uploadId, part_size: DIRECT_PART_SIZE, urls });
+}
+
+async function handleDirectAbort(request, env, church) {
+  const body = await request.json();
+  if (!keyBelongs(body.key, church) || !body.upload_id) return jsonError(400, "Bad key");
+  await env.AUDIO_BUCKET.resumeMultipartUpload(body.key, body.upload_id).abort();
+  return jsonResponse({ ok: true });
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -681,6 +741,7 @@ const PAGE_HTML = `<!doctype html>
     $("progress").classList.add("show");
     $("progress-bar").style.width = "0%";
 
+    if (DIRECT_UPLOAD) return directUpload(file, fd);
     if (file.size > CHUNK_THRESHOLD) return chunkedUpload(file, fd);
 
     const xhr = new XMLHttpRequest();
@@ -743,6 +804,76 @@ const PAGE_HTML = `<!doctype html>
       xhr.onerror = () => reject(new Error("Network error"));
       xhr.send(blob);
     });
+  }
+
+  // Browser → R2 directly, via presigned part URLs from the Worker.
+  const DIRECT_UPLOAD = true;
+
+  function putDirect(url, blob, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.upload.onprogress = (evt) => { if (evt.lengthComputable) onProgress(evt.loaded); };
+      xhr.onload = () => {
+        const etag = xhr.getResponseHeader("ETag");
+        if (xhr.status >= 200 && xhr.status < 300 && etag) resolve(etag.replace(/"/g, ""));
+        else reject(new Error("Storage returned HTTP " + xhr.status));
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send(blob);
+    });
+  }
+
+  async function directUpload(file, fd) {
+    const q = \`token=\${encodeURIComponent(TOKEN)}\`;
+    const meta = {
+      title: fd.get("title"), date: fd.get("date"), preacher_id: fd.get("preacher_id"),
+      series: fd.get("series"), primary_text: fd.get("primary_text"),
+      content_type: file.type || "audio/mpeg",
+    };
+    let init = null;
+    try {
+      const r = await fetch(\`/\${SLUG}/api/direct-init?\${q}\`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...meta, size: file.size }),
+      });
+      const ib = await r.json();
+      if (!r.ok) throw new Error(ib.error || "Could not start upload");
+      init = ib;
+      const parts = [];
+      let done = 0;
+      for (let i = 0; i < init.urls.length; i++) {
+        const blob = file.slice(i * init.part_size, Math.min(file.size, (i + 1) * init.part_size));
+        let etag, tries = 0;
+        while (true) {
+          try {
+            etag = await putDirect(init.urls[i], blob, (loaded) => {
+              $("progress-bar").style.width = ((done + loaded) / file.size * 100) + "%";
+            });
+            break;
+          } catch (err) { if (++tries >= 3) throw err; }
+        }
+        done += blob.size;
+        parts.push({ part_number: i + 1, etag });
+      }
+      const c = await fetch(\`/\${SLUG}/api/upload-complete?\${q}\`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...meta, key: init.key, upload_id: init.upload_id, parts }),
+      });
+      const body = await c.json();
+      if (!c.ok || !body.ok) throw new Error(body.error || "Could not finish upload");
+      onUploaded();
+    } catch (err) {
+      if (init) {
+        fetch(\`/\${SLUG}/api/direct-abort?\${q}\`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: init.key, upload_id: init.upload_id }),
+        }).catch(() => {});
+      }
+      $("submit-btn").disabled = false;
+      $("progress").classList.remove("show");
+      showStatus("error", "Upload failed: " + (err.message || "unknown"));
+    }
   }
 
   async function chunkedUpload(file, fd) {

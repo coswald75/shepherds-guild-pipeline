@@ -16,6 +16,8 @@ routes = [
 [vars]
 R2_PUBLIC_BASE = "https://sermons-cdn.sermonsteward.com"
 SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
+R2_ACCOUNT_ID = "38642edcc9fafe172e2f3ca70013eff0"
+R2_BUCKET = "sermon-steward-audio"
 
 # R2 bucket binding — no S3 creds needed when called from the Worker itself.
 [[r2_buckets]]
@@ -24,3 +26,22 @@ bucket_name = "sermon-steward-audio"
 
 # Secrets (set via `wrangler secret put`):
 #   SUPABASE_SERVICE_KEY — service-role key for sermons/preachers/churches writes
+#   R2_ACCESS_KEY_ID     — R2 S3 API key (Object Read & Write on sermon-steward-audio)
+#   R2_SECRET_ACCESS_KEY — matching secret; used only to presign part URLs
+# Bucket CORS must allow PUT from https://upload.sermonsteward.com and expose ETag.
+
+# Preview copy for testing: `npx wrangler deploy --env preview`
+# → sermon-steward-upload-preview.chris-386.workers.dev (no custom domain).
+[env.preview]
+workers_dev = true
+routes = []
+
+[env.preview.vars]
+R2_PUBLIC_BASE = "https://sermons-cdn.sermonsteward.com"
+SUPABASE_URL = "https://twbunmbzyqcqzgffdrib.supabase.co"
+R2_ACCOUNT_ID = "38642edcc9fafe172e2f3ca70013eff0"
+R2_BUCKET = "sermon-steward-audio"
+
+[[env.preview.r2_buckets]]
+binding = "AUDIO_BUCKET"
+bucket_name = "sermon-steward-audio"
