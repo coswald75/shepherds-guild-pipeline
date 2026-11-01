@@ -76,6 +76,16 @@ async function route(request, env) {
   if (action === "upload" && request.method === "POST") {
     return handleUpload(request, env, church);
   }
+  // Chunked upload for files over the 100 MB Worker request-body cap.
+  if (action === "upload-init" && request.method === "POST") {
+    return handleUploadInit(request, env, church);
+  }
+  if (action === "upload-part" && request.method === "PUT") {
+    return handleUploadPart(request, env, church, url);
+  }
+  if (action === "upload-complete" && request.method === "POST") {
+    return handleUploadComplete(request, env, church);
+  }
 
   return jsonError(404, `Unknown action: ${action}`);
 }
@@ -134,6 +144,91 @@ async function handleUpload(request, env, church) {
     sermon_id: sermon.id,
     hosted_audio_url: hostedUrl,
     sermon_slug: sermonSlug,
+  });
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Chunked (R2 multipart) upload — each part is its own request, so no single
+// request body exceeds the 100 MB Worker cap. Same origin; uses the bucket
+// binding, so no presigning or bucket CORS is needed.
+// ───────────────────────────────────────────────────────────────────────────
+
+function readMeta(body) {
+  const meta = {
+    title: (body.title || "").toString().trim(),
+    date: (body.date || "").toString().trim(),
+    preacherId: (body.preacher_id || "").toString().trim(),
+    series: (body.series || "").toString().trim() || null,
+    primaryText: (body.primary_text || "").toString().trim() || null,
+    contentType: (body.content_type || "").toString() || "audio/mpeg",
+  };
+  if (!meta.title) return { error: "Missing title" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(meta.date)) return { error: "Date must be YYYY-MM-DD" };
+  if (!meta.preacherId) return { error: "Missing preacher_id" };
+  meta.sermonSlug = `${slugify(meta.title)}-${meta.date}`;
+  return meta;
+}
+
+function keyBelongs(key, church) {
+  return typeof key === "string" && key.startsWith(`${church.slug}/`) &&
+    /^[\w-]+\/[\w-]+\.mp3$/.test(key);
+}
+
+async function handleUploadInit(request, env, church) {
+  const meta = readMeta(await request.json());
+  if (meta.error) return jsonError(400, meta.error);
+  const key = `${church.slug}/${meta.sermonSlug}.mp3`;
+  const mpu = await env.AUDIO_BUCKET.createMultipartUpload(key, {
+    httpMetadata: {
+      contentType: meta.contentType,
+      cacheControl: "public, max-age=31536000, immutable",
+    },
+    customMetadata: { uploadedBy: "sermon-steward-upload", churchSlug: church.slug },
+  });
+  return jsonResponse({ key: mpu.key, upload_id: mpu.uploadId });
+}
+
+async function handleUploadPart(request, env, church, url) {
+  const key = url.searchParams.get("key") || "";
+  const uploadId = url.searchParams.get("upload_id") || "";
+  const partNumber = parseInt(url.searchParams.get("part") || "", 10);
+  if (!keyBelongs(key, church)) return jsonError(400, "Bad key");
+  if (!uploadId || !(partNumber >= 1 && partNumber <= 10000)) return jsonError(400, "Bad part");
+  if (!request.body) return jsonError(400, "Empty part");
+  const mpu = env.AUDIO_BUCKET.resumeMultipartUpload(key, uploadId);
+  const part = await mpu.uploadPart(partNumber, request.body);
+  return jsonResponse({ part_number: part.partNumber, etag: part.etag });
+}
+
+async function handleUploadComplete(request, env, church) {
+  const body = await request.json();
+  const meta = readMeta(body);
+  if (meta.error) return jsonError(400, meta.error);
+  const key = body.key;
+  if (!keyBelongs(key, church) || key !== `${church.slug}/${meta.sermonSlug}.mp3`) {
+    return jsonError(400, "Bad key");
+  }
+  const parts = (body.parts || []).map((p) => ({
+    partNumber: Number(p.part_number), etag: String(p.etag),
+  }));
+  if (!body.upload_id || !parts.length) return jsonError(400, "Missing parts");
+  const mpu = env.AUDIO_BUCKET.resumeMultipartUpload(key, body.upload_id);
+  await mpu.complete(parts);
+
+  const hostedUrl = `${env.R2_PUBLIC_BASE}/${key}`;
+  const sermon = await insertSermon(env, {
+    preacher_id: meta.preacherId,
+    title: meta.title,
+    date: meta.date,
+    slug: meta.sermonSlug,
+    series_name: meta.series,
+    primary_text: meta.primaryText,
+    audio_url: hostedUrl,
+    hosted_audio_url: hostedUrl,
+    upload_source: "tech_upload",
+  });
+  return jsonResponse({
+    ok: true, sermon_id: sermon.id, hosted_audio_url: hostedUrl, sermon_slug: meta.sermonSlug,
   });
 }
 
@@ -586,6 +681,8 @@ const PAGE_HTML = `<!doctype html>
     $("progress").classList.add("show");
     $("progress-bar").style.width = "0%";
 
+    if (file.size > CHUNK_THRESHOLD) return chunkedUpload(file, fd);
+
     const xhr = new XMLHttpRequest();
     xhr.open("POST", \`/\${SLUG}/api/upload?token=\${encodeURIComponent(TOKEN)}\`);
     xhr.upload.onprogress = (evt) => {
@@ -616,6 +713,81 @@ const PAGE_HTML = `<!doctype html>
       showStatus("error", "Network error. Check your connection and try again.");
     };
     xhr.send(fd);
+  }
+
+  // Files over ~95 MB go up in 50 MB parts (Workers reject bodies > 100 MB).
+  const CHUNK_THRESHOLD = 95 * 1024 * 1024;
+  const CHUNK_SIZE = 50 * 1024 * 1024;
+
+  function onUploaded() {
+    $("submit-btn").disabled = false;
+    $("progress").classList.remove("show");
+    showStatus("ok",
+      "Uploaded. Sermon Steward will email the pastor when the artifacts are ready (usually Tuesday morning).");
+    $("form").reset();
+    $("file-info").textContent = "";
+    $("drop-zone").classList.remove("has-file");
+    $("date").value = "__TODAY__";
+  }
+
+  function putPart(url, blob, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.upload.onprogress = (evt) => { if (evt.lengthComputable) onProgress(evt.loaded); };
+      xhr.onload = () => {
+        let body; try { body = JSON.parse(xhr.responseText); } catch (_) { body = {}; }
+        if (xhr.status >= 200 && xhr.status < 300 && body.etag) resolve(body);
+        else reject(new Error(body.error || xhr.statusText || ("HTTP " + xhr.status)));
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send(blob);
+    });
+  }
+
+  async function chunkedUpload(file, fd) {
+    const q = \`token=\${encodeURIComponent(TOKEN)}\`;
+    const meta = {
+      title: fd.get("title"), date: fd.get("date"), preacher_id: fd.get("preacher_id"),
+      series: fd.get("series"), primary_text: fd.get("primary_text"),
+      content_type: file.type || "audio/mpeg",
+    };
+    try {
+      const r = await fetch(\`/\${SLUG}/api/upload-init?\${q}\`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(meta),
+      });
+      const init = await r.json();
+      if (!r.ok) throw new Error(init.error || "Could not start upload");
+      const parts = [];
+      let done = 0;
+      const n = Math.ceil(file.size / CHUNK_SIZE);
+      for (let i = 0; i < n; i++) {
+        const blob = file.slice(i * CHUNK_SIZE, Math.min(file.size, (i + 1) * CHUNK_SIZE));
+        const url = \`/\${SLUG}/api/upload-part?\${q}&key=\${encodeURIComponent(init.key)}&upload_id=\${encodeURIComponent(init.upload_id)}&part=\${i + 1}\`;
+        let res, tries = 0;
+        while (true) {
+          try {
+            res = await putPart(url, blob, (loaded) => {
+              $("progress-bar").style.width = ((done + loaded) / file.size * 100) + "%";
+            });
+            break;
+          } catch (err) { if (++tries >= 3) throw err; }
+        }
+        done += blob.size;
+        parts.push(res);
+      }
+      const c = await fetch(\`/\${SLUG}/api/upload-complete?\${q}\`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...meta, key: init.key, upload_id: init.upload_id, parts }),
+      });
+      const body = await c.json();
+      if (!c.ok || !body.ok) throw new Error(body.error || "Could not finish upload");
+      onUploaded();
+    } catch (err) {
+      $("submit-btn").disabled = false;
+      $("progress").classList.remove("show");
+      showStatus("error", "Upload failed: " + (err.message || "unknown"));
+    }
   }
 
   function showStatus(kind, msg) {
