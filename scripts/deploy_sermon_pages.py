@@ -321,6 +321,26 @@ def rebuild_church_indexes(dry_run: bool, church_slugs: list[str]) -> None:
         log.warning(f"  build_church_indexes.py exited with {r.returncode} — continuing")
 
 
+def refresh_church_pages(sermons: list[dict], church_slugs: list[str], dry_run: bool) -> None:
+    """Add the just-published sermons to each church landing page's
+    "Full sermon index" (e.g. /ProvidenceLenexa/). build_church_indexes.py
+    only rebuilds the /sermons/ listings, so without this the church page
+    lagged a week behind. Add-only; pages without the accordion markers
+    (other churches) are untouched. Never fails the deploy."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from church_page_index import add_sermons_to_church_page
+    for slug in church_slugs:
+        rows = [s for s in sermons if s["preachers"]["churches"]["slug"] == slug]
+        try:
+            added = add_sermons_to_church_page(SS_REPO / CHURCH_DIR[slug], rows, dry_run=dry_run)
+        except Exception as e:  # keep publishing even if the church page can't be updated
+            log.warning(f"  church page sermon index not updated for {slug}: {e}")
+            continue
+        if added:
+            verb = "WOULD ADD" if dry_run else "added"
+            log.info(f"  {verb} to {CHURCH_DIR[slug]}/index.html sermon index: {', '.join(added)}")
+
+
 def commit_and_push(
     paths_touched: list[Path],
     message: str,
@@ -474,6 +494,7 @@ def main() -> int:
     church_slugs = published_church_slugs(sermons, paths_touched)
     church_dirs = [CHURCH_DIR[s] for s in church_slugs]
     rebuild_church_indexes(dry_run=args.dry_run, church_slugs=church_slugs)
+    refresh_church_pages(sermons, church_slugs, dry_run=args.dry_run)
 
     message = args.message or (
         f"Deploy {len(paths_touched)} sermon page(s) — "
