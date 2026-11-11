@@ -144,19 +144,39 @@ def youtube(church: dict, week: str) -> dict | None:
 
 
 # ── Grace Life (WordPress resource pages; the resource feed has no enclosures) ──
+def _gl_post_date(page: str):
+    """Date (Central Time) the church posted this /resource/ page, from its JSON-LD datePublished."""
+    m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', page) or re.search(r'article:published_time"\s+content="([^"]+)"', page)
+    if not m: return None
+    try:
+        dt = datetime.fromisoformat(m.group(1).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None: dt = dt.replace(tzinfo=CT)
+    return dt.astimezone(CT).date()
+
+
 def gracelife(church: dict, week: str) -> dict | None:
+    """Newest /resource/ post dated that Sunday (site post date, Central Time); use whatever MP3 it carries.
+    No date is required in the file name (Chad-Haygood-9-27-26.mp3, Chad-Haygood-2026-10-18.mp3,
+    Mike-Lambelet-10.25.2026.mp3 all occur). Pages with no readable post date fall back to a date in the MP3 name."""
     d, lo, hi = sunday_window(week)
-    tok = f"{d.month}-{d.day}-{d.strftime('%y')}"
     listing = http_get(church["gracelife"]).text
     links = []
     for href in re.findall(r'href="(https://www\.gracelifene\.org/resource/[a-z0-9-]+/)"', listing):
         if href.endswith(("/feed/", "/resource/")) or "/page/" in href or href in links: continue
         links.append(href)
-    for href in links[:8]:
+    for href in links[:8]:   # the listing is newest first, so the first match is the newest post for that Sunday
         page = http_get(href).text
-        mp3s = re.findall(r'https://[^"\'\s<>]+\.mp3', page)
-        hit = next((u for u in mp3s if re.search(rf"(?<!\d){re.escape(tok)}(?!\d)", u)), None)
-        if not hit: continue
+        mp3s = list(dict.fromkeys(re.findall(r'https://[^"\'\s<>]+\.mp3', page)))
+        if not mp3s: continue
+        posted = _gl_post_date(page)
+        if posted is not None:
+            if posted != d: continue
+            hit = mp3s[0]
+        else:
+            hit = next((u for u in mp3s if has_date(u.rsplit("/", 1)[-1], d)), None)
+            if not hit: continue
         t = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S) or re.search(r"<title>(.*?)</title>", page, re.S)
         title = htmlmod.unescape(re.sub(r"<[^>]+>", "", t.group(1))).split("|")[0].split(" – ")[0].strip() if t else None
         name = re.match(r"([A-Za-z]+)-([A-Za-z]+)-\d", hit.rsplit("/", 1)[-1])
