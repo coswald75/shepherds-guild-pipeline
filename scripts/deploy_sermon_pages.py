@@ -159,23 +159,36 @@ def resolve_sermons(
 ) -> list[dict]:
     """Fetch the sermon rows to be deployed based on the selected mode."""
     base = sb.table("sermons").select(
-        "id, slug, title, date, last_rendered_at, "
+        "id, slug, title, date, last_rendered_at, unlisted, "
         "preacher_id, preachers!inner(church_id, churches!inner(slug))"
     )
 
+    def _listed(rows: list[dict]) -> list[dict]:
+        # sermons.unlisted is the reversible hide flag. Hidden rows stay in
+        # Supabase but must not be copied back onto the public site.
+        kept, skipped = [], 0
+        for row in rows or []:
+            if row.get("unlisted"):
+                skipped += 1
+                continue
+            kept.append(row)
+        if skipped:
+            log.info(f"  skipped {skipped} unlisted sermon(s)")
+        return kept
+
     if ids:
         res = base.in_("id", ids).execute()
-        return res.data or []
+        return _listed(res.data or [])
 
     if since:
         res = base.gte("last_rendered_at", since.isoformat()).execute()
-        return res.data or []
+        return _listed(res.data or [])
 
     if all_stale:
         # Pull all sermons with last_rendered_at set; we'll filter in
         # Python by comparing source mtime vs deploy mtime.
         res = base.not_.is_("last_rendered_at", "null").execute()
-        return res.data or []
+        return _listed(res.data or [])
 
     return []
 

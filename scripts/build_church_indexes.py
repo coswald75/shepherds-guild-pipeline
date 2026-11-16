@@ -677,6 +677,7 @@ def _gather_books_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .order("id")
         .execute().data or []
@@ -950,6 +951,7 @@ def _gather_series_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .not_.is_("series_name", "null")
         .execute().data or []
@@ -1129,6 +1131,7 @@ def _gather_loci_for_church(
         sb.table("sermons")
         .select("id, title, date, slug, primary_text, series_name")
         .in_("preacher_id", preacher_ids)
+        .eq("unlisted", False)
         .not_.is_("slug", "null")
         .order("id")
         .execute().data or []
@@ -1415,6 +1418,7 @@ def main(argv=None) -> int:
             sb.table("sermons")
             .select("id, title, date, slug, primary_text, series_name")
             .in_("preacher_id", preacher_ids)
+            .eq("unlisted", False)
             .not_.is_("main_thesis", "null")
             .not_.is_("date", "null")
             .not_.is_("slug", "null")
@@ -1425,6 +1429,8 @@ def main(argv=None) -> int:
             .data
             or []
         )
+        sermons_dir = SERMON_STEWARD_REPO / c["url_slug"] / "sermons"
+        sermons = [s for s in sermons if (sermons_dir / f"{s['slug']}.html").exists()]
         # Filter to those with the full 6-artifact pastoral bundle (or more —
         # newer sermons may carry imperatives_indicatives + sermon_scraps too).
         # Existing 145-sermon corpus has exactly 6 artifacts each; new sermons
